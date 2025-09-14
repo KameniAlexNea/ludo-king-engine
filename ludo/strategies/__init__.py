@@ -6,16 +6,16 @@ from .balanced import BalancedStrategy
 from .base import Strategy
 from .cautious import CautiousStrategy
 from .defensive import DefensiveStrategy
-from .hybrid_prob import HybridConfig, HybridProbStrategy
 from .killer import KillerStrategy
 from .llm import LLMStrategy
 from .optimist import OptimistStrategy
 from .probabilistic import ProbabilisticStrategy
-from .probabilistic_v2 import ProbabilisticV2Strategy
-from .probabilistic_v3 import ProbabilisticV3Strategy, V3Config
 from .random_strategy import RandomStrategy
 from .weighted_random import WeightedRandomStrategy
 from .winner import WinnerStrategy
+from .gpt_strategy import GPTStrategy
+from .claude_strategy import ClaudeStrategy
+from .local_llm_strategy import LocalLLMStrategy
 
 # Strategy Mapping - Centralized mapping of strategy names to classes
 STRATEGIES: dict[str, Strategy] = {
@@ -25,13 +25,13 @@ STRATEGIES: dict[str, Strategy] = {
     "defensive": DefensiveStrategy,
     "balanced": BalancedStrategy,
     "probabilistic": ProbabilisticStrategy,
-    "probabilistic_v3": ProbabilisticV3Strategy,
-    "probabilistic_v2": ProbabilisticV2Strategy,
-    "hybrid_prob": HybridProbStrategy,
     "random": RandomStrategy,
     "weighted_random": WeightedRandomStrategy,
     "cautious": CautiousStrategy,
     "llm": LLMStrategy,
+    "gpt": GPTStrategy,
+    "claude": ClaudeStrategy,
+    "local_llm": LocalLLMStrategy,
 }
 
 __all__ = [
@@ -42,13 +42,12 @@ __all__ = [
     "DefensiveStrategy",
     "BalancedStrategy",
     "ProbabilisticStrategy",
-    "ProbabilisticV2Strategy",
-    "HybridProbStrategy",
     "RandomStrategy",
     "WeightedRandomStrategy",
     "CautiousStrategy",
     "LLMStrategy",
+    "GPTStrategy",
+    "ClaudeStrategy",
+    "LocalLLMStrategy",
     "STRATEGIES",
-    "V3Config",
-    "HybridConfig",
 ]
