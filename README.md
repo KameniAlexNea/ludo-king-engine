@@ -1,125 +1,221 @@
-# Ludo King Engine
+# Ludo Core Engine
 
-Pure Python implementation of the Ludo board game engine extracted from [KameniAlexNea/ludo-king-ai](https://github.com/KameniAlexNea/ludo-king-ai).
-
-## Overview
-
-This repository contains a complete, self-contained Ludo game engine with:
-
-- **Deterministic game mechanics**: Board logic, token movement, capture resolution
-- **Strategy framework**: Extensible system supporting multiple AI strategies
-- **Clean architecture**: Separation of game mechanics and strategy implementation
-- **Minimal dependencies**: Standard library focused with optional extensions
+A pure Python implementation of the Ludo game, built for reinforcement learning and strategy testing. The engine defines deterministic rules, cleanly separates game mechanics from strategies, and requires no external libraries.
 
 ## Features
 
-- ✅ Complete Ludo game implementation following standard rules
-- ✅ Multiple built-in AI strategies (random, killer, defensive, balanced, etc.)
-- ✅ Extensible strategy system for custom AI implementations
-- ✅ LLM strategy support (optional dependency)
-- ✅ RL environment compatibility (optional dependency)
-- ✅ Comprehensive game state tracking and history
-- ✅ Support for 2-4 players
+- **Pure Python Implementation**: No external dependencies required
+- **Deterministic Gameplay**: Reproducible games with seed support
+- **Strategy Framework**: Extensible strategy system with multiple built-in strategies
+- **Clean Architecture**: Separated game mechanics from AI strategies
+- **Comprehensive Analysis**: Detailed game state tracking and statistics
+- **Tournament Support**: Multi-game competition framework
+
+## Core Components
+
+### Game Mechanics
+- **Board**: Game board representation with 56 positions and safe zones
+- **Token**: Individual game pieces with position and state tracking
+- **Player**: Player management with token lifecycle and statistics
+- **Game**: Main game flow controller with turn management
+
+### Strategy Framework
+- **Heuristic Strategies**: Random, Killer, Defensive, Balanced
+- **Advanced Strategies**: Cautious, Optimist, Winner, Probabilistic
+- **LLM-Ready**: Extensible framework for LLM-driven strategies
+- **Strategy Factory**: Easy instantiation and management of strategies
 
 ## Quick Start
 
-### Installation
-
-```bash
-# Basic installation
-pip install -e .
-
-# With LLM strategy support
-pip install -e ".[llm]"
-
-# With RL environment support
-pip install -e ".[rl]"
-
-# Full installation with all optional dependencies
-pip install -e ".[all]"
-```
-
-### Basic Usage
-
 ```python
-from ludo.game import LudoGame
-from ludo.player import PlayerColor
-from ludo.strategy import StrategyFactory
+from ludo_engine import LudoGame, StrategyFactory
 
-# Create a game with 4 players
-game = LudoGame(player_colors=[PlayerColor.RED, PlayerColor.BLUE, PlayerColor.GREEN, PlayerColor.YELLOW])
+# Create a game with different strategies
+game = LudoGame(
+    player_colors=['red', 'blue', 'green', 'yellow'],
+    strategies=['random', 'killer', 'defensive', 'balanced'],
+    seed=42  # For reproducible results
+)
 
-# Set different strategies for each player
-strategies = ['killer', 'defensive', 'balanced', 'random']
-for i, strategy_name in enumerate(strategies):
-    game.players[i].strategy = StrategyFactory.create_strategy(strategy_name)
-
-# Play the game
-while not game.game_over:
-    # Get current player and dice roll
-    current_player = game.get_current_player()
-    dice_value = game.roll_dice()
-    
-    # Get valid moves
-    valid_moves = game.get_valid_moves(current_player, dice_value)
-    
-    # Strategy decides the move
-    if valid_moves:
-        # Get AI decision context
-        context = game.get_ai_decision_context(dice_value)
-        token_id = current_player.strategy.decide(context)
-        
-        # Execute the move
-        result = game.execute_move(current_player, token_id, dice_value)
-        print(f"Player {current_player.color.value} moved token {token_id}")
-        
-        # Check for extra turn
-        if not result.get('extra_turn', False):
-            game.next_turn()
-    else:
-        # No valid moves, next player's turn
-        game.next_turn()
-
-print(f"Game over! Winner: {game.winner.color.value if game.winner else 'None'}")
+# Play a complete game
+results = game.play_game()
+print(f"Winner: {results['winner']}")
+print(f"Turns played: {results['turns_played']}")
 ```
+
+## Available Strategies
+
+| Strategy | Description |
+|----------|-------------|
+| **Random** | Randomly selects from available moves |
+| **Killer** | Prioritizes capturing opponent tokens |
+| **Defensive** | Prioritizes safe moves and protecting tokens |
+| **Balanced** | Balances offensive and defensive considerations |
+| **Cautious** | Very conservative, minimizes risk |
+| **Optimist** | Aggressive, takes calculated risks |
+| **Winner** | Focuses on getting tokens to finish quickly |
+| **Probabilistic** | Uses probability calculations for decisions |
+
+## Game Rules
+
+- Standard Ludo rules with 4 players (2-4 supported)
+- Each player has 4 tokens starting at home
+- Roll 6 to get tokens out of home
+- 57 steps required to finish (1 to start + 56 around board)
+- Capture opponent tokens by landing on them (except safe positions)
+- Rolling 6 or capturing gives another turn
+- Maximum 3 consecutive 6s before turn ends
+- First player to get all 4 tokens finished wins
+
+## Examples
+
+### Basic Game
+```python
+from ludo_engine import LudoGame
+
+# Simple 2-player game
+game = LudoGame(['red', 'blue'], ['random', 'killer'])
+results = game.play_game()
+```
+
+### Strategy Comparison
+```python
+# Compare different strategies
+strategies = ['random', 'killer', 'defensive', 'balanced']
+wins = {s: 0 for s in strategies}
+
+for i in range(100):  # Play 100 games
+    game = LudoGame(['red', 'blue', 'green', 'yellow'], strategies)
+    results = game.play_game()
+    
+    if results['winner']:
+        # Find winning strategy
+        for player in game.players:
+            if player.color == results['winner']:
+                wins[player.strategy.name.lower()] += 1
+                break
+
+print("Win rates:", wins)
+```
+
+### Custom Strategy
+```python
+from ludo_engine.strategies import BaseStrategy
+
+class MyStrategy(BaseStrategy):
+    def __init__(self):
+        super().__init__("MyStrategy")
+    
+    def choose_move(self, movable_tokens, dice_roll, game_state):
+        # Implement your strategy logic here
+        return movable_tokens[0] if movable_tokens else None
+
+# Register and use your strategy
+from ludo_engine.strategies import StrategyFactory
+StrategyFactory.register_strategy('my_strategy', MyStrategy)
+
+game = LudoGame(['red', 'blue'], ['my_strategy', 'balanced'])
+```
+
+### Game Analysis
+```python
+# Detailed game analysis
+game = LudoGame(['red', 'blue'], ['balanced', 'probabilistic'])
+game.start_game()
+
+while not game.is_finished():
+    current_player = game.get_current_player()
+    turn_result = game.play_turn()
+    
+    print(f"Player {current_player.color}: "
+          f"Rolled {turn_result['dice_roll']}, "
+          f"Move: {turn_result['move_made']}")
+    
+    if turn_result['captured_tokens']:
+        print(f"  Captured {len(turn_result['captured_tokens'])} tokens!")
+
+final_results = game.get_game_results()
+```
+
+## Use Cases
+
+### Reinforcement Learning
+- **State Representation**: Complete game state available as dictionaries
+- **Action Space**: Clear move choices with valid action filtering
+- **Reward Signals**: Win/loss, captures, progress tracking
+- **Deterministic**: Reproducible training with seeds
+
+### Strategy Research
+- **A/B Testing**: Compare strategy performance
+- **Tournament Mode**: Multi-strategy competitions
+- **Statistical Analysis**: Detailed game statistics
+- **Custom Strategies**: Easy to implement and test new approaches
+
+### Educational
+- **Game Theory**: Study strategic decision making
+- **Probability**: Analyze dice roll impacts and risk assessment
+- **AI Development**: Learn game AI programming
+- **Algorithm Comparison**: Benchmark different approaches
 
 ## Architecture
 
-The engine is organized into clean, modular components:
+```
+ludo_engine/
+├── core/
+│   ├── board.py      # Game board logic
+│   ├── token.py      # Token mechanics
+│   ├── player.py     # Player management
+│   └── game.py       # Main game engine
+├── strategies/
+│   ├── base_strategy.py    # Strategy interface
+│   ├── heuristic.py        # Basic strategies
+│   ├── advanced.py         # Advanced strategies
+│   └── factory.py          # Strategy factory
+└── utils/
+    └── # Utility functions (future expansion)
+```
 
-### Core Components
+## Requirements
 
-- **`ludo/game.py`**: Main game orchestration and flow control
-- **`ludo/board.py`**: Board logic and spatial rules
-- **`ludo/player.py`**: Player state and token management
-- **`ludo/token.py`**: Individual token state and movement
-- **`ludo/constants.py`**: Game constants and configuration
+- Python 3.7+
+- No external dependencies (pure Python)
 
-### Strategy System
+## Installation
 
-- **`ludo/strategy.py`**: Strategy factory and registry
-- **`ludo/strategies/base.py`**: Base strategy interface
-- **`ludo/strategies/`**: Built-in strategy implementations
+1. Clone the repository:
+```bash
+git clone https://github.com/KameniAlexNea/ludo-king-engine.git
+cd ludo-king-engine
+```
 
-Available strategies:
-- `random`: Random valid move selection
-- `killer`: Aggressive capture-focused strategy
-- `defensive`: Safety and risk avoidance
-- `balanced`: Mixed risk/reward approach
-- `cautious`: Minimal exposure strategy
-- `optimist`: Progress and finishing emphasis
-- `winner`: Finishing acceleration
-- `probabilistic*`: Experimental probability-based strategies
-- `llm_strategy`: LLM-powered decision making (requires LLM dependencies)
+2. Run tests:
+```bash
+python tests/test_basic.py
+python tests/test_completion.py
+```
 
-## Documentation
+3. Try the examples:
+```bash
+python examples/comprehensive_demo.py
+```
 
-For detailed documentation about the game engine, see [ludo/README.md](ludo/README.md).
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Credits
+## Roadmap
 
-This engine was extracted from the [ludo-king-ai](https://github.com/KameniAlexNea/ludo-king-ai) project by KameniAlexNea.
+- [ ] LLM-powered strategies integration
+- [ ] Web-based game visualization
+- [ ] Multi-threading for tournament simulations
+- [ ] Advanced statistical analysis tools
+- [ ] Export/import game replay functionality
+- [ ] Custom board layouts and rule variations
