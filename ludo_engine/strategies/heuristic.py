@@ -110,7 +110,9 @@ class BalancedStrategy(BaseStrategy):
         scored_moves.sort(key=lambda x: x[1], reverse=True)
         return scored_moves[0][0]
 
-    def evaluate_move(self, token: Token, dice_roll: int, game_state: GameStateData) -> float:
+    def evaluate_move(
+        self, token: Token, dice_roll: int, game_state: GameStateData
+    ) -> float:
         """Evaluate move considering multiple factors."""
         score = 0.0
 

@@ -142,7 +142,9 @@ class ProbabilisticStrategy(BaseStrategy):
 
         return value
 
-    def calculate_capture_risk(self, token: Token, dice_roll: int, game_state: GameStateData) -> float:
+    def calculate_capture_risk(
+        self, token: Token, dice_roll: int, game_state: GameStateData
+    ) -> float:
         """Calculate probability of being captured after this move."""
         if not token.can_move(dice_roll):
             return 0.0

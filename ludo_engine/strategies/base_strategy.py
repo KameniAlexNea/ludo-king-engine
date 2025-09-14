@@ -59,7 +59,9 @@ class BaseStrategy(ABC):
             The token to move, or None if no move should be made
         """
 
-    def evaluate_move(self, token: "Token", dice_roll: int, game_state: "GameStateData") -> float:
+    def evaluate_move(
+        self, token: "Token", dice_roll: int, game_state: "GameStateData"
+    ) -> float:
         """
         Evaluate the desirability of moving a specific token.
 
@@ -114,7 +116,9 @@ class BaseStrategy(ABC):
 
         return opponent_tokens
 
-    def is_move_safe(self, token: "Token", dice_roll: int, game_state: "GameStateData") -> bool:
+    def is_move_safe(
+        self, token: "Token", dice_roll: int, game_state: "GameStateData"
+    ) -> bool:
         """
         Check if a move would leave the token in a safe position.
 
