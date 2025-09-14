@@ -92,13 +92,6 @@ class LudoTournament:
         # Use config defaults
         tournament = LudoTournament(['random', 'killer'])
 
-        # Override specific settings
-        tournament = LudoTournament(
-            strategies=['random', 'killer'],
-            max_turns=100,
-            games_per_match=3
-        )
-
         # Custom config
         custom_config = TournamentConfig()
         tournament = LudoTournament(['random', 'killer'], config=custom_config)
@@ -107,9 +100,6 @@ class LudoTournament:
     def __init__(
         self,
         strategies: List[str],
-        games_per_match: Optional[int] = None,
-        seed: Optional[int] = None,
-        max_turns: Optional[int] = None,
         config: Optional[TournamentConfig] = None,
     ):
         """
@@ -117,26 +107,15 @@ class LudoTournament:
 
         Args:
             strategies: List of strategy names to compete
-            games_per_match: Number of games per match (default from config)
-            seed: Random seed for reproducible results (default from config)
-            max_turns: Maximum turns per game (default from config)
             config: TournamentConfig instance (default: global config)
         """
         # Use provided config or global config
         self.config = config or TournamentConfig()
 
-        # Set defaults from config if not provided
-        if games_per_match is None:
-            games_per_match = self.config.games_per_match
-        if seed is None and self.config.seed is not None:
-            seed = self.config.seed
-        if max_turns is None:
-            max_turns = self.config.max_turns
-
         self.strategies = strategies
-        self.games_per_match = games_per_match
-        self.seed = seed
-        self.max_turns = max_turns
+        self.games_per_match = self.config.games_per_match
+        self.seed = self.config.seed
+        self.max_turns = self.config.max_turns
 
         # Validate strategies
         available_strategies = StrategyFactory.get_available_strategies()
@@ -154,8 +133,8 @@ class LudoTournament:
         self.match_results: List[MatchResult] = []
         self.completed = False
 
-        if seed is not None:
-            random.seed(seed)
+        if self.seed is not None:
+            random.seed(self.seed)
 
     def _play_match(self, home_strategy: str, away_strategy: str) -> MatchResult:
         """
