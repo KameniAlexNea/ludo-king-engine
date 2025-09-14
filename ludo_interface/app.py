@@ -8,8 +8,20 @@ visualizing board states, and comparing different AI strategies.
 import base64
 import io
 import json
+import os
+import sys
 import time
 from typing import Dict, List, Optional
+
+# Add the project root to the path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Set up Gradio directories to fix folder creation while saving cache
+os.environ.setdefault("GRADIO_TEMP_DIR", os.path.join(os.getcwd(), "gradio_runtime"))
+os.environ.setdefault(
+    "GRADIO_CACHE_DIR",
+    os.path.join(os.getcwd(), "gradio_runtime", "cache"),
+)
 
 try:
     import gradio as gr
@@ -39,14 +51,19 @@ def _img_to_data_uri(pil_img):
 
 def _init_game(strategies: List[str]) -> LudoGame:
     """Initialize a new game with the specified strategies."""
-    # Ensure we have 4 strategies
-    while len(strategies) < 4:
-        strategies.append('random')
-    strategies = strategies[:4]
+    # Filter out None strategies and ensure minimum 2 players
+    valid_strategies = [s for s in strategies if s is not None]
+    
+    if len(valid_strategies) < 2:
+        raise ValueError("At least 2 strategies are required to start a game")
+    
+    # Limit to maximum 4 players
+    valid_strategies = valid_strategies[:4]
+    n_players = len(valid_strategies)
     
     game = LudoGame(
-        player_colors=DEFAULT_COLORS,
-        strategies=strategies,
+        player_colors=DEFAULT_COLORS[:n_players],
+        strategies=valid_strategies,
         seed=None  # Use random seed for variety
     )
     game.start_game()  # Important: start the game!
@@ -192,7 +209,11 @@ def launch_app():
         
         def init_new_game(*strategies):
             """Initialize a new game with selected strategies."""
-            game = _init_game(list(strategies))
+            strategies_list = [s for s in strategies if s is not None]
+            if len(strategies_list) < 2:
+                raise ValueError("At least 2 strategies must be selected to start a game")
+            
+            game = _init_game(strategies_list)
             game_dict = tokens_to_dict(game)
             board_img = draw_board(game_dict, show_ids=True)
             board_html = _img_to_data_uri(board_img)
@@ -228,11 +249,15 @@ def launch_app():
                 return None, None, "No game initialized", history
             
             for _ in range(int(num_steps)):
-                if game.is_finished():
-                    break
-                
                 game, move_desc, game_dict = _play_step(game)
                 history = history + [move_desc]
+                
+                # Break if game is over
+                if "Game over" in move_desc or "GAME OVER" in move_desc:
+                    board_img = draw_board(game_dict, show_ids=show_token_ids)
+                    board_html = _img_to_data_uri(board_img)
+                    yield game, board_html, move_desc, history
+                    break
                 
                 if len(history) > 50:
                     history = history[-50:]
@@ -264,8 +289,18 @@ def launch_app():
         
         def run_tournament(num_games_val, *strategies):
             """Run a tournament with multiple games."""
-            strategies_list = list(strategies)
-            win_counts = {color: 0 for color in DEFAULT_COLORS}
+            # Filter out None strategies and ensure minimum 2 players
+            strategies_list = [s for s in strategies if s is not None]
+            if len(strategies_list) < 2:
+                return "Error: At least 2 strategies must be selected for tournament"
+            
+            # Limit to maximum 4 players
+            strategies_list = strategies_list[:4]
+            n_players = len(strategies_list)
+            
+            # Initialize win counts only for active players
+            active_colors = DEFAULT_COLORS[:n_players]
+            win_counts = {color: 0 for color in active_colors}
             total_turns = 0
             
             for game_num in range(int(num_games_val)):
@@ -297,7 +332,8 @@ def launch_app():
             
             for i, (color, wins) in enumerate(sorted_results):
                 win_rate = (wins / max(1, total_games)) * 100
-                strategy_name = strategies_list[DEFAULT_COLORS.index(color)]
+                color_index = active_colors.index(color)
+                strategy_name = strategies_list[color_index]
                 
                 emoji = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else "  "
                 results_text += f"{emoji} {color.title()} ({strategy_name}): {wins} wins ({win_rate:.1f}%)\n"
