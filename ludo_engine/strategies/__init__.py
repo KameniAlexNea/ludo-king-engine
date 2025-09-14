@@ -3,35 +3,35 @@ Strategy implementations for the Ludo engine.
 
 This module provides various strategy implementations:
 - Heuristic strategies: random, killer, defensive, balanced
-- Advanced strategies: cautious, optimist, winner, probabilistic  
+- Advanced strategies: cautious, optimist, winner, probabilistic
 - LLM-driven strategies
 - Strategy factory for easy instantiation
 """
 
+from .advanced import (
+    CautiousStrategy,
+    OptimistStrategy,
+    ProbabilisticStrategy,
+    WinnerStrategy,
+)
 from .base_strategy import BaseStrategy
 from .factory import StrategyFactory
 from .heuristic import (
-    RandomStrategy,
-    KillerStrategy, 
+    BalancedStrategy,
     DefensiveStrategy,
-    BalancedStrategy
-)
-from .advanced import (
-    CautiousStrategy,
-    OptimistStrategy, 
-    WinnerStrategy,
-    ProbabilisticStrategy
+    KillerStrategy,
+    RandomStrategy,
 )
 
 __all__ = [
     "BaseStrategy",
-    "StrategyFactory", 
+    "StrategyFactory",
     "RandomStrategy",
     "KillerStrategy",
-    "DefensiveStrategy", 
+    "DefensiveStrategy",
     "BalancedStrategy",
     "CautiousStrategy",
     "OptimistStrategy",
-    "WinnerStrategy", 
-    "ProbabilisticStrategy"
+    "WinnerStrategy",
+    "ProbabilisticStrategy",
 ]

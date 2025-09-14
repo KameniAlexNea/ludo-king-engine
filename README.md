@@ -1,5 +1,8 @@
 # Ludo Core Engine
 
+[![CI](https://github.com/KameniAlexNea/ludo-king-engine/actions/workflows/test-ci.yml/badge.svg)](https://github.com/KameniAlexNea/ludo-king-engine/actions/workflows/test-ci.yml)
+[![Coverage](https://codecov.io/gh/KameniAlexNea/ludo-king-engine/branch/main/graph/badge.svg)](https://codecov.io/gh/KameniAlexNea/ludo-king-engine)
+
 A pure Python implementation of the Ludo game, built for reinforcement learning and strategy testing. The engine defines deterministic rules, cleanly separates game mechanics from strategies, and requires no external libraries.
 
 ## Features
@@ -55,6 +58,58 @@ print(f"Turns played: {results['turns_played']}")
 | **Optimist** | Aggressive, takes calculated risks |
 | **Winner** | Focuses on getting tokens to finish quickly |
 | **Probabilistic** | Uses probability calculations for decisions |
+
+## Tournament Performance Results
+
+Here's a sample tournament performance showing how different strategies compete in a league format:
+
+```
+🎮 LUDO STRATEGY TOURNAMENT
+==================================================
+🎛️ Configuration loaded from .env file:
+   Max turns per game: 200
+   Games per match: 10
+   Default strategies: random, killer, defensive, balanced, cautious, optimist, winner, probabilistic
+   Verbose logging: True
+
+🚀 Starting tournament...
+🏆 Ludo Strategy Tournament
+📊 8 teams competing
+🎮 10 game(s) per match
+🏠 Home and away format
+
+🏁 Tournament completed!
+
+🏆 FINAL LEAGUE TABLE
+=====================================================================================
+Pos Team            P   W   D   L   GF  GA  GD   Pts  Win%  
+-------------------------------------------------------------------------------------
+1   balanced        14  13  0   1   13  1   +12  39   92.9   🥇
+2   probabilistic   14  9   3   2   9   2   +7   30   64.3   🥈
+3   cautious        14  9   1   4   9   4   +5   28   64.3   🥉
+4   defensive       14  6   2   6   6   6   0    20   42.9   
+5   optimist        14  5   2   7   5   7   -2   17   35.7   
+6   killer          14  4   0   10  4   10  -6   12   28.6   
+7   winner          14  3   1   10  3   10  -7   10   21.4   
+8   random          14  2   1   11  2   11  -9   7    14.3   🔻
+-------------------------------------------------------------------------------------
+Legend: P=Played, W=Won, D=Draw, L=Lost, GF=Goals For, GA=Goals Against, GD=Goal Difference
+
+🏆 CHAMPION: balanced
+   📊 39 points from 14 games
+   🎯 92.9% win rate
+
+📈 TOURNAMENT STATISTICS:
+   🎮 Total matches played: 56
+   📊 Draws: 5 (8.9%)
+   ⏱️  Average game length: 144.1 turns
+```
+
+**Key Insights:**
+- **Balanced** strategy dominates with 92.9% win rate
+- **Probabilistic** and **Cautious** strategies perform well in 2nd and 3rd
+- **Random** strategy has the lowest performance as expected
+- Tournament format provides comprehensive strategy comparison
 
 ## Game Rules
 

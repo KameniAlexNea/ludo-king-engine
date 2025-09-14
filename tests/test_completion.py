@@ -1,38 +1,39 @@
 """
-Quick test to verify game completion works.
+Test to verify game completion works.
 """
 
-import sys
 import os
+import sys
+import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ludo_engine import LudoGame
+from ludo_engine.core.model import GameResults
 
-def test_game_completion():
-    """Test that games can complete properly."""
-    print("Testing game completion...")
-    
-    # Create a simple 2-player game
-    game = LudoGame(['red', 'blue'], ['random', 'random'], seed=42)
-    
-    print("Playing game until completion...")
-    results = game.play_game(max_turns=1000)
-    
-    print(f"Game completed!")
-    print(f"Winner: {results['winner']}")
-    print(f"Turns: {results['turns_played']}")
-    print(f"Total moves: {results['total_moves']}")
-    
-    # Show final token positions
-    for stats in results['player_stats']:
-        print(f"{stats['color']}: {stats['tokens_finished']} tokens finished")
-        
-    return results['winner'] is not None
+
+class TestGameCompletion(unittest.TestCase):
+    """Test cases for game completion functionality."""
+
+    def test_game_completion(self):
+        """Test that games can complete properly."""
+        # Create a simple 2-player game
+        game = LudoGame(["red", "blue"], ["random", "random"], seed=42)
+
+        results = game.play_game(max_turns=1000)
+
+        # Verify game completed
+        self.assertIsInstance(results, GameResults)
+        self.assertIsNotNone(results.winner)
+        self.assertGreater(results.turns_played, 0)
+        self.assertGreater(results.total_moves, 0)
+
+        # Verify player stats
+        self.assertEqual(len(results.player_stats), 2)
+        for stats in results.player_stats:
+            self.assertIsNotNone(stats.color)
+            self.assertGreaterEqual(stats.tokens_finished, 0)
+
 
 if __name__ == "__main__":
-    success = test_game_completion()
-    if success:
-        print("✓ Game completion test passed!")
-    else:
-        print("❌ Game completion test failed!")
-    sys.exit(0 if success else 1)
+    unittest.main()
