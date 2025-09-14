@@ -207,7 +207,7 @@ class LudoGame:
             self._next_player()
 
         # Record turn in history
-        self.game_history.append(asdict(turn_result))
+        self.game_history.append(turn_result)
         self.turn_count += 1
 
         return turn_result

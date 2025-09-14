@@ -169,5 +169,5 @@ class GameReplayData:
     """Complete game replay data."""
 
     metadata: GameReplayMetadata
-    history: List[Dict[str, Any]]  # Turn results as dictionaries
+    history: List[TurnResult]  # Turn results as dictionaries
     final_state: GameStateData
