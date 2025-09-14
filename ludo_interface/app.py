@@ -204,7 +204,7 @@ def launch_app():
         def _steps(game, history: list[str], show):
             game, desc, tokens = _play_step(game)
             history.append(desc)
-            if len(history) > 50:
+            if len(history) > 100:
                 history = history[-50:]
             pil_img = draw_board(tokens, show_ids=show)
             html = _img_to_data_uri(pil_img)

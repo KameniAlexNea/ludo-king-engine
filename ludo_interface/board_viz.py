@@ -37,6 +37,72 @@ GRID = 15
 BOARD_SIZE = GRID * CELL
 
 
+# Canonical 52-cell outer path builder aligned to our 15x15 layout
+def _build_path_52() -> List[Tuple[int, int]]:
+    seq: List[Tuple[int, int]] = []
+    # Up column (6,0)->(6,5)
+    for r in range(0, 6):
+        seq.append((6, r))
+    # Left row (5,6)->(0,6)
+    for c in range(5, -1, -1):
+        seq.append((c, 6))
+    # Down column (0,7)->(0,8)
+    for r in range(7, 9):
+        seq.append((0, r))
+    # Right row (1,8)->(5,8)
+    for c in range(1, 6):
+        seq.append((c, 8))
+    # Down column (6,9)->(6,14)
+    for r in range(9, 15):
+        seq.append((6, r))
+    # Right row (7,14)->(8,14)
+    for c in range(7, 9):
+        seq.append((c, 14))
+    # Up column (8,13)->(8,9)
+    for r in range(13, 9, -1):
+        seq.append((8, r))
+    # Right row (9,8)->(14,8)
+    for c in range(9, 15):
+        seq.append((c, 8))
+    # Up column (14,7)->(14,6)
+    for r in range(7, 5, -1):
+        seq.append((14, r))
+    # Left row (13,6)->(9,6)
+    for c in range(13, 9, -1):
+        seq.append((c, 6))
+    # Up column (8,5)->(8,0)
+    for r in range(5, -1, -1):
+        seq.append((8, r))
+    # Left row end (7,0)
+    seq.append((7, 0))
+    return seq
+
+
+# Start cells (colored squares on the outer track)
+START_CELLS = {
+    Colors.RED: (1, 8),
+    Colors.GREEN: (8, 13),
+    Colors.YELLOW: (13, 6),
+    Colors.BLUE: (6, 1),
+}
+
+
+def _rotate_path_to_start(path: List[Tuple[int, int]], start_coord: Tuple[int, int]) -> List[Tuple[int, int]]:
+    if start_coord not in path:
+        return path
+    idx = path.index(start_coord)
+    return path[idx:] + path[:idx]
+
+
+# Build the path once and rotate so RED start is index 0
+_PATH52_RAW = _build_path_52()
+PATH_LIST: List[Tuple[int, int]] = _rotate_path_to_start(_PATH52_RAW, START_CELLS[Colors.RED])
+PATH_LEN = len(PATH_LIST)
+
+# Compute per-color start indices based on their start cells' positions in PATH_LIST
+COLOR_START_INDEX = {color: PATH_LIST.index(coord) for color, coord in START_CELLS.items()}
+
+
 def _cell_bbox(x: int, y: int):
     """Get bounding box for a cell (PIL coordinates)."""
     x0 = x * CELL
@@ -254,16 +320,19 @@ def _get_token_position(token: Dict) -> Tuple[float, float]:
             elif color == Colors.BLUE:
                 return 7.5, 1.5
         else:
-            # On main path - simplified mapping (this could be improved)
-            # For now, use a basic mapping that places tokens reasonably
-            if 0 <= pos <= 12:  # Red's general area
-                return 1.5, 8.5
-            elif 13 <= pos <= 25:  # Blue's general area
-                return 6.5, 1.5
-            elif 26 <= pos <= 38:  # Green's general area
-                return 13.5, 6.5
-            elif 39 <= pos <= 51:  # Yellow's general area
-                return 8.5, 13.5
+            # Compute path index from steps and color, aligned to PATH_LIST and START_CELLS
+            steps_taken = token.get("steps_taken", 0)
+            if steps_taken <= 0:
+                # Fallback to position if steps not provided
+                base_idx = COLOR_START_INDEX.get(color, 0)
+                rel = (pos or 0)
+                path_idx = (base_idx + rel) % PATH_LEN
+            else:
+                base_idx = COLOR_START_INDEX.get(color, 0)
+                path_idx = (base_idx + (steps_taken - 1)) % PATH_LEN
+
+            cx, cy = PATH_LIST[path_idx]
+            return cx + 0.5, cy + 0.5
 
     elif state == TokenState.FINISHED.value:
         # Token finished - place in center triangles
