@@ -9,6 +9,7 @@ import random
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
+from .config import TournamentConfig
 from .core.game import LudoGame
 from .strategies.factory import StrategyFactory
 
@@ -81,25 +82,61 @@ class LudoTournament:
     - Win: 3 points
     - Draw: 1 point
     - Loss: 0 points
+
+    Configuration is loaded from .env file or environment variables:
+    - TOURNAMENT_MAX_TURNS: Maximum turns per game (default: 200)
+    - TOURNAMENT_GAMES_PER_MATCH: Games per match (default: 1)
+    - TOURNAMENT_SEED: Random seed for reproducibility (default: None)
+
+    Example usage:
+        # Use config defaults
+        tournament = LudoTournament(['random', 'killer'])
+
+        # Override specific settings
+        tournament = LudoTournament(
+            strategies=['random', 'killer'],
+            max_turns=100,
+            games_per_match=3
+        )
+
+        # Custom config
+        custom_config = TournamentConfig()
+        tournament = LudoTournament(['random', 'killer'], config=custom_config)
     """
 
     def __init__(
         self,
         strategies: List[str],
-        games_per_match: int = 1,
+        games_per_match: Optional[int] = None,
         seed: Optional[int] = None,
+        max_turns: Optional[int] = None,
+        config: Optional[TournamentConfig] = None,
     ):
         """
         Initialize the tournament.
 
         Args:
             strategies: List of strategy names to compete
-            games_per_match: Number of games per match (default 1)
-            seed: Random seed for reproducible results
+            games_per_match: Number of games per match (default from config)
+            seed: Random seed for reproducible results (default from config)
+            max_turns: Maximum turns per game (default from config)
+            config: TournamentConfig instance (default: global config)
         """
+        # Use provided config or global config
+        self.config = config or TournamentConfig()
+
+        # Set defaults from config if not provided
+        if games_per_match is None:
+            games_per_match = self.config.games_per_match
+        if seed is None and self.config.seed is not None:
+            seed = self.config.seed
+        if max_turns is None:
+            max_turns = self.config.max_turns
+
         self.strategies = strategies
         self.games_per_match = games_per_match
         self.seed = seed
+        self.max_turns = max_turns
 
         # Validate strategies
         available_strategies = StrategyFactory.get_available_strategies()
@@ -144,7 +181,7 @@ class LudoTournament:
                 seed=random.randint(1, 1000000) if self.seed is None else None,
             )
 
-            result = game.play_game()
+            result = game.play_game(max_turns=self.max_turns)
             total_turns += result.turns_played
 
             if result.winner == "red":  # Home team
@@ -362,7 +399,6 @@ def run_sample_tournament():
 
     tournament = LudoTournament(
         strategies=strategies,
-        games_per_match=1,
         seed=42,  # For reproducible results
     )
 

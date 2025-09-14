@@ -12,6 +12,7 @@ import sys
 # Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from ludo_engine.config import TournamentConfig
 from ludo_engine.tournament import LudoTournament, run_sample_tournament
 
 
@@ -20,9 +21,16 @@ def run_basic_tournament():
     print("🏆 BASIC TOURNAMENT (4 Teams)")
     print("=" * 50)
 
+    # Load configuration
+    config = TournamentConfig()
+    print(f"📋 Using config: max_turns={config.max_turns}, games_per_match={config.games_per_match}")
+
     strategies = ["random", "killer", "defensive", "balanced"]
 
-    tournament = LudoTournament(strategies=strategies, games_per_match=1, seed=42)
+    tournament = LudoTournament(
+        strategies=strategies,
+        config=config
+    )
 
     tournament.run_tournament(verbose=True)
 
@@ -46,6 +54,10 @@ def run_advanced_tournament():
     print("\n\n🏆 ADVANCED TOURNAMENT (8 Teams)")
     print("=" * 50)
 
+    # Load configuration
+    config = TournamentConfig()
+    print(f"📋 Using config: max_turns={config.max_turns}, games_per_match={config.games_per_match}")
+
     strategies = [
         "random",  # 🎲 Pure randomness
         "killer",  # 🗡️  Aggressive capture-focused
@@ -59,8 +71,7 @@ def run_advanced_tournament():
 
     tournament = LudoTournament(
         strategies=strategies,
-        games_per_match=1,  # Single game per match for speed
-        seed=123,  # Different seed for variety
+        config=config
     )
 
     tournament.run_tournament(verbose=True)
@@ -97,6 +108,11 @@ def run_custom_tournament():
     print("\n\n🎮 CUSTOM TOURNAMENT BUILDER")
     print("=" * 50)
 
+    # Load configuration
+    config = TournamentConfig()
+    print(f"📋 Config defaults: max_turns={config.max_turns}, games_per_match={config.games_per_match}")
+    print(f"   Default strategies: {', '.join(config.default_strategies)}")
+
     from ludo_engine.strategies.factory import StrategyFactory
 
     available = StrategyFactory.get_available_strategies()
@@ -104,12 +120,13 @@ def run_custom_tournament():
 
     print("\nEnter strategies to compete (comma-separated):")
     print("Example: random,killer,defensive,balanced")
+    print("(Press Enter for config defaults)")
 
     try:
         user_input = input("Strategies: ").strip()
         if not user_input:
-            print("Using default strategies...")
-            strategies = ["random", "killer", "defensive", "balanced"]
+            print("Using default strategies from config...")
+            strategies = config.default_strategies
         else:
             strategies = [s.strip().lower() for s in user_input.split(",")]
 
@@ -123,20 +140,39 @@ def run_custom_tournament():
             print("❌ Need at least 2 strategies!")
             return
 
-        games_per_match = 1
+        # Use config defaults but allow overrides
+        games_per_match = config.games_per_match
+        max_turns = config.max_turns
+
+        print(f"\nCurrent settings (from config):")
+        print(f"  Games per match: {games_per_match}")
+        print(f"  Max turns per game: {max_turns}")
+
+        # Allow user to override
         try:
-            games_input = input("Games per match (default 1): ").strip()
+            games_input = input(f"Games per match (default {games_per_match}): ").strip()
             if games_input:
                 games_per_match = int(games_input)
         except ValueError:
-            print("Using default: 1 game per match")
+            print(f"Using default: {games_per_match} games per match")
+
+        try:
+            turns_input = input(f"Max turns per game (default {max_turns}): ").strip()
+            if turns_input:
+                max_turns = int(turns_input)
+        except ValueError:
+            print(f"Using default: {max_turns} turns per game")
 
         print(f"\n🚀 Starting tournament with {len(strategies)} strategies...")
+        print(f"   Strategies: {', '.join(strategies)}")
+        print(f"   Games per match: {games_per_match}")
+        print(f"   Max turns per game: {max_turns}")
 
         tournament = LudoTournament(
             strategies=strategies,
             games_per_match=games_per_match,
             seed=None,  # Random seed for variety
+            max_turns=max_turns,
         )
 
         tournament.run_tournament(verbose=True)
@@ -151,6 +187,15 @@ def main():
     """Main function to run different tournament types."""
     print("🎮 LUDO STRATEGY TOURNAMENT SYSTEM")
     print("=" * 60)
+
+    # Show current configuration
+    config = TournamentConfig()
+    print(f"📋 Current Configuration:")
+    print(f"   Max turns per game: {config.max_turns}")
+    print(f"   Games per match: {config.games_per_match}")
+    print(f"   Default strategies: {', '.join(config.default_strategies)}")
+    print(f"   Verbose logging: {config.verbose_logging}")
+    print()
 
     while True:
         print("\nChoose tournament type:")
