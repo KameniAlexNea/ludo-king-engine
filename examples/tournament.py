@@ -9,9 +9,10 @@ import random
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-from .config import TournamentConfig
-from .core.game import LudoGame
-from .strategies.factory import StrategyFactory
+from config import TournamentConfig
+
+from ludo_engine.core.game import LudoGame
+from ludo_engine.strategies.factory import StrategyFactory
 
 
 @dataclass

@@ -12,8 +12,8 @@ import sys
 # Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ludo_engine.config import TournamentConfig
-from ludo_engine.tournament import LudoTournament
+from config import TournamentConfig
+from tournament import LudoTournament
 
 
 def main():
