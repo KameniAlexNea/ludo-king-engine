@@ -14,7 +14,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ludo_engine import LudoGame, StrategyFactory
 from ludo_engine.core.board import Board
 from ludo_engine.core.constants import LudoConstants
-from ludo_engine.core.constants import LudoConstants
 from ludo_engine.core.model import TurnResult
 from ludo_engine.core.player import Player
 from ludo_engine.core.token import Token
@@ -36,7 +35,9 @@ class TestLudoEngine(unittest.TestCase):
         """Test board initialization."""
         board = Board()
         self.assertEqual(LudoConstants.BOARD_SIZE, 56)
-        self.assertEqual(len(board.positions), LudoConstants.TOTAL_STEPS_TO_FINISH)  # Including finish position
+        self.assertEqual(
+            len(board.positions), LudoConstants.TOTAL_STEPS_TO_FINISH
+        )  # Including finish position
         self.assertIn(1, LudoConstants.SAFE_POSITIONS)
 
     def test_player_creation(self):

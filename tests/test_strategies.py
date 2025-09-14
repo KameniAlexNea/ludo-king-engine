@@ -511,7 +511,9 @@ class TestProbabilisticStrategy(unittest.TestCase):
     def test_calculate_expected_value_with_finish(self):
         """Test calculate_expected_value when token can finish."""
         # Set up token to be able to finish
-        self.mock_token1.steps_taken = LudoConstants.TOTAL_STEPS_TO_FINISH - 3  # TOTAL_STEPS_TO_FINISH - 3 + 3 = TOTAL_STEPS_TO_FINISH
+        self.mock_token1.steps_taken = (
+            LudoConstants.TOTAL_STEPS_TO_FINISH - 3
+        )  # TOTAL_STEPS_TO_FINISH - 3 + 3 = TOTAL_STEPS_TO_FINISH
 
         game_state = GameStateData(
             board={},
