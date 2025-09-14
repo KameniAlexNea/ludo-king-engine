@@ -215,3 +215,4 @@ gradio_runtime/
 
 .vscode
 examples/DrawBox.ipynb
+*.out
