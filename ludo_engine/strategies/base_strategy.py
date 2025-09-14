@@ -58,60 +58,6 @@ class BaseStrategy(ABC):
             The token to move, or None if no move should be made
         """
 
-
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Optional
-
-if TYPE_CHECKING:
-    from ..core.player import Player
-    from ..core.token import Token
-
-
-
-class BaseStrategy(ABC):
-    """
-    Abstract base class for all Ludo game strategies.
-
-    Strategies are responsible for making move decisions given the current
-    game state and available options.
-    """
-
-    def __init__(self, name: str):
-        """
-        Initialize the strategy.
-
-        Args:
-            name: Human-readable name for this strategy
-        """
-        self.name = name
-        self.player: Optional["Player"] = None
-
-    def set_player(self, player: "Player"):
-        """
-        Set the player that this strategy is controlling.
-
-        Args:
-            player: The player this strategy will make decisions for
-        """
-        self.player = player
-
-    @abstractmethod
-    def choose_move(
-        self, movable_tokens: List["Token"], dice_roll: int, game_state
-    ) -> Optional["Token"]:
-        """
-        Choose which token to move from the available options.
-
-        Args:
-            movable_tokens: List of tokens that can be moved
-            dice_roll: The result of the dice roll (1-6)
-            game_state: Current state of the game
-
-        Returns:
-            The token to move, or None if no move should be made
-        """
-        pass
-
     def evaluate_move(self, token: "Token", dice_roll: int, game_state) -> float:
         """
         Evaluate the desirability of moving a specific token.
@@ -128,7 +74,7 @@ class BaseStrategy(ABC):
         return 1.0
 
     def get_opponent_tokens_in_range(
-        self, token: "Token", dice_roll: int, game_state: dict
+        self, token: "Token", dice_roll: int, game_state
     ) -> List["Token"]:
         """
         Get opponent tokens that could be captured by this move.
@@ -188,7 +134,6 @@ class BaseStrategy(ABC):
             new_position = LudoConstants.START_POSITIONS.get(token.color, 0)
 
         # Safe positions where tokens cannot be captured
-
         return (
             new_position in LudoConstants.SAFE_POSITIONS
             or new_position >= LudoConstants.BOARD_SIZE
