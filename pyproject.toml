@@ -4,6 +4,41 @@ version = "0.1.0"
 description = "A pure Python implementation of the Ludo game, built for reinforcement learning and strategy testing. The engine defines deterministic rules, cleanly separates game mechanics from strategies, and requires no external libraries."
 readme = "README.md"
 requires-python = ">=3.11"
+authors = [
+    { name = "KameniAlexNea", email = "noreply@github.com" }
+]
+keywords = ["ludo", "game", "ai", "reinforcement-learning", "strategy", "board-game"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment :: Board Games",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "tox>=4.30.2",
 ]
+
+[project.optional-dependencies]
+gradio = [
+    "gradio>=4.0.0",
+    "Pillow>=10.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/KameniAlexNea/ludo-king-engine"
+Repository = "https://github.com/KameniAlexNea/ludo-king-engine"
+Issues = "https://github.com/KameniAlexNea/ludo-king-engine/issues"
+
+[project.scripts]
+ludo-demo = "ludo_engine:main"
+ludo-gradio = "ludo_interface.app:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

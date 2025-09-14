@@ -13,7 +13,14 @@ from .core.player import Player
 from .core.token import Token
 from .strategies.factory import StrategyFactory
 
-__version__ = "1.0.0"
-__author__ = "Ludo Engine Team"
+__version__ = "0.1.0"
+__author__ = "KameniAlexNea"
 
 __all__ = ["LudoGame", "Board", "Token", "Player", "StrategyFactory", "utils"]
+
+
+def main():
+    """Main entry point for the ludo-demo command."""
+    print("Welcome to Ludo King Engine!")
+    print("For a complete demo, run: python examples/tournament_demo.py")
+    print("For Gradio interface, run: ludo-gradio")
