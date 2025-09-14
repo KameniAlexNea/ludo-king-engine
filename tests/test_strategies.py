@@ -18,7 +18,7 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ludo_engine.core.constants import HeuristicConstants
+from ludo_engine.core.constants import HeuristicConstants, LudoConstants
 from ludo_engine.core.model import GameStateData
 from ludo_engine.core.player import Player
 from ludo_engine.core.token import Token
@@ -430,7 +430,7 @@ class TestWinnerStrategy(unittest.TestCase):
     def test_choose_move_with_finishing_tokens(self):
         """Test choose_move prioritizes tokens that can finish."""
         # Set up token1 to be able to finish with roll of 6
-        self.mock_token1.steps_taken = 51  # 51 + 6 = 57 (BOARD_SIZE)
+        self.mock_token1.steps_taken = 51  # 51 + 6 = TOTAL_STEPS_TO_FINISH
         result = self.strategy.choose_move([self.mock_token1, self.mock_token2], 6, {})
         self.assertEqual(result, self.mock_token1)
 
@@ -511,7 +511,7 @@ class TestProbabilisticStrategy(unittest.TestCase):
     def test_calculate_expected_value_with_finish(self):
         """Test calculate_expected_value when token can finish."""
         # Set up token to be able to finish
-        self.mock_token1.steps_taken = 54  # 54 + 3 = 57
+        self.mock_token1.steps_taken = LudoConstants.TOTAL_STEPS_TO_FINISH - 3  # TOTAL_STEPS_TO_FINISH - 3 + 3 = TOTAL_STEPS_TO_FINISH
 
         game_state = GameStateData(
             board={},

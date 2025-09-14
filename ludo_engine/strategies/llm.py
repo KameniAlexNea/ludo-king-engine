@@ -8,6 +8,7 @@ libraries, but the interface is provided for easy extension.
 
 from typing import Dict, List, Optional
 
+from ..core.constants import LudoConstants
 from ..core.token import Token
 from .base_strategy import BaseStrategy
 
@@ -96,7 +97,7 @@ Analyze the current game state and choose the best move."""
                 description += f"Token {i + 1} (at home, will start), "
             else:
                 new_steps = token.steps_taken + dice_roll
-                if new_steps >= 57:
+                if new_steps >= LudoConstants.TOTAL_STEPS_TO_FINISH:
                     description += f"Token {i + 1} (will finish!), "
                 else:
                     description += f"Token {i + 1} (at step {token.steps_taken}, will reach step {new_steps}), "

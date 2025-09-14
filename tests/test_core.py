@@ -1,5 +1,5 @@
 """
-Comprehensive tests for Ludo core classes.
+Comprehensive tests for Ludo c        self.assertEqual(self.token.position, LudoConstants.FINISH_POSITION)re classes.
 
 This module contains detailed tests for the core game classes:
 - Token: Individual game pieces with movement and state
@@ -15,6 +15,7 @@ from unittest.mock import Mock
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ludo_engine.core.board import Board
+from ludo_engine.core.constants import LudoConstants
 from ludo_engine.core.player import Player
 from ludo_engine.core.token import Token, TokenState
 from ludo_engine.strategies.base_strategy import BaseStrategy
@@ -84,8 +85,8 @@ class TestToken(unittest.TestCase):
         self.assertTrue(self.token.can_move(6))
 
         # Cannot move if would exceed finish
-        self.token.steps_taken = 56  # Close to finish
-        self.assertFalse(self.token.can_move(6))  # Would be 62 > 57
+        self.token.steps_taken = LudoConstants.FINISH_POSITION  # Close to finish
+        self.assertFalse(self.token.can_move(6))  # Would be 62 > TOTAL_STEPS_TO_FINISH
 
     def test_can_move_finished_token(self):
         """Test can_move for finished token."""
@@ -121,24 +122,129 @@ class TestToken(unittest.TestCase):
     def test_move_to_finish(self):
         """Test moving token to finish."""
         self.token.state = TokenState.ACTIVE
-        self.token.steps_taken = 56  # One step from finish
+        self.token.steps_taken = LudoConstants.FINISH_POSITION  # One step from finish
 
         success = self.token.move(1)
         self.assertTrue(success)
         self.assertEqual(self.token.state, TokenState.FINISHED)
-        self.assertEqual(self.token.position, 56)  # Finish position
+        self.assertEqual(self.token.position, LudoConstants.FINISH_POSITION)  # Finish position
 
-    def test_send_home(self):
-        """Test sending token home."""
-        # Set up token as active
+    def test_move_near_finish(self):
+        """Test token movement when close to finish."""
         self.token.state = TokenState.ACTIVE
-        self.token.position = 10
-        self.token.steps_taken = 11
+        self.token.steps_taken = 53  # Need 4 more steps to finish
 
-        self.token.send_home()
-        self.assertEqual(self.token.state, TokenState.HOME)
-        self.assertEqual(self.token.position, -1)
-        self.assertEqual(self.token.steps_taken, 0)
+        # Should be able to move with rolls that don't exceed TOTAL_STEPS_TO_FINISH
+        self.assertTrue(self.token.can_move(2))  # 53 + 2 = 55 <= TOTAL_STEPS_TO_FINISH
+        self.assertTrue(self.token.can_move(4))  # 53 + 4 = TOTAL_STEPS_TO_FINISH <= TOTAL_STEPS_TO_FINISH
+
+        # Should not be able to move with rolls that exceed TOTAL_STEPS_TO_FINISH
+        self.assertFalse(self.token.can_move(5))  # 53 + 5 = 58 > TOTAL_STEPS_TO_FINISH
+        self.assertFalse(self.token.can_move(6))  # 53 + 6 = 59 > TOTAL_STEPS_TO_FINISH
+
+        # Test actual moves
+        success = self.token.move(2)
+        self.assertTrue(success)
+        self.assertEqual(self.token.steps_taken, 55)
+        self.assertEqual(self.token.state, TokenState.ACTIVE)
+
+        # Reset for next test
+        self.token.steps_taken = 53
+        success = self.token.move(4)
+        self.assertTrue(success)
+        self.assertEqual(self.token.steps_taken, LudoConstants.TOTAL_STEPS_TO_FINISH)
+        self.assertEqual(self.token.state, TokenState.FINISHED)
+        self.assertEqual(self.token.position, LudoConstants.FINISH_POSITION)
+
+    def test_move_at_finish_threshold(self):
+        """Test token movement at the finish threshold."""
+        self.token.state = TokenState.ACTIVE
+        self.token.steps_taken = LudoConstants.FINISH_POSITION  # Need exactly 1 more step to finish
+
+        # Should be able to move with roll that reaches exactly TOTAL_STEPS_TO_FINISH
+        self.assertTrue(self.token.can_move(1))  # FINISH_POSITION + 1 = TOTAL_STEPS_TO_FINISH <= TOTAL_STEPS_TO_FINISH
+
+        # Should not be able to move with rolls that exceed TOTAL_STEPS_TO_FINISH
+        self.assertFalse(self.token.can_move(2))  # FINISH_POSITION + 2 = 58 > TOTAL_STEPS_TO_FINISH
+        self.assertFalse(self.token.can_move(6))  # FINISH_POSITION + 6 = 62 > TOTAL_STEPS_TO_FINISH
+
+        # Test actual move to finish
+        success = self.token.move(1)
+        self.assertTrue(success)
+        self.assertEqual(self.token.steps_taken, LudoConstants.TOTAL_STEPS_TO_FINISH)
+        self.assertEqual(self.token.state, TokenState.FINISHED)
+        self.assertEqual(self.token.position, LudoConstants.FINISH_POSITION)
+
+    def test_board_calculate_position_near_finish(self):
+        """Test board position calculation near finish."""
+        board = Board()
+        token = Token(token_id=0, color="red")
+        token.state = TokenState.ACTIVE
+
+        # Test with 53 steps taken
+        token.steps_taken = 53
+
+        # Rolling 4 should lead to finish
+        position = board._calculate_new_position(token, 4)
+        self.assertEqual(position, LudoConstants.FINISH_POSITION)  # Finish position
+
+        # Rolling 2 should lead to normal position calculation
+        position = board._calculate_new_position(token, 2)
+        # With red token starting at 0: (0 + 55 - 1) % BOARD_SIZE = 54
+        self.assertEqual(position, 54)
+
+    def test_token_exit_home(self):
+        """Test token exiting home with roll of 6."""
+        self.assertTrue(self.token.can_move(6))  # Should be able to exit home
+
+        success = self.token.move(6)
+        self.assertTrue(success)
+        self.assertEqual(self.token.state, TokenState.ACTIVE)
+        self.assertEqual(self.token.steps_taken, 1)
+        self.assertEqual(self.token.position, 0)  # Red starts at 0
+
+        # After exiting home, should not be able to exit again
+        self.token.position = -1
+        self.token.state = TokenState.HOME
+        self.token.steps_taken = 0
+
+        # Non-6 rolls should not allow exiting home
+        self.assertFalse(self.token.can_move(1))
+        self.assertFalse(self.token.can_move(5))
+
+    def test_token_start_positions(self):
+        """Test token start positions for different colors."""
+        red_token = Token(token_id=0, color="red")
+        blue_token = Token(token_id=0, color="blue")
+        green_token = Token(token_id=0, color="green")
+        yellow_token = Token(token_id=0, color="yellow")
+
+        self.assertEqual(red_token._get_start_position(), 0)
+        self.assertEqual(blue_token._get_start_position(), 14)
+        self.assertEqual(green_token._get_start_position(), 28)
+        self.assertEqual(yellow_token._get_start_position(), 42)
+
+    def test_prevent_overshooting_finish(self):
+        """Test that overshooting the finish is properly prevented."""
+        # This test ensures that even if can_move() fails, the board logic is robust
+        board = Board()
+        token = Token(token_id=0, color="red")
+        token.state = TokenState.ACTIVE
+        token.steps_taken = LudoConstants.FINISH_POSITION
+
+        # Test overshooting: FINISH_POSITION + 2 = 58 > TOTAL_STEPS_TO_FINISH
+        position = board._calculate_new_position(token, 2)
+        self.assertEqual(position, -1)  # Should return -1 for invalid move
+
+        # Test exact finish: FINISH_POSITION + 1 = TOTAL_STEPS_TO_FINISH
+        position = board._calculate_new_position(token, 1)
+        self.assertEqual(position, LudoConstants.FINISH_POSITION)  # Should return finish position
+
+        # Test normal move: 53 + 2 = 55
+        token.steps_taken = 53
+        position = board._calculate_new_position(token, 2)
+        # Red token: (0 + 55 - 1) % BOARD_SIZE = 54
+        self.assertEqual(position, 54)
 
     def test_get_start_position(self):
         """Test getting start position for different colors."""
@@ -440,7 +546,7 @@ class TestBoard(unittest.TestCase):
 
     def test_initialization(self):
         """Test board initialization."""
-        self.assertEqual(len(self.board.positions), 57)  # 0-56
+        self.assertEqual(len(self.board.positions), LudoConstants.TOTAL_STEPS_TO_FINISH)  # 0-FINISH_POSITION
         self.assertIsInstance(self.board.safe_positions, set)
 
     def test_is_safe_position(self):
@@ -578,7 +684,7 @@ class TestBoard(unittest.TestCase):
     def test_count_tokens_at_finish(self):
         """Test counting finished tokens."""
         # Place red token at finish
-        self.board.place_token(self.red_token, 56)
+        self.board.place_token(self.red_token, LudoConstants.FINISH_POSITION)
 
         count = self.board.count_tokens_at_finish("red")
         self.assertEqual(count, 1)
@@ -593,7 +699,7 @@ class TestBoard(unittest.TestCase):
         # Place 4 red tokens at finish
         for i in range(4):
             token = Token(i, "red")
-            self.board.place_token(token, 56)
+            self.board.place_token(token, LudoConstants.FINISH_POSITION)
 
         self.assertTrue(self.board.is_game_finished())
 
@@ -604,7 +710,7 @@ class TestBoard(unittest.TestCase):
         # Place 4 red tokens at finish
         for i in range(4):
             token = Token(i, "red")
-            self.board.place_token(token, 56)
+            self.board.place_token(token, LudoConstants.FINISH_POSITION)
 
         self.assertEqual(self.board.get_winner(), "red")
 

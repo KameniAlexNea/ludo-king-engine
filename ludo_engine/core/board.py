@@ -121,11 +121,13 @@ class Board:
 
         # For active tokens, calculate new position
         new_steps_taken = token.steps_taken + steps
-        if new_steps_taken >= 57:
-            return 56  # Finish position
+        if new_steps_taken == LudoConstants.TOTAL_STEPS_TO_FINISH:
+            return LudoConstants.FINISH_POSITION  # Finish position
+        elif new_steps_taken > LudoConstants.TOTAL_STEPS_TO_FINISH:
+            return -1  # Invalid move - would overshoot finish
         else:
             start_pos = token._get_start_position()
-            return (start_pos + new_steps_taken - 1) % 56
+            return (start_pos + new_steps_taken - 1) % LudoConstants.BOARD_SIZE
 
     def _handle_captures(self, moving_token: Token, position: int) -> List[Token]:
         """

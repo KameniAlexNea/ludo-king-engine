@@ -70,7 +70,9 @@ class Token:
 
         # Check if move would exceed the finish line
         if self.is_active():
-            return self.steps_taken + dice_roll <= 57  # 57 steps to finish
+            total_steps = self.steps_taken + dice_roll
+            # Can move if exactly reaching finish or staying under it
+            return total_steps <= LudoConstants.TOTAL_STEPS_TO_FINISH
 
         return True
 
@@ -97,11 +99,11 @@ class Token:
         if self.is_active():
             self.steps_taken += steps
 
-            # Simple linear movement - each player needs 57 steps to finish
-            # (1 step to get on board + 56 steps around)
-            if self.steps_taken >= LudoConstants.BOARD_SIZE + 1:
+            # Simple linear movement - each player needs TOTAL_STEPS_TO_FINISH steps to finish
+            # (1 step to get on board + BOARD_SIZE steps around)
+            if self.steps_taken == LudoConstants.TOTAL_STEPS_TO_FINISH:
                 self.state = TokenState.FINISHED
-                self.position = LudoConstants.BOARD_SIZE  # Finish position
+                self.position = LudoConstants.FINISH_POSITION  # Finish position
             else:
                 # Calculate position on circular track
                 start_pos = self._get_start_position()

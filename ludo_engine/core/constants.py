@@ -11,6 +11,12 @@ class LudoConstants:
     # Standard Ludo board has 56 positions in the main track
     BOARD_SIZE = 56
 
+    # Total steps needed to finish (1 to exit home + 56 around board)
+    TOTAL_STEPS_TO_FINISH = BOARD_SIZE + 1
+
+    # Finish position (same as BOARD_SIZE)
+    FINISH_POSITION = BOARD_SIZE
+
     # Safe positions where tokens cannot be captured
     SAFE_POSITIONS = {1, 9, 14, 22, 28, 35, 42, 48}
 
