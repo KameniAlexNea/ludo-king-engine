@@ -3,6 +3,8 @@ Constants for the Ludo game engine.
 
 This module contains all game-related constants used throughout the engine.
 """
+
+
 class Colors:
     """Player color constants."""
 
@@ -17,6 +19,7 @@ class Colors:
     def is_valid_color(cls, color: str) -> bool:
         """Check if a color is valid."""
         return color in cls.ALL_COLORS
+
 
 class LudoConstants:
     """Constants for the Ludo game board and gameplay."""
