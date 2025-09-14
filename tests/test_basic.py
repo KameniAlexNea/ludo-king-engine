@@ -5,14 +5,15 @@ This module contains simple tests to verify the core functionality
 of the Ludo game engine implementation.
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ludo_engine import LudoGame, StrategyFactory
-from ludo_engine.core.token import Token, TokenState
 from ludo_engine.core.board import Board
 from ludo_engine.core.player import Player
+from ludo_engine.core.token import Token
 
 
 def test_token_creation():
@@ -56,7 +57,7 @@ def test_strategy_factory():
     assert len(strategies) > 0
     assert "random" in strategies
     assert "killer" in strategies
-    
+
     random_strategy = StrategyFactory.create_strategy("random")
     assert random_strategy is not None
     assert random_strategy.name == "Random"
@@ -76,10 +77,10 @@ def test_game_creation():
 def test_game_start():
     """Test game start functionality."""
     print("Testing game start...")
-    game = LudoGame(['red', 'blue'], ['random', 'killer'], seed=42)
+    game = LudoGame(["red", "blue"], ["random", "killer"], seed=42)
     game.start_game()
     assert game.game_state.value == "in_progress"
-    
+
     # All tokens should be at home initially
     for player in game.players:
         assert len(player.get_tokens_at_home()) == 4
@@ -89,24 +90,26 @@ def test_game_start():
 def test_simple_game():
     """Test a simple game simulation."""
     print("Testing simple game simulation...")
-    game = LudoGame(['red', 'blue'], ['random', 'random'], seed=42)
-    
+    game = LudoGame(["red", "blue"], ["random", "random"], seed=42)
+
     # Play a few turns
     game.start_game()
     for _ in range(10):
         if game.is_finished():
             break
         turn_result = game.play_turn()
-        print(f"  Turn: {game.turn_count}, Player: {turn_result['player']}, "
-              f"Dice: {turn_result['dice_roll']}, Move: {turn_result['move_made']}")
-        
+        print(
+            f"  Turn: {game.turn_count}, Player: {turn_result['player']}, "
+            f"Dice: {turn_result['dice_roll']}, Move: {turn_result['move_made']}"
+        )
+
     print("✓ Simple game simulation test passed")
 
 
 def run_all_tests():
     """Run all tests."""
     print("Running Ludo Engine Tests...\n")
-    
+
     try:
         test_token_creation()
         test_board_creation()
@@ -115,13 +118,14 @@ def run_all_tests():
         test_game_creation()
         test_game_start()
         test_simple_game()
-        
+
         print("\n🎉 All tests passed!")
         return True
-        
+
     except Exception as e:
         print(f"\n❌ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 

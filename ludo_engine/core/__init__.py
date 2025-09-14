@@ -9,8 +9,8 @@ This module contains the fundamental components:
 """
 
 from .board import Board
-from .token import Token
-from .player import Player
 from .game import LudoGame
+from .player import Player
+from .token import Token
 
 __all__ = ["Board", "Token", "Player", "LudoGame"]
