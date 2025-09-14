@@ -7,7 +7,8 @@ The player manages token lifecycle and move decisions.
 
 from typing import TYPE_CHECKING, List, Optional
 
-from .token import Token
+from .model import PlayerData, PlayerPositionSummary, PlayerStats, TokenInfo
+from .token import Token, TokenState
 
 if TYPE_CHECKING:
     from ..strategies.base_strategy import BaseStrategy
@@ -131,26 +132,27 @@ class Player:
         # Update finished token count
         self.tokens_finished = len(self.get_finished_tokens())
 
-    def get_position_summary(self) -> dict:
+    def get_position_summary(self) -> PlayerPositionSummary:
         """Get a summary of token positions."""
-        return {
-            "home": len(self.get_tokens_at_home()),
-            "active": len(self.get_active_tokens()),
-            "finished": len(self.get_finished_tokens()),
-            "total": len(self.tokens),
-        }
+        return PlayerPositionSummary(
+            home=len(self.get_tokens_at_home()),
+            active=len(self.get_active_tokens()),
+            finished=len(self.get_finished_tokens()),
+            total=len(self.tokens),
+        )
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> PlayerStats:
         """Get player statistics."""
-        return {
-            "color": self.color,
-            "name": self.name,
-            "tokens_finished": self.tokens_finished,
-            "tokens_captured": self.tokens_captured,
-            "total_moves": self.total_moves,
-            "sixes_rolled": self.sixes_rolled,
-            "position_summary": self.get_position_summary(),
-        }
+        return PlayerStats(
+            color=self.color,
+            name=self.name,
+            tokens_finished=self.tokens_finished,
+            tokens_captured=self.tokens_captured,
+            total_moves=self.total_moves,
+            sixes_rolled=self.sixes_rolled,
+            games_won=0,  # This would be tracked at a higher level
+            average_turns_per_game=0.0,  # This would be calculated at a higher level
+        )
 
     def reset(self):
         """Reset player to initial state."""
@@ -164,31 +166,54 @@ class Player:
         self.total_moves = 0
         self.sixes_rolled = 0
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> PlayerData:
         """Convert player to dictionary representation."""
-        return {
-            "color": self.color,
-            "name": self.name,
-            "tokens": [token.to_dict() for token in self.tokens],
-            "stats": self.get_stats(),
-        }
+        token_infos = []
+        for token in self.tokens:
+            token_dict = token.to_dict()
+            token_infos.append(TokenInfo(
+                id=token_dict["token_id"],
+                color=token_dict["color"],
+                position=token_dict["position"],
+                steps_taken=token_dict["steps_taken"],
+                is_finished=token.state.value == "finished",
+                is_at_home=token.state.value == "home"
+            ))
+
+        return PlayerData(
+            color=self.color,
+            name=self.name,
+            tokens=token_infos,
+            stats=self.get_stats()
+        )
 
     @classmethod
     def from_dict(
-        cls, data: dict, strategy: Optional["BaseStrategy"] = None
+        cls, data: PlayerData, strategy: Optional["BaseStrategy"] = None
     ) -> "Player":
         """Create player from dictionary representation."""
-        player = cls(data["color"], data["name"], strategy)
+        player = cls(data.color, data.name, strategy)
 
-        # Restore tokens
-        player.tokens = [Token.from_dict(token_data) for token_data in data["tokens"]]
+        # Restore tokens from TokenInfo objects
+        player.tokens = []
+        for token_info in data.tokens:
+            token = Token(token_info.id, token_info.color)
+            token.position = token_info.position
+            token.steps_taken = token_info.steps_taken
+            # Set state based on TokenInfo flags
+            if token_info.is_finished:
+                token.state = TokenState.FINISHED
+            elif token_info.is_at_home:
+                token.state = TokenState.HOME
+            else:
+                token.state = TokenState.ACTIVE
+            player.tokens.append(token)
 
         # Restore stats
-        stats = data.get("stats", {})
-        player.tokens_finished = stats.get("tokens_finished", 0)
-        player.tokens_captured = stats.get("tokens_captured", 0)
-        player.total_moves = stats.get("total_moves", 0)
-        player.sixes_rolled = stats.get("sixes_rolled", 0)
+        player.tokens_finished = data.stats.tokens_finished
+        player.tokens_captured = data.stats.tokens_captured
+        player.total_moves = data.stats.total_moves
+        player.sixes_rolled = data.stats.sixes_rolled
 
         return player
 

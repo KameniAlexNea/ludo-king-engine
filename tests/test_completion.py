@@ -9,6 +9,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ludo_engine import LudoGame
+from ludo_engine.core.model import GameResults
 
 
 class TestGameCompletion(unittest.TestCase):
@@ -22,16 +23,16 @@ class TestGameCompletion(unittest.TestCase):
         results = game.play_game(max_turns=1000)
 
         # Verify game completed
-        self.assertIsNotNone(results["winner"])
-        self.assertGreater(results["turns_played"], 0)
-        self.assertGreater(results["total_moves"], 0)
+        self.assertIsInstance(results, GameResults)
+        self.assertIsNotNone(results.winner)
+        self.assertGreater(results.turns_played, 0)
+        self.assertGreater(results.total_moves, 0)
 
         # Verify player stats
-        self.assertEqual(len(results["player_stats"]), 2)
-        for stats in results["player_stats"]:
-            self.assertIn("color", stats)
-            self.assertIn("tokens_finished", stats)
-            self.assertGreaterEqual(stats["tokens_finished"], 0)
+        self.assertEqual(len(results.player_stats), 2)
+        for stats in results.player_stats:
+            self.assertIsNotNone(stats.color)
+            self.assertGreaterEqual(stats.tokens_finished, 0)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 Comprehensive tests for Ludo utility functions.
 
 This module contains tests for all utility functions including:
-- Game result analysis
+- Game analysis
 - Strategy tournaments
 - Strategy comparisons
 - ELO calculations
@@ -19,6 +19,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ludo_engine.core.game import LudoGame
 from ludo_engine.core.player import Player
+from ludo_engine.core.model import (
+    GameAnalysis,
+    GameResults,
+    GameStatus,
+    PlayerStats,
+    StrategyComparison,
+    TournamentResult,
+    TurnResult,
+)
 from ludo_engine.utils import (
     analyze_game_results,
     calculate_strategy_elo,
@@ -34,38 +43,46 @@ class TestGameAnalysis(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.sample_game_results = {
-            "winner": "red",
-            "turns_played": 45,
-            "total_moves": 180,
-            "player_stats": [
-                {
-                    "color": "red",
-                    "tokens_finished": 4,
-                    "tokens_captured": 3,
-                    "total_moves": 45,
-                    "sixes_rolled": 8,
-                },
-                {
-                    "color": "blue",
-                    "tokens_finished": 2,
-                    "tokens_captured": 1,
-                    "total_moves": 43,
-                    "sixes_rolled": 6,
-                },
-            ],
-        }
+        pass  # No longer need sample data here
 
     def test_analyze_game_results(self):
         """Test game result analysis."""
-        analysis = analyze_game_results(self.sample_game_results)
+        # Create a GameResults object instead of a dictionary
+        game_results = GameResults(
+            winner="red",
+            game_status=GameStatus.FINISHED,
+            turns_played=45,
+            total_moves=180,
+            dice_rolls=45,
+            player_stats=[
+                PlayerStats(
+                    color="red",
+                    name="Player_1",
+                    tokens_finished=4,
+                    tokens_captured=3,
+                    total_moves=45,
+                    sixes_rolled=8,
+                ),
+                PlayerStats(
+                    color="blue",
+                    name="Player_2",
+                    tokens_finished=2,
+                    tokens_captured=1,
+                    total_moves=43,
+                    sixes_rolled=6,
+                ),
+            ],
+            final_positions={},
+        )
+
+        analysis = analyze_game_results(game_results)
 
         # Check basic metrics
-        self.assertEqual(analysis["game_length"], 45)
-        self.assertEqual(analysis["efficiency"], 180 / 45)  # 4.0
+        self.assertEqual(analysis.game_length, 45)
+        self.assertEqual(analysis.efficiency, 180 / 45)  # 4.0
 
         # Check player performance
-        red_perf = analysis["player_performance"]["red"]
+        red_perf = analysis.player_performance["red"]
         self.assertEqual(red_perf["finish_rate"], 4 / 4)  # 1.0
         self.assertEqual(red_perf["capture_efficiency"], 3 / 45)
         self.assertEqual(red_perf["six_frequency"], 8 / 45)
@@ -73,19 +90,42 @@ class TestGameAnalysis(unittest.TestCase):
 
     def test_analyze_game_results_zero_turns(self):
         """Test analysis with zero turns (edge case)."""
-        results = self.sample_game_results.copy()
-        results["turns_played"] = 0
+        results = GameResults(
+            winner="red",
+            game_status=GameStatus.FINISHED,
+            turns_played=0,
+            total_moves=0,
+            dice_rolls=0,
+            player_stats=[],
+            final_positions={},
+        )
 
         analysis = analyze_game_results(results)
-        self.assertEqual(analysis["efficiency"], 0)
+        self.assertEqual(analysis.efficiency, 0)
 
     def test_analyze_game_results_zero_tokens_finished(self):
         """Test analysis with zero tokens finished (edge case)."""
-        results = self.sample_game_results.copy()
-        results["player_stats"][0]["tokens_finished"] = 0
+        results = GameResults(
+            winner="red",
+            game_status=GameStatus.FINISHED,
+            turns_played=45,
+            total_moves=180,
+            dice_rolls=45,
+            player_stats=[
+                PlayerStats(
+                    color="red",
+                    name="Player_1",
+                    tokens_finished=0,
+                    tokens_captured=3,
+                    total_moves=45,
+                    sixes_rolled=8,
+                ),
+            ],
+            final_positions={},
+        )
 
         analysis = analyze_game_results(results)
-        red_perf = analysis["player_performance"]["red"]
+        red_perf = analysis.player_performance["red"]
         self.assertEqual(red_perf["moves_per_token_finished"], 45 / 1)  # Uses max(1, tokens_finished)
 
 
@@ -126,11 +166,15 @@ class TestStrategyTournament(unittest.TestCase):
         }
 
         mock_game.players = [mock_player1, mock_player2]
-        mock_game.play_game.return_value = {
-            "winner": "red",
-            "turns_played": 30,
-            "total_moves": 120,
-        }
+        mock_game.play_game.return_value = GameResults(
+            winner="red",
+            game_status=GameStatus.FINISHED,
+            turns_played=30,
+            total_moves=120,
+            dice_rolls=30,
+            player_stats=[],
+            final_positions={},
+        )
 
         mock_game_class.return_value = mock_game
 
@@ -141,14 +185,15 @@ class TestStrategyTournament(unittest.TestCase):
         )
 
         # Verify results structure
-        self.assertIn("strategies", results)
-        self.assertIn("wins", results)
-        self.assertIn("detailed_stats", results)
-        self.assertIn("win_rates", results)
+        self.assertIsInstance(results, TournamentResult)
+        self.assertEqual(results.strategies, ["random", "killer"])
+        self.assertEqual(results.rounds, 1)
+        self.assertEqual(results.games_per_round, 1)
+        self.assertEqual(results.total_games, 1)
 
         # Verify win was recorded
-        self.assertEqual(results["wins"]["random"], 1)
-        self.assertEqual(results["wins"]["killer"], 0)
+        self.assertEqual(results.wins["random"], 1)
+        self.assertEqual(results.wins["killer"], 0)
 
     @patch('random.shuffle')
     @patch('random.randint')
@@ -180,7 +225,15 @@ class TestStrategyTournament(unittest.TestCase):
         }
 
         mock_game.players = [mock_player1, mock_player2]
-        mock_game.play_game.return_value = {"winner": "red"}
+        mock_game.play_game.return_value = GameResults(
+            winner="red",
+            game_status=GameStatus.FINISHED,
+            turns_played=30,
+            total_moves=120,
+            dice_rolls=30,
+            player_stats=[],
+            final_positions={},
+        )
 
         mock_game_class.return_value = mock_game
 
@@ -191,7 +244,7 @@ class TestStrategyTournament(unittest.TestCase):
         )
 
         # Should have played 6 games total
-        self.assertEqual(results["total_games"], 6)
+        self.assertEqual(results.total_games, 6)
         self.assertEqual(mock_game_class.call_count, 6)
 
 
@@ -220,9 +273,33 @@ class TestStrategyComparison(unittest.TestCase):
 
         # Alternate winners for fairness
         mock_game.play_game.side_effect = [
-            {"winner": "red", "turns_played": 30},
-            {"winner": "blue", "turns_played": 35},
-            {"winner": None, "turns_played": 50},  # Draw
+            GameResults(
+                winner="red",
+                game_status=GameStatus.FINISHED,
+                turns_played=30,
+                total_moves=120,
+                dice_rolls=30,
+                player_stats=[],
+                final_positions={},
+            ),
+            GameResults(
+                winner="blue",
+                game_status=GameStatus.FINISHED,
+                turns_played=35,
+                total_moves=140,
+                dice_rolls=35,
+                player_stats=[],
+                final_positions={},
+            ),
+            GameResults(
+                winner=None,
+                game_status=GameStatus.FINISHED,
+                turns_played=50,
+                total_moves=200,
+                dice_rolls=50,
+                player_stats=[],
+                final_positions={},
+            ),  # Draw
         ]
 
         mock_game_class.return_value = mock_game
@@ -230,21 +307,18 @@ class TestStrategyComparison(unittest.TestCase):
         results = compare_strategies("strategy1", "strategy2", games=3)
 
         # Verify results structure
-        self.assertIn("strategy1_wins", results)
-        self.assertIn("strategy2_wins", results)
-        self.assertIn("draws", results)
-        self.assertIn("games_played", results)
-        self.assertIn("strategy1_win_rate", results)
-        self.assertIn("strategy2_win_rate", results)
+        self.assertIsInstance(results, StrategyComparison)
+        self.assertEqual(results.strategy1, "strategy1")
+        self.assertEqual(results.strategy2, "strategy2")
+        self.assertEqual(results.games_played, 3)
 
         # Verify counts based on actual function logic
         # Game 0: strategy1=red wins -> strategy1_wins=1
-        # Game 1: strategy1=blue wins -> strategy1_wins=2  
+        # Game 1: strategy1=blue wins -> strategy1_wins=2
         # Game 2: draw -> draws=1
-        self.assertEqual(results["strategy1_wins"], 2)
-        self.assertEqual(results["strategy2_wins"], 0)
-        self.assertEqual(results["draws"], 1)
-        self.assertEqual(results["games_played"], 3)
+        self.assertEqual(results.strategy1_wins, 2)
+        self.assertEqual(results.strategy2_wins, 0)
+        self.assertEqual(results.draws, 1)
 
 
 class TestEloCalculation(unittest.TestCase):
@@ -252,11 +326,15 @@ class TestEloCalculation(unittest.TestCase):
 
     def test_calculate_strategy_elo(self):
         """Test ELO rating calculation."""
-        tournament_results = {
-            "strategies": ["random", "killer", "defensive"],
-            "wins": {"random": 15, "killer": 20, "defensive": 10},
-            "total_games": 45,
-        }
+        tournament_results = TournamentResult(
+            strategies=["random", "killer", "defensive"],
+            rounds=1,
+            games_per_round=15,
+            total_games=45,
+            wins={"random": 15, "killer": 20, "defensive": 10},
+            detailed_stats={},
+            win_rates={},
+        )
 
         elo_ratings = calculate_strategy_elo(tournament_results)
 
@@ -271,11 +349,15 @@ class TestEloCalculation(unittest.TestCase):
 
     def test_calculate_strategy_elo_perfect_scores(self):
         """Test ELO with perfect and zero win records."""
-        tournament_results = {
-            "strategies": ["perfect", "terrible"],
-            "wins": {"perfect": 10, "terrible": 0},
-            "total_games": 10,
-        }
+        tournament_results = TournamentResult(
+            strategies=["perfect", "terrible"],
+            rounds=1,
+            games_per_round=10,
+            total_games=10,
+            wins={"perfect": 10, "terrible": 0},
+            detailed_stats={},
+            win_rates={},
+        )
 
         elo_ratings = calculate_strategy_elo(tournament_results)
 

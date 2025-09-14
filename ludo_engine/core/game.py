@@ -11,16 +11,16 @@ from typing import Any, Dict, List, Optional
 
 from ..strategies.factory import StrategyFactory
 from .board import Board
+from .model import (
+    GameAnalysis,
+    GameResults,
+    GameStateData,
+    GameStatus,
+    PlayerStats,
+    TokenInfo,
+    TurnResult,
+)
 from .player import Player
-
-
-class GameState(Enum):
-    """Possible states of the game."""
-
-    NOT_STARTED = "not_started"
-    IN_PROGRESS = "in_progress"
-    FINISHED = "finished"
-    PAUSED = "paused"
 
 
 class LudoGame:
@@ -65,7 +65,7 @@ class LudoGame:
         self.board = Board()
         self.players = self._create_players(player_colors, strategies)
         self.current_player_index = 0
-        self.game_state = GameState.NOT_STARTED
+        self.game_state = GameStatus.NOT_STARTED
 
         # Game statistics
         self.turn_count = 0
@@ -92,10 +92,10 @@ class LudoGame:
 
     def start_game(self):
         """Start the game."""
-        if self.game_state != GameState.NOT_STARTED:
+        if self.game_state != GameStatus.NOT_STARTED:
             raise RuntimeError("Game has already been started")
 
-        self.game_state = GameState.IN_PROGRESS
+        self.game_state = GameStatus.IN_PROGRESS
         self._place_all_tokens()
 
     def _place_all_tokens(self):
@@ -115,32 +115,32 @@ class LudoGame:
         self.dice_rolls.append(dice_result)
         return dice_result
 
-    def play_turn(self) -> Dict[str, Any]:
+    def play_turn(self) -> TurnResult:
         """
         Play a complete turn for the current player.
 
         Returns:
-            Dictionary containing turn results
+            TurnResult containing turn results
         """
-        if self.game_state != GameState.IN_PROGRESS:
+        if self.game_state != GameStatus.IN_PROGRESS:
             raise RuntimeError("Game is not in progress")
 
         current_player = self.get_current_player()
-        turn_result = {
-            "player": current_player.color,
-            "dice_roll": None,
-            "move_made": False,
-            "token_moved": None,
-            "captured_tokens": [],
-            "finished_tokens": 0,
-            "another_turn": False,
-            "game_finished": False,
-            "winner": None,
-        }
+        turn_result = TurnResult(
+            player=current_player.color,
+            dice_roll=None,
+            move_made=False,
+            token_moved=None,
+            captured_tokens=[],
+            finished_tokens=0,
+            another_turn=False,
+            game_finished=False,
+            winner=None,
+        )
 
         # Roll dice
         dice_roll = self.roll_dice()
-        turn_result["dice_roll"] = dice_roll
+        turn_result.dice_roll = dice_roll
 
         # Handle consecutive sixes
         if dice_roll == 6:
@@ -170,9 +170,9 @@ class LudoGame:
             success, captured_tokens = self.board.move_token(chosen_token, dice_roll)
 
             if success:
-                turn_result["move_made"] = True
-                turn_result["token_moved"] = chosen_token.to_dict()
-                turn_result["captured_tokens"] = [t.to_dict() for t in captured_tokens]
+                turn_result.move_made = True
+                turn_result.token_moved = TokenInfo.from_dict(chosen_token.to_dict())
+                turn_result.captured_tokens = [TokenInfo.from_dict(t.to_dict()) for t in captured_tokens]
 
                 # Update player statistics
                 current_player.update_stats(dice_roll, True, captured_tokens)
@@ -180,23 +180,23 @@ class LudoGame:
 
                 # Check if any tokens finished
                 finished_count = len(current_player.get_finished_tokens())
-                turn_result["finished_tokens"] = finished_count
+                turn_result.finished_tokens = finished_count
 
                 # Check for game end
                 if current_player.has_won():
-                    self.game_state = GameState.FINISHED
-                    turn_result["game_finished"] = True
-                    turn_result["winner"] = current_player.color
+                    self.game_state = GameStatus.FINISHED
+                    turn_result.game_finished = True
+                    turn_result.winner = current_player.color
 
         # Determine if player gets another turn (rolled 6 or captured token)
-        another_turn = dice_roll == 6 or len(turn_result["captured_tokens"]) > 0
-        turn_result["another_turn"] = another_turn
+        another_turn = dice_roll == 6 or len(turn_result.captured_tokens) > 0
+        turn_result.another_turn = another_turn
 
         if not another_turn:
             self._next_player()
 
         # Record turn in history
-        self.game_history.append(turn_result.copy())
+        self.game_history.append(turn_result.to_dict())
         self.turn_count += 1
 
         return turn_result
@@ -205,7 +205,7 @@ class LudoGame:
         """Move to the next player's turn."""
         self.current_player_index = (self.current_player_index + 1) % len(self.players)
 
-    def play_game(self, max_turns: Optional[int] = None) -> Dict[str, Any]:
+    def play_game(self, max_turns: Optional[int] = None) -> GameResults:
         """
         Play a complete game until finished or max turns reached.
 
@@ -213,55 +213,57 @@ class LudoGame:
             max_turns: Maximum number of turns to play (None for no limit)
 
         Returns:
-            Game results
+            GameResults containing final game results
         """
-        if self.game_state == GameState.NOT_STARTED:
+        if self.game_state == GameStatus.NOT_STARTED:
             self.start_game()
 
         turns_played = 0
 
-        while self.game_state == GameState.IN_PROGRESS and (
+        while self.game_state == GameStatus.IN_PROGRESS and (
             max_turns is None or turns_played < max_turns
         ):
             turn_result = self.play_turn()
             turns_played += 1
 
-            if turn_result["game_finished"]:
+            if turn_result.game_finished:
                 break
 
         return self.get_game_results()
 
-    def get_game_state(self) -> Dict[str, Any]:
+    def get_game_state(self) -> GameStateData:
         """Get the current complete game state."""
-        return {
-            "board": self.board.get_board_state(),
-            "players": [player.to_dict() for player in self.players],
-            "current_player": self.current_player_index,
-            "turn_count": self.turn_count,
-            "game_state": self.game_state.value,
-            "sixes_in_row": self.sixes_in_row,
-        }
+        return GameStateData(
+            board=self.board.get_board_state(),
+            players=[player.get_stats() for player in self.players],
+            current_player=self.current_player_index,
+            turn_count=self.turn_count,
+            game_status=self.game_state,
+            sixes_in_row=self.sixes_in_row,
+        )
 
-    def get_game_results(self) -> Dict[str, Any]:
+    def get_game_results(self) -> GameResults:
         """Get final game results and statistics."""
-        results = {
-            "winner": self.board.get_winner(),
-            "game_state": self.game_state.value,
-            "turns_played": self.turn_count,
-            "total_moves": self.total_moves,
-            "dice_rolls": len(self.dice_rolls),
-            "player_stats": [player.get_stats() for player in self.players],
-            "final_positions": {},
-        }
+        from .model import FinalPosition
+
+        results = GameResults(
+            winner=self.board.get_winner(),
+            game_status=self.game_state,
+            turns_played=self.turn_count,
+            total_moves=self.total_moves,
+            dice_rolls=len(self.dice_rolls),
+            player_stats=[player.get_stats() for player in self.players],
+            final_positions={},
+        )
 
         # Calculate final positions
         for i, player in enumerate(self.players):
             finished_tokens = len(player.get_finished_tokens())
-            results["final_positions"][player.color] = {
-                "rank": i + 1,  # Will be updated based on finished tokens
-                "tokens_finished": finished_tokens,
-                "total_moves": player.total_moves,
-            }
+            results.final_positions[player.color] = FinalPosition(
+                rank=i + 1,  # Will be updated based on finished tokens
+                tokens_finished=finished_tokens,
+                total_moves=player.total_moves,
+            )
 
         return results
 
@@ -269,7 +271,7 @@ class LudoGame:
         """Reset the game to initial state."""
         self.board = Board()
         self.current_player_index = 0
-        self.game_state = GameState.NOT_STARTED
+        self.game_state = GameStatus.NOT_STARTED
         self.turn_count = 0
         self.total_moves = 0
         self.game_history = []
@@ -282,7 +284,7 @@ class LudoGame:
 
     def is_finished(self) -> bool:
         """Check if the game is finished."""
-        return self.game_state == GameState.FINISHED
+        return self.game_state == GameStatus.FINISHED
 
     def get_winner(self) -> Optional[str]:
         """Get the winner of the game."""

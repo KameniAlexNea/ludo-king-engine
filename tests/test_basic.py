@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ludo_engine import LudoGame, StrategyFactory
 from ludo_engine.core.board import Board
 from ludo_engine.core.constants import LudoConstants
+from ludo_engine.core.model import TurnResult
 from ludo_engine.core.player import Player
 from ludo_engine.core.token import Token
 
@@ -85,9 +86,10 @@ class TestLudoEngine(unittest.TestCase):
                 break
             turn_result = game.play_turn()
             # Verify turn result structure
-            self.assertIn("player", turn_result)
-            self.assertIn("dice_roll", turn_result)
-            self.assertIn("move_made", turn_result)
+            self.assertIsInstance(turn_result, TurnResult)
+            self.assertIsNotNone(turn_result.player)
+            self.assertIsNotNone(turn_result.dice_roll)
+            self.assertIsNotNone(turn_result.move_made)
 
 
 if __name__ == "__main__":
