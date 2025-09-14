@@ -1,41 +1,38 @@
 """
-Quick test to verify game completion works.
+Test to verify game completion works.
 """
 
 import os
 import sys
+import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ludo_engine import LudoGame
 
 
-def test_game_completion():
-    """Test that games can complete properly."""
-    print("Testing game completion...")
+class TestGameCompletion(unittest.TestCase):
+    """Test cases for game completion functionality."""
 
-    # Create a simple 2-player game
-    game = LudoGame(["red", "blue"], ["random", "random"], seed=42)
+    def test_game_completion(self):
+        """Test that games can complete properly."""
+        # Create a simple 2-player game
+        game = LudoGame(["red", "blue"], ["random", "random"], seed=42)
 
-    print("Playing game until completion...")
-    results = game.play_game(max_turns=1000)
+        results = game.play_game(max_turns=1000)
 
-    print("Game completed!")
-    print(f"Winner: {results['winner']}")
-    print(f"Turns: {results['turns_played']}")
-    print(f"Total moves: {results['total_moves']}")
+        # Verify game completed
+        self.assertIsNotNone(results["winner"])
+        self.assertGreater(results["turns_played"], 0)
+        self.assertGreater(results["total_moves"], 0)
 
-    # Show final token positions
-    for stats in results["player_stats"]:
-        print(f"{stats['color']}: {stats['tokens_finished']} tokens finished")
-
-    return results["winner"] is not None
+        # Verify player stats
+        self.assertEqual(len(results["player_stats"]), 2)
+        for stats in results["player_stats"]:
+            self.assertIn("color", stats)
+            self.assertIn("tokens_finished", stats)
+            self.assertGreaterEqual(stats["tokens_finished"], 0)
 
 
 if __name__ == "__main__":
-    success = test_game_completion()
-    if success:
-        print("✓ Game completion test passed!")
-    else:
-        print("❌ Game completion test failed!")
-    sys.exit(0 if success else 1)
+    unittest.main()
