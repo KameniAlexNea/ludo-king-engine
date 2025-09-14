@@ -40,5 +40,5 @@ ludo-demo = "ludo_engine:main"
 ludo-gradio = "ludo_interface.app:main"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"

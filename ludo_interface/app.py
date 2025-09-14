@@ -109,8 +109,7 @@ def _play_step(game: LudoGame) -> tuple:
     
     # Check if game is finished
     if game.is_finished():
-        winner = game.get_winner()
-        winner_color = winner.color if winner else 'Unknown'
+        winner_color = game.get_winner()  # This returns a string
         desc += f" | GAME OVER - Winner: {winner_color}"
     
     return game, desc, tokens_to_dict(game)
@@ -282,9 +281,9 @@ def launch_app():
                 
                 # Record winner
                 if game.is_finished():
-                    winner = game.get_winner()
-                    if winner and winner.color in win_counts:
-                        win_counts[winner.color] += 1
+                    winner_color = game.get_winner()  # This returns a string
+                    if winner_color and winner_color in win_counts:
+                        win_counts[winner_color] += 1
             
             # Format results
             total_games = sum(win_counts.values())
@@ -312,9 +311,9 @@ def launch_app():
             if game and game.is_finished():
                 stats = dict(stats)
                 stats["games"] += 1
-                winner = game.get_winner()
-                if winner and winner.color in stats["wins"]:
-                    stats["wins"][winner.color] += 1
+                winner_color = game.get_winner()  # This returns a string
+                if winner_color and winner_color in stats["wins"]:
+                    stats["wins"][winner_color] += 1
             return stats
         
         # Wire up the interface
