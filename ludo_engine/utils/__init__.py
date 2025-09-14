@@ -138,8 +138,7 @@ def run_strategy_tournament(
     # Calculate win rates
     total_games = results.total_games
     results.win_rates = {
-        strategy: (wins / total_games) * 100
-        for strategy, wins in results.wins.items()
+        strategy: (wins / total_games) * 100 for strategy, wins in results.wins.items()
     }
 
     return results
@@ -276,7 +275,9 @@ def export_game_replay(game: LudoGame, filename: str):
             "winner": game.get_winner(),
         },
         "history": game.game_history,
-        "final_state": game_state.to_dict() if hasattr(game_state, 'to_dict') else game_state,
+        "final_state": (
+            game_state.to_dict() if hasattr(game_state, "to_dict") else game_state
+        ),
     }
 
     with open(filename, "w") as f:

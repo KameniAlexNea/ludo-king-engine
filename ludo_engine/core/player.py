@@ -5,6 +5,7 @@ Each player has 4 tokens, a color, and a strategy for making moves.
 The player manages token lifecycle and move decisions.
 """
 
+from dataclasses import asdict
 from typing import TYPE_CHECKING, List, Optional
 
 from .model import PlayerData, PlayerPositionSummary, PlayerStats, TokenInfo
@@ -166,54 +167,56 @@ class Player:
         self.total_moves = 0
         self.sixes_rolled = 0
 
-    def to_dict(self) -> PlayerData:
+    def to_dict(self) -> dict:
         """Convert player to dictionary representation."""
         token_infos = []
         for token in self.tokens:
             token_dict = token.to_dict()
-            token_infos.append(TokenInfo(
-                id=token_dict["token_id"],
-                color=token_dict["color"],
-                position=token_dict["position"],
-                steps_taken=token_dict["steps_taken"],
-                is_finished=token.state.value == "finished",
-                is_at_home=token.state.value == "home"
-            ))
+            token_infos.append(
+                TokenInfo(
+                    id=token_dict["token_id"],
+                    color=token_dict["color"],
+                    position=token_dict["position"],
+                    steps_taken=token_dict["steps_taken"],
+                    is_finished=token.state.value == "finished",
+                    is_at_home=token.state.value == "home",
+                )
+            )
 
-        return PlayerData(
-            color=self.color,
-            name=self.name,
-            tokens=token_infos,
-            stats=self.get_stats()
+        player_data = PlayerData(
+            color=self.color, name=self.name, tokens=token_infos, stats=self.get_stats()
         )
+
+        return asdict(player_data)
 
     @classmethod
     def from_dict(
-        cls, data: PlayerData, strategy: Optional["BaseStrategy"] = None
+        cls, data: dict, strategy: Optional["BaseStrategy"] = None
     ) -> "Player":
         """Create player from dictionary representation."""
-        player = cls(data.color, data.name, strategy)
+        player = cls(data["color"], data["name"], strategy)
 
         # Restore tokens from TokenInfo objects
         player.tokens = []
-        for token_info in data.tokens:
-            token = Token(token_info.id, token_info.color)
-            token.position = token_info.position
-            token.steps_taken = token_info.steps_taken
+        for token_data in data.get("tokens", []):
+            token = Token(token_data["token_id"], token_data["color"])
+            token.position = token_data["position"]
+            token.steps_taken = token_data["steps_taken"]
             # Set state based on TokenInfo flags
-            if token_info.is_finished:
+            if token_data.get("is_finished", False):
                 token.state = TokenState.FINISHED
-            elif token_info.is_at_home:
+            elif token_data.get("is_at_home", False):
                 token.state = TokenState.HOME
             else:
                 token.state = TokenState.ACTIVE
             player.tokens.append(token)
 
         # Restore stats
-        player.tokens_finished = data.stats.tokens_finished
-        player.tokens_captured = data.stats.tokens_captured
-        player.total_moves = data.stats.total_moves
-        player.sixes_rolled = data.stats.sixes_rolled
+        stats_data = data.get("stats", {})
+        player.tokens_finished = stats_data.get("tokens_finished", 0)
+        player.tokens_captured = stats_data.get("tokens_captured", 0)
+        player.total_moves = stats_data.get("total_moves", 0)
+        player.sixes_rolled = stats_data.get("sixes_rolled", 0)
 
         return player
 

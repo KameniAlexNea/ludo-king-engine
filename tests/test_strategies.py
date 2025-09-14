@@ -18,7 +18,7 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ludo_engine.core.constants import HeuristicConstants, LudoConstants
+from ludo_engine.core.constants import HeuristicConstants
 from ludo_engine.core.player import Player
 from ludo_engine.core.token import Token
 from ludo_engine.strategies.advanced import CautiousStrategy
@@ -37,6 +37,7 @@ class TestBaseStrategy(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
+
         # Create a concrete subclass for testing
         class ConcreteStrategy(BaseStrategy):
             def choose_move(self, movable_tokens, dice_roll, game_state):
@@ -83,7 +84,9 @@ class TestBaseStrategy(unittest.TestCase):
 
         # Test safe position (position 14 is safe)
         game_state = {}
-        is_safe = self.strategy.is_move_safe(self.mock_token, 4, game_state)  # 10 + 4 = 14, which is safe
+        is_safe = self.strategy.is_move_safe(
+            self.mock_token, 4, game_state
+        )  # 10 + 4 = 14, which is safe
         self.assertTrue(is_safe)
 
     def test_count_tokens_ahead_no_player(self):
@@ -127,7 +130,7 @@ class TestRandomStrategy(unittest.TestCase):
         mock_token1 = Mock(spec=Token)
         mock_token2 = Mock(spec=Token)
 
-        with patch('random.choice', return_value=mock_token1) as mock_choice:
+        with patch("random.choice", return_value=mock_token1) as mock_choice:
             result = self.strategy.choose_move([mock_token1, mock_token2], 3, {})
             self.assertEqual(result, mock_token1)
             mock_choice.assert_called_once_with([mock_token1, mock_token2])
@@ -157,9 +160,13 @@ class TestKillerStrategy(unittest.TestCase):
         self.mock_token2.can_move.return_value = True
 
         # Mock get_opponent_tokens_in_range to return empty list
-        with patch.object(self.strategy, 'get_opponent_tokens_in_range', return_value=[]):
-            with patch.object(self.strategy, 'count_tokens_ahead', return_value=0):
-                result = self.strategy.choose_move([self.mock_token1, self.mock_token2], 3, {})
+        with patch.object(
+            self.strategy, "get_opponent_tokens_in_range", return_value=[]
+        ):
+            with patch.object(self.strategy, "count_tokens_ahead", return_value=0):
+                result = self.strategy.choose_move(
+                    [self.mock_token1, self.mock_token2], 3, {}
+                )
                 # Should return token with most steps ahead (token1 has 5 steps, token2 has 3)
                 self.assertEqual(result, self.mock_token1)
 
@@ -172,9 +179,14 @@ class TestKillerStrategy(unittest.TestCase):
         mock_opponent = Mock(spec=Token)
         mock_opponent.color = "blue"
 
-        with patch.object(self.strategy, 'get_opponent_tokens_in_range',
-                         side_effect=[[mock_opponent], []]):
-            result = self.strategy.choose_move([self.mock_token1, self.mock_token2], 3, {})
+        with patch.object(
+            self.strategy,
+            "get_opponent_tokens_in_range",
+            side_effect=[[mock_opponent], []],
+        ):
+            result = self.strategy.choose_move(
+                [self.mock_token1, self.mock_token2], 3, {}
+            )
             self.assertEqual(result, self.mock_token1)
 
 
@@ -198,8 +210,10 @@ class TestDefensiveStrategy(unittest.TestCase):
         self.mock_token1.can_move.return_value = True
         self.mock_token2.can_move.return_value = True
 
-        with patch.object(self.strategy, 'is_move_safe', return_value=False):
-            result = self.strategy.choose_move([self.mock_token1, self.mock_token2], 3, {})
+        with patch.object(self.strategy, "is_move_safe", return_value=False):
+            result = self.strategy.choose_move(
+                [self.mock_token1, self.mock_token2], 3, {}
+            )
             # Should return token with least steps (most advanced)
             self.assertEqual(result, self.mock_token1)
 
@@ -208,8 +222,10 @@ class TestDefensiveStrategy(unittest.TestCase):
         self.mock_token1.can_move.return_value = True
         self.mock_token2.can_move.return_value = True
 
-        with patch.object(self.strategy, 'is_move_safe', side_effect=[True, False]):
-            result = self.strategy.choose_move([self.mock_token1, self.mock_token2], 3, {})
+        with patch.object(self.strategy, "is_move_safe", side_effect=[True, False]):
+            result = self.strategy.choose_move(
+                [self.mock_token1, self.mock_token2], 3, {}
+            )
             self.assertEqual(result, self.mock_token1)
 
 
@@ -235,8 +251,10 @@ class TestBalancedStrategy(unittest.TestCase):
         # Mock opponent tokens for capture bonus
         mock_opponent = Mock(spec=Token)
 
-        with patch.object(self.strategy, 'get_opponent_tokens_in_range', return_value=[mock_opponent]):
-            with patch.object(self.strategy, 'is_move_safe', return_value=True):
+        with patch.object(
+            self.strategy, "get_opponent_tokens_in_range", return_value=[mock_opponent]
+        ):
+            with patch.object(self.strategy, "is_move_safe", return_value=True):
                 score = self.strategy.evaluate_move(self.mock_token1, 3, {})
 
                 # Expected score calculation:
@@ -244,9 +262,11 @@ class TestBalancedStrategy(unittest.TestCase):
                 # Capture bonus: 1 * 10.0 = 10.0
                 # Safe move bonus: 5.0
                 # Total: 0.8 + 10.0 + 5.0 = 15.8
-                expected_score = (5 + 3) * HeuristicConstants.HEURISTIC_ADVANCEMENT_MULTIPLIER + \
-                               1 * HeuristicConstants.HEURISTIC_CAPTURE_BONUS + \
-                               HeuristicConstants.HEURISTIC_SAFE_MOVE_BONUS
+                expected_score = (
+                    (5 + 3) * HeuristicConstants.HEURISTIC_ADVANCEMENT_MULTIPLIER
+                    + 1 * HeuristicConstants.HEURISTIC_CAPTURE_BONUS
+                    + HeuristicConstants.HEURISTIC_SAFE_MOVE_BONUS
+                )
                 self.assertAlmostEqual(score, expected_score)
 
     def test_choose_move(self):
@@ -254,8 +274,10 @@ class TestBalancedStrategy(unittest.TestCase):
         self.mock_token1.can_move.return_value = True
         self.mock_token2.can_move.return_value = True
 
-        with patch.object(self.strategy, 'evaluate_move', side_effect=[5.0, 10.0]):
-            result = self.strategy.choose_move([self.mock_token1, self.mock_token2], 3, {})
+        with patch.object(self.strategy, "evaluate_move", side_effect=[5.0, 10.0]):
+            result = self.strategy.choose_move(
+                [self.mock_token1, self.mock_token2], 3, {}
+            )
             self.assertEqual(result, self.mock_token2)  # Higher score
 
 
@@ -277,16 +299,6 @@ class TestCautiousStrategy(unittest.TestCase):
 
     def test_calculate_expected_value(self):
         """Test calculate_expected_value method."""
-        # This method doesn't exist in CautiousStrategy
-        pass
-
-    def test_calculate_capture_risk_safe_position(self):
-        """Test calculate_capture_risk for safe position."""
-        # This method doesn't exist in CautiousStrategy
-        pass
-
-    def test_calculate_capture_risk_with_opponents(self):
-        """Test calculate_capture_risk with opponent tokens in range."""
         # This method doesn't exist in CautiousStrategy
         pass
 

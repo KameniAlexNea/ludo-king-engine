@@ -18,16 +18,14 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ludo_engine.core.game import LudoGame
-from ludo_engine.core.player import Player
 from ludo_engine.core.model import (
-    GameAnalysis,
     GameResults,
     GameStatus,
     PlayerStats,
     StrategyComparison,
     TournamentResult,
-    TurnResult,
 )
+from ludo_engine.core.player import Player
 from ludo_engine.utils import (
     analyze_game_results,
     calculate_strategy_elo,
@@ -126,7 +124,9 @@ class TestGameAnalysis(unittest.TestCase):
 
         analysis = analyze_game_results(results)
         red_perf = analysis.player_performance["red"]
-        self.assertEqual(red_perf["moves_per_token_finished"], 45 / 1)  # Uses max(1, tokens_finished)
+        self.assertEqual(
+            red_perf["moves_per_token_finished"], 45 / 1
+        )  # Uses max(1, tokens_finished)
 
 
 class TestStrategyTournament(unittest.TestCase):
@@ -137,7 +137,7 @@ class TestStrategyTournament(unittest.TestCase):
         with self.assertRaises(ValueError):
             run_strategy_tournament(["random"], rounds=1, games_per_round=1)
 
-    @patch('ludo_engine.utils.LudoGame')
+    @patch("ludo_engine.utils.LudoGame")
     def test_run_strategy_tournament_basic(self, mock_game_class):
         """Test basic tournament execution."""
         # Mock game instance
@@ -179,9 +179,7 @@ class TestStrategyTournament(unittest.TestCase):
         mock_game_class.return_value = mock_game
 
         results = run_strategy_tournament(
-            ["random", "killer"],
-            rounds=1,
-            games_per_round=1
+            ["random", "killer"], rounds=1, games_per_round=1
         )
 
         # Verify results structure
@@ -195,10 +193,12 @@ class TestStrategyTournament(unittest.TestCase):
         self.assertEqual(results.wins["random"], 1)
         self.assertEqual(results.wins["killer"], 0)
 
-    @patch('random.shuffle')
-    @patch('random.randint')
-    @patch('ludo_engine.utils.LudoGame')
-    def test_run_strategy_tournament_multiple_games(self, mock_game_class, mock_randint, mock_shuffle):
+    @patch("random.shuffle")
+    @patch("random.randint")
+    @patch("ludo_engine.utils.LudoGame")
+    def test_run_strategy_tournament_multiple_games(
+        self, mock_game_class, mock_randint, mock_shuffle
+    ):
         """Test tournament with multiple games."""
         mock_shuffle.side_effect = lambda x: None  # No-op shuffle
         mock_randint.return_value = 42
@@ -214,14 +214,18 @@ class TestStrategyTournament(unittest.TestCase):
         mock_player1.color = "red"
         mock_player1.strategy = mock_strategy1
         mock_player1.get_stats.return_value = {
-            "tokens_finished": 4, "tokens_captured": 2, "total_moves": 30
+            "tokens_finished": 4,
+            "tokens_captured": 2,
+            "total_moves": 30,
         }
 
         mock_player2 = Mock()
         mock_player2.color = "blue"
         mock_player2.strategy = mock_strategy2
         mock_player2.get_stats.return_value = {
-            "tokens_finished": 1, "tokens_captured": 1, "total_moves": 28
+            "tokens_finished": 1,
+            "tokens_captured": 1,
+            "total_moves": 28,
         }
 
         mock_game.players = [mock_player1, mock_player2]
@@ -238,9 +242,7 @@ class TestStrategyTournament(unittest.TestCase):
         mock_game_class.return_value = mock_game
 
         results = run_strategy_tournament(
-            ["random", "killer"],
-            rounds=2,
-            games_per_round=3
+            ["random", "killer"], rounds=2, games_per_round=3
         )
 
         # Should have played 6 games total
@@ -251,7 +253,7 @@ class TestStrategyTournament(unittest.TestCase):
 class TestStrategyComparison(unittest.TestCase):
     """Test cases for strategy comparison functionality."""
 
-    @patch('ludo_engine.utils.LudoGame')
+    @patch("ludo_engine.utils.LudoGame")
     def test_compare_strategies(self, mock_game_class):
         """Test strategy comparison."""
         # Mock game instance
@@ -395,7 +397,7 @@ class TestGameReplay(unittest.TestCase):
 
     def test_export_game_replay(self):
         """Test exporting game replay."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             temp_filename = f.name
 
         try:
@@ -405,8 +407,9 @@ class TestGameReplay(unittest.TestCase):
             self.assertTrue(os.path.exists(temp_filename))
 
             # Verify file content
-            with open(temp_filename, 'r') as f:
+            with open(temp_filename, "r") as f:
                 import json
+
                 data = json.load(f)
 
             self.assertIn("metadata", data)
@@ -433,8 +436,9 @@ class TestGameReplay(unittest.TestCase):
             ],
         }
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             import json
+
             json.dump(replay_data, f)
             temp_filename = f.name
 

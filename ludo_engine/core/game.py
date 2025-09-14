@@ -6,20 +6,12 @@ Ludo game flow, including turn management, rule enforcement, and game state.
 """
 
 import random
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from dataclasses import asdict
+from typing import List, Optional
 
 from ..strategies.factory import StrategyFactory
 from .board import Board
-from .model import (
-    GameAnalysis,
-    GameResults,
-    GameStateData,
-    GameStatus,
-    PlayerStats,
-    TokenInfo,
-    TurnResult,
-)
+from .model import GameResults, GameStateData, GameStatus, TokenInfo, TurnResult
 from .player import Player
 
 
@@ -171,8 +163,29 @@ class LudoGame:
 
             if success:
                 turn_result.move_made = True
-                turn_result.token_moved = TokenInfo.from_dict(chosen_token.to_dict())
-                turn_result.captured_tokens = [TokenInfo.from_dict(t.to_dict()) for t in captured_tokens]
+                # Create TokenInfo directly from token data
+                token_dict = chosen_token.to_dict()
+                turn_result.token_moved = TokenInfo(
+                    id=token_dict["token_id"],
+                    color=token_dict["color"],
+                    position=token_dict["position"],
+                    steps_taken=token_dict["steps_taken"],
+                    is_finished=chosen_token.state.value == "finished",
+                    is_at_home=chosen_token.state.value == "home",
+                )
+                turn_result.captured_tokens = []
+                for captured_token in captured_tokens:
+                    captured_dict = captured_token.to_dict()
+                    turn_result.captured_tokens.append(
+                        TokenInfo(
+                            id=captured_dict["token_id"],
+                            color=captured_dict["color"],
+                            position=captured_dict["position"],
+                            steps_taken=captured_dict["steps_taken"],
+                            is_finished=captured_token.state.value == "finished",
+                            is_at_home=captured_token.state.value == "home",
+                        )
+                    )
 
                 # Update player statistics
                 current_player.update_stats(dice_roll, True, captured_tokens)
@@ -196,7 +209,7 @@ class LudoGame:
             self._next_player()
 
         # Record turn in history
-        self.game_history.append(turn_result.to_dict())
+        self.game_history.append(asdict(turn_result))
         self.turn_count += 1
 
         return turn_result
