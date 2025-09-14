@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 from PIL import Image, ImageDraw, ImageFont
 
 from ludo_engine.core.constants import Colors, LudoConstants
-from ludo_engine.core.token import TokenState
+from ludo_engine.core.token import TokenState, Token
 
 # Styling - matching matplotlib colors
 COLOR_MAP = {
@@ -284,13 +284,13 @@ def _draw_special_squares(d: ImageDraw.ImageDraw):
             d.text((cx - 8, cy - 10), "★", fill=PIL_COLOR_MAP["black"], font=FONT)
 
 
-def _get_token_position(token: Dict) -> Tuple[float, float]:
+def _get_token_position(token: Token) -> Tuple[float, float]:
     """Get the visual position for a token based on the matplotlib implementation."""
-    state = token["state"]
-    pos = token["position"]
-    tid = token["token_id"]
-    color = token["color"]
-    steps = token.get("steps_taken", 0)
+    state = token.state.value
+    pos = token.position
+    tid = token.token_id
+    color = token.color
+    steps = token.steps_taken
 
     if state == TokenState.HOME.value:
         # Token in home nest - use the nest positions from matplotlib
@@ -321,7 +321,7 @@ def _get_token_position(token: Dict) -> Tuple[float, float]:
                 return 7.5, 1.5
         else:
             # Compute path index from steps and color, aligned to PATH_LIST and START_CELLS
-            steps_taken = token.get("steps_taken", 0)
+            steps_taken = token.steps_taken
             if steps_taken <= 0:
                 # Fallback to position if steps not provided
                 base_idx = COLOR_START_INDEX.get(color, 0)
@@ -349,7 +349,7 @@ def _get_token_position(token: Dict) -> Tuple[float, float]:
     return 7.5, 7.5
 
 
-def draw_board(tokens: Dict[str, List[Dict]], show_ids: bool = True) -> Image.Image:
+def draw_board(tokens: Dict[str, List], show_ids: bool = True) -> Image.Image:
     """Draw the Ludo board with tokens - exact replica of matplotlib version."""
     img = Image.new("RGB", (BOARD_SIZE, BOARD_SIZE), PIL_COLOR_MAP["white"])
     d = ImageDraw.Draw(img)
@@ -399,7 +399,7 @@ def draw_board(tokens: Dict[str, List[Dict]], show_ids: bool = True) -> Image.Im
 
             # Draw token ID
             if show_ids and FONT:
-                tid = token.get("token_id", 0)
+                tid = token.token_id
                 d.text((cx - 5, cy - 8), str(tid), fill=PIL_COLOR_MAP["black"], font=FONT)
 
     return img

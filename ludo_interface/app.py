@@ -15,6 +15,7 @@ import gradio as gr
 
 from ludo_engine.core.game import LudoGame
 from ludo_engine.core.constants import Colors
+from ludo_engine.core.token import Token
 from ludo_engine.strategies.factory import StrategyFactory
 from ludo_interface.board_viz import draw_board
 
@@ -55,11 +56,11 @@ def _init_game(strategies: List[str]):
     return game
 
 
-def _game_state_tokens(game: LudoGame) -> Dict[str, List[Dict]]:
-    token_map: Dict[str, List[Dict]] = {c: [] for c in Colors.ALL_COLORS}
+def _game_state_tokens(game: LudoGame) -> Dict[str, List[Token]]:
+    token_map: Dict[str, List] = {c: [] for c in Colors.ALL_COLORS}
     for p in game.players:
         for t in p.tokens:
-            token_map[p.color].append(t.to_dict())
+            token_map[p.color].append(t)
     return token_map
 
 
