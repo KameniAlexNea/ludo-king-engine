@@ -5,12 +5,14 @@ The board manages the layout, safe zones, and provides utilities
 for token movement and position calculations.
 """
 
+from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 from .constants import LudoConstants
 from .token import Token
 
 
+@dataclass
 class Board:
     """
     Represents the Ludo game board.
@@ -18,14 +20,10 @@ class Board:
     The board is a circular path with 56 positions (0-55), where each
     player has their own starting position and home stretch.
     """
-
-    def __init__(self):
-        """Initialize the game board."""
-        # Track which tokens are at each position
-        self.positions: List[List[Token]] = [
-            [] for _ in range(LudoConstants.BOARD_SIZE + 1)
-        ]  # +1 for finish
-        self.safe_positions = LudoConstants.SAFE_POSITIONS.copy()
+    positions: List[List[Token]] = field(default_factory=lambda: [
+        [] for _ in range(LudoConstants.BOARD_SIZE + 1)
+    ])
+    safe_positions: set = field(default_factory=lambda: LudoConstants.SAFE_POSITIONS.copy())
 
     def is_safe_position(self, position: int) -> bool:
         """Check if a position is safe from capture."""

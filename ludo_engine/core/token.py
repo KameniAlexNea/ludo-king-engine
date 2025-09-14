@@ -5,6 +5,7 @@ Each token has a color, position, and state. Tokens can move around
 the board according to dice rolls and game rules.
 """
 
+from dataclasses import dataclass
 from enum import Enum
 
 from .constants import LudoConstants
@@ -19,6 +20,7 @@ class TokenState(Enum):
     FINISHED = "finished"  # Token has reached the end zone
 
 
+@dataclass
 class Token:
     """
     Represents a single game token.
@@ -26,20 +28,11 @@ class Token:
     Each token belongs to a player (identified by color) and tracks
     its current position and state on the board.
     """
-
-    def __init__(self, token_id: int, color: str):
-        """
-        Initialize a new token.
-
-        Args:
-            token_id: Unique identifier for this token (0-3 for each player)
-            color: Color of the token ('red', 'blue', 'green', 'yellow')
-        """
-        self.token_id = token_id
-        self.color = color
-        self.position = -1  # -1 means token is in home, 0-55 are board positions
-        self.state = TokenState.HOME
-        self.steps_taken = 0  # Total steps taken by this token
+    token_id: int
+    color: str
+    position: int = -1  # -1 means token is in home, 0-55 are board positions
+    state: TokenState = TokenState.HOME
+    steps_taken: int = 0  # Total steps taken by this token
 
     def is_at_home(self) -> bool:
         """Check if token is still in home."""
@@ -152,8 +145,10 @@ class Token:
     @classmethod
     def from_dict(cls, data: dict) -> "Token":
         """Create token from dictionary representation."""
-        token = cls(data["token_id"], data["color"])
-        token.position = data["position"]
-        token.state = TokenState(data["state"])
-        token.steps_taken = data["steps_taken"]
-        return token
+        return cls(
+            token_id=data["token_id"],
+            color=data["color"],
+            position=data["position"],
+            state=TokenState(data["state"]),
+            steps_taken=data["steps_taken"]
+        )

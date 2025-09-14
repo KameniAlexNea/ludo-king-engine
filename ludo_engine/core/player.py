@@ -5,7 +5,7 @@ Each player has 4 tokens, a color, and a strategy for making moves.
 The player manages token lifecycle and move decisions.
 """
 
-from dataclasses import asdict
+from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, List, Optional
 
 from .model import PlayerData, PlayerPositionSummary, PlayerStats, TokenInfo
@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from ..strategies.base_strategy import BaseStrategy
 
 
+@dataclass
 class Player:
     """
     Represents a player in the Ludo game.
@@ -22,33 +23,23 @@ class Player:
     Each player has 4 tokens of their assigned color and uses a strategy
     to make decisions about which moves to make.
     """
+    color: str
+    name: Optional[str] = None
+    strategy: Optional["BaseStrategy"] = None
+    tokens: List[Token] = field(default_factory=list)
+    tokens_finished: int = 0
+    tokens_captured: int = 0
+    total_moves: int = 0
+    sixes_rolled: int = 0
 
-    def __init__(
-        self,
-        color: str,
-        name: Optional[str] = None,
-        strategy: Optional["BaseStrategy"] = None,
-    ):
-        """
-        Initialize a new player.
+    def __post_init__(self):
+        """Initialize player after dataclass construction."""
+        if self.name is None:
+            self.name = f"Player_{self.color}"
 
-        Args:
-            color: Player's color ('red', 'blue', 'green', 'yellow')
-            name: Optional player name
-            strategy: Strategy to use for move decisions
-        """
-        self.color = color
-        self.name = name or f"Player_{color}"
-        self.strategy = strategy
-
-        # Create 4 tokens for this player
-        self.tokens: List[Token] = [Token(token_id=i, color=color) for i in range(4)]
-
-        # Game statistics
-        self.tokens_finished = 0
-        self.tokens_captured = 0
-        self.total_moves = 0
-        self.sixes_rolled = 0
+        # Create 4 tokens for this player if not provided
+        if not self.tokens:
+            self.tokens = [Token(token_id=i, color=self.color) for i in range(4)]
 
     def get_tokens_at_home(self) -> List[Token]:
         """Get all tokens currently at home."""
@@ -194,31 +185,44 @@ class Player:
         cls, data: dict, strategy: Optional["BaseStrategy"] = None
     ) -> "Player":
         """Create player from dictionary representation."""
-        player = cls(data["color"], data["name"], strategy)
-
         # Restore tokens from TokenInfo objects
-        player.tokens = []
+        tokens = []
         for token_data in data.get("tokens", []):
-            token = Token(token_data["token_id"], token_data["color"])
-            token.position = token_data["position"]
-            token.steps_taken = token_data["steps_taken"]
-            # Set state based on TokenInfo flags
-            if token_data.get("is_finished", False):
-                token.state = TokenState.FINISHED
-            elif token_data.get("is_at_home", False):
-                token.state = TokenState.HOME
+            # Derive state from position and other fields
+            position = token_data["position"]
+            steps_taken = token_data["steps_taken"]
+            is_finished = token_data.get("is_finished", False)
+            is_at_home = token_data.get("is_at_home", position == -1)
+
+            if is_finished:
+                state = TokenState.FINISHED
+            elif is_at_home:
+                state = TokenState.HOME
             else:
-                token.state = TokenState.ACTIVE
-            player.tokens.append(token)
+                state = TokenState.ACTIVE
+
+            token = Token(
+                token_id=token_data["token_id"],
+                color=token_data["color"],
+                position=position,
+                state=state,
+                steps_taken=steps_taken
+            )
+            tokens.append(token)
 
         # Restore stats
         stats_data = data.get("stats", {})
-        player.tokens_finished = stats_data.get("tokens_finished", 0)
-        player.tokens_captured = stats_data.get("tokens_captured", 0)
-        player.total_moves = stats_data.get("total_moves", 0)
-        player.sixes_rolled = stats_data.get("sixes_rolled", 0)
 
-        return player
+        return cls(
+            color=data["color"],
+            name=data["name"],
+            strategy=strategy,
+            tokens=tokens,
+            tokens_finished=stats_data.get("tokens_finished", 0),
+            tokens_captured=stats_data.get("tokens_captured", 0),
+            total_moves=stats_data.get("total_moves", 0),
+            sixes_rolled=stats_data.get("sixes_rolled", 0)
+        )
 
     def __repr__(self) -> str:
         """String representation of the player."""
