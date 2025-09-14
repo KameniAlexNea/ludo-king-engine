@@ -162,13 +162,12 @@ class Player:
         """Convert player to dictionary representation."""
         token_infos = []
         for token in self.tokens:
-            token_dict = token.to_dict()
             token_infos.append(
                 TokenInfo(
-                    id=token_dict["token_id"],
-                    color=token_dict["color"],
-                    position=token_dict["position"],
-                    steps_taken=token_dict["steps_taken"],
+                    id=token.token_id,
+                    color=token.color,
+                    position=token.position,
+                    steps_taken=token.steps_taken,
                     is_finished=token.state.value == "finished",
                     is_at_home=token.state.value == "home",
                 )

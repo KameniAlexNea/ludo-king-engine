@@ -5,7 +5,7 @@ Each token has a color, position, and state. Tokens can move around
 the board according to dice rolls and game rules.
 """
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import Enum
 
 from .constants import LudoConstants
@@ -134,13 +134,9 @@ class Token:
 
     def to_dict(self) -> dict:
         """Convert token to dictionary representation."""
-        return {
-            "token_id": self.token_id,
-            "color": self.color,
-            "position": self.position,
-            "state": self.state.value,
-            "steps_taken": self.steps_taken,
-        }
+        data = asdict(self)
+        data["state"] = self.state.value  # Convert enum to string value
+        return data
 
     @classmethod
     def from_dict(cls, data: dict) -> "Token":

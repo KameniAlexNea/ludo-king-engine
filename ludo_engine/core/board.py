@@ -5,7 +5,7 @@ The board manages the layout, safe zones, and provides utilities
 for token movement and position calculations.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import List, Optional, Tuple
 
 from .constants import LudoConstants
@@ -183,7 +183,7 @@ class Board:
         state = {}
         for position, tokens in enumerate(self.positions):
             if tokens:
-                state[position] = [token.to_dict() for token in tokens]
+                state[position] = [asdict(token) for token in tokens]
         return state
 
     def get_color_positions(self, color: str) -> List[int]:
