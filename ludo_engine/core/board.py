@@ -7,6 +7,7 @@ for token movement and position calculations.
 
 from typing import List, Optional, Tuple
 
+from .constants import LudoConstants
 from .token import Token
 
 
@@ -18,25 +19,13 @@ class Board:
     player has their own starting position and home stretch.
     """
 
-    # Standard Ludo board has 56 positions in the main track
-    BOARD_SIZE = 56
-
-    # Safe positions where tokens cannot be captured
-    SAFE_POSITIONS = {1, 9, 14, 22, 28, 35, 42, 48}
-
-    # Starting positions for each color
-    START_POSITIONS = {"red": 0, "blue": 14, "green": 28, "yellow": 42}
-
-    # Home stretch positions for each color (last 6 positions before finish)
-    HOME_STRETCH_START = {"red": 50, "blue": 8, "green": 22, "yellow": 36}
-
     def __init__(self):
         """Initialize the game board."""
         # Track which tokens are at each position
         self.positions: List[List[Token]] = [
-            [] for _ in range(self.BOARD_SIZE + 1)
+            [] for _ in range(LudoConstants.BOARD_SIZE + 1)
         ]  # +1 for finish
-        self.safe_positions = self.SAFE_POSITIONS.copy()
+        self.safe_positions = LudoConstants.SAFE_POSITIONS.copy()
 
     def is_safe_position(self, position: int) -> bool:
         """Check if a position is safe from capture."""
@@ -44,7 +33,7 @@ class Board:
 
     def get_tokens_at_position(self, position: int) -> List[Token]:
         """Get all tokens at a specific position."""
-        if 0 <= position <= self.BOARD_SIZE:
+        if 0 <= position <= LudoConstants.BOARD_SIZE:
             return self.positions[position].copy()
         return []
 
@@ -59,7 +48,7 @@ class Board:
         Returns:
             True if placement was successful
         """
-        if not (0 <= position <= self.BOARD_SIZE):
+        if not (0 <= position <= LudoConstants.BOARD_SIZE):
             return False
 
         # Remove token from its current position if it's on the board
@@ -95,7 +84,7 @@ class Board:
         # Calculate new position
         if token.is_at_home():
             if steps == 6:
-                new_position = self.START_POSITIONS[token.color]
+                new_position = LudoConstants.START_POSITIONS[token.color]
             else:
                 return False, []  # Can't leave home without a 6
         else:
@@ -110,7 +99,10 @@ class Board:
         captured_tokens = []
 
         # Handle captures if not on safe position
-        if not self.is_safe_position(new_position) and new_position < self.BOARD_SIZE:
+        if (
+            not self.is_safe_position(new_position)
+            and new_position < LudoConstants.BOARD_SIZE
+        ):
             captured_tokens = self._handle_captures(token, new_position)
 
         # Place token at new position
@@ -208,19 +200,23 @@ class Board:
     def count_tokens_at_finish(self, color: str) -> int:
         """Count how many tokens of a color have finished."""
         return len(
-            [token for token in self.positions[self.BOARD_SIZE] if token.color == color]
+            [
+                token
+                for token in self.positions[LudoConstants.BOARD_SIZE]
+                if token.color == color
+            ]
         )
 
     def is_game_finished(self) -> bool:
         """Check if the game is finished (any player has all 4 tokens finished)."""
-        for color in self.START_POSITIONS.keys():
+        for color in LudoConstants.START_POSITIONS.keys():
             if self.count_tokens_at_finish(color) == 4:
                 return True
         return False
 
     def get_winner(self) -> Optional[str]:
         """Get the winner of the game, if any."""
-        for color in self.START_POSITIONS.keys():
+        for color in LudoConstants.START_POSITIONS.keys():
             if self.count_tokens_at_finish(color) == 4:
                 return color
         return None

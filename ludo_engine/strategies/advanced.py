@@ -7,6 +7,7 @@ that use complex heuristics and probabilistic reasoning.
 
 from typing import List, Optional
 
+from ..core.constants import LudoConstants
 from ..core.token import Token
 from .base_strategy import BaseStrategy
 
@@ -150,8 +151,7 @@ class ProbabilisticStrategy(BaseStrategy):
         # Calculate new position
         new_position = token.position + dice_roll
         if token.is_at_home() and dice_roll == 6:
-            start_positions = {"red": 0, "blue": 14, "green": 28, "yellow": 42}
-            new_position = start_positions.get(token.color, 0)
+            new_position = LudoConstants.START_POSITIONS.get(token.color, 0)
 
         # Check if position is safe
         if self.is_move_safe(token, dice_roll, game_state):

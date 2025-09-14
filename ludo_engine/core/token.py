@@ -7,6 +7,8 @@ the board according to dice rolls and game rules.
 
 from enum import Enum
 
+from .constants import LudoConstants
+
 
 class TokenState(Enum):
     """Possible states of a token."""
@@ -123,8 +125,7 @@ class Token:
 
     def _get_start_position(self) -> int:
         """Get the starting position on the board for this token's color."""
-        start_positions = {"red": 0, "blue": 14, "green": 28, "yellow": 42}
-        return start_positions.get(self.color, 0)
+        return LudoConstants.START_POSITIONS.get(self.color, 0)
 
     def __repr__(self) -> str:
         """String representation of the token."""
