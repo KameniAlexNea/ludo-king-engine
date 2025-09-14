@@ -9,6 +9,7 @@ import random
 from typing import List, Optional
 
 from ..core.constants import HeuristicConstants, LudoConstants
+from ..core.model import GameStateData
 from ..core.token import Token
 from .base_strategy import BaseStrategy
 
@@ -20,7 +21,7 @@ class RandomStrategy(BaseStrategy):
         super().__init__("Random")
 
     def choose_move(
-        self, movable_tokens: List[Token], dice_roll: int, game_state
+        self, movable_tokens: List[Token], dice_roll: int, game_state: GameStateData
     ) -> Optional[Token]:
         """Randomly choose from available tokens."""
         if not movable_tokens:
@@ -35,7 +36,7 @@ class KillerStrategy(BaseStrategy):
         super().__init__("Killer")
 
     def choose_move(
-        self, movable_tokens: List[Token], dice_roll: int, game_state
+        self, movable_tokens: List[Token], dice_roll: int, game_state: GameStateData
     ) -> Optional[Token]:
         """Choose move that captures opponents, or best alternative."""
         if not movable_tokens:
@@ -66,7 +67,7 @@ class DefensiveStrategy(BaseStrategy):
         super().__init__("Defensive")
 
     def choose_move(
-        self, movable_tokens: List[Token], dice_roll: int, game_state
+        self, movable_tokens: List[Token], dice_roll: int, game_state: GameStateData
     ) -> Optional[Token]:
         """Choose safest move available."""
         if not movable_tokens:
@@ -93,7 +94,7 @@ class BalancedStrategy(BaseStrategy):
         super().__init__("Balanced")
 
     def choose_move(
-        self, movable_tokens: List[Token], dice_roll: int, game_state
+        self, movable_tokens: List[Token], dice_roll: int, game_state: GameStateData
     ) -> Optional[Token]:
         """Choose move based on balanced scoring."""
         if not movable_tokens:
@@ -109,7 +110,7 @@ class BalancedStrategy(BaseStrategy):
         scored_moves.sort(key=lambda x: x[1], reverse=True)
         return scored_moves[0][0]
 
-    def evaluate_move(self, token: Token, dice_roll: int, game_state) -> float:
+    def evaluate_move(self, token: Token, dice_roll: int, game_state: GameStateData) -> float:
         """Evaluate move considering multiple factors."""
         score = 0.0
 

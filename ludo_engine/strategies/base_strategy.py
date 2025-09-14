@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
+    from ..core.model import GameStateData
     from ..core.player import Player
     from ..core.token import Token
 
@@ -44,7 +45,7 @@ class BaseStrategy(ABC):
 
     @abstractmethod
     def choose_move(
-        self, movable_tokens: List["Token"], dice_roll: int, game_state
+        self, movable_tokens: List["Token"], dice_roll: int, game_state: "GameStateData"
     ) -> Optional["Token"]:
         """
         Choose which token to move from the available options.
@@ -58,7 +59,7 @@ class BaseStrategy(ABC):
             The token to move, or None if no move should be made
         """
 
-    def evaluate_move(self, token: "Token", dice_roll: int, game_state) -> float:
+    def evaluate_move(self, token: "Token", dice_roll: int, game_state: "GameStateData") -> float:
         """
         Evaluate the desirability of moving a specific token.
 
@@ -74,7 +75,7 @@ class BaseStrategy(ABC):
         return 1.0
 
     def get_opponent_tokens_in_range(
-        self, token: "Token", dice_roll: int, game_state
+        self, token: "Token", dice_roll: int, game_state: "GameStateData"
     ) -> List["Token"]:
         """
         Get opponent tokens that could be captured by this move.
@@ -113,7 +114,7 @@ class BaseStrategy(ABC):
 
         return opponent_tokens
 
-    def is_move_safe(self, token: "Token", dice_roll: int, game_state) -> bool:
+    def is_move_safe(self, token: "Token", dice_roll: int, game_state: "GameStateData") -> bool:
         """
         Check if a move would leave the token in a safe position.
 
@@ -139,7 +140,7 @@ class BaseStrategy(ABC):
             or new_position >= LudoConstants.BOARD_SIZE
         )
 
-    def count_tokens_ahead(self, token: "Token", game_state) -> int:
+    def count_tokens_ahead(self, token: "Token", game_state: "GameStateData") -> int:
         """
         Count how many of player's own tokens are ahead of this token.
 
