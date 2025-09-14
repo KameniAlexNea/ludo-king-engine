@@ -23,6 +23,7 @@ class Player:
     Each player has 4 tokens of their assigned color and uses a strategy
     to make decisions about which moves to make.
     """
+
     color: str
     name: Optional[str] = None
     strategy: Optional["BaseStrategy"] = None
@@ -205,7 +206,7 @@ class Player:
                 color=token_data["color"],
                 position=position,
                 state=state,
-                steps_taken=steps_taken
+                steps_taken=steps_taken,
             )
             tokens.append(token)
 
@@ -220,7 +221,7 @@ class Player:
             tokens_finished=stats_data.get("tokens_finished", 0),
             tokens_captured=stats_data.get("tokens_captured", 0),
             total_moves=stats_data.get("total_moves", 0),
-            sixes_rolled=stats_data.get("sixes_rolled", 0)
+            sixes_rolled=stats_data.get("sixes_rolled", 0),
         )
 
     def __repr__(self) -> str:

@@ -20,10 +20,13 @@ class Board:
     The board is a circular path with 56 positions (0-55), where each
     player has their own starting position and home stretch.
     """
-    positions: List[List[Token]] = field(default_factory=lambda: [
-        [] for _ in range(LudoConstants.BOARD_SIZE + 1)
-    ])
-    safe_positions: set = field(default_factory=lambda: LudoConstants.SAFE_POSITIONS.copy())
+
+    positions: List[List[Token]] = field(
+        default_factory=lambda: [[] for _ in range(LudoConstants.BOARD_SIZE + 1)]
+    )
+    safe_positions: set = field(
+        default_factory=lambda: LudoConstants.SAFE_POSITIONS.copy()
+    )
 
     def is_safe_position(self, position: int) -> bool:
         """Check if a position is safe from capture."""

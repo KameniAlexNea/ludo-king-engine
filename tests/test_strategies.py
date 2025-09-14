@@ -18,9 +18,8 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ludo_engine.core.model import GameStateData
-
 from ludo_engine.core.constants import HeuristicConstants
+from ludo_engine.core.model import GameStateData
 from ludo_engine.core.player import Player
 from ludo_engine.core.token import Token
 from ludo_engine.strategies.advanced import (
@@ -321,7 +320,9 @@ class TestCautiousStrategy(unittest.TestCase):
         """Test choose_move when safe moves are available."""
         # Mock is_move_safe to return True for token1, False for token2
         with patch.object(self.strategy, "is_move_safe", side_effect=[True, False]):
-            result = self.strategy.choose_move([self.mock_token1, self.mock_token2], 3, {})
+            result = self.strategy.choose_move(
+                [self.mock_token1, self.mock_token2], 3, {}
+            )
             # Should choose token with fewer steps (safer)
             self.assertEqual(result, self.mock_token1)
 
@@ -329,7 +330,9 @@ class TestCautiousStrategy(unittest.TestCase):
         """Test choose_move when no safe moves are available."""
         # Mock is_move_safe to return False for both tokens
         with patch.object(self.strategy, "is_move_safe", return_value=False):
-            result = self.strategy.choose_move([self.mock_token1, self.mock_token2], 3, {})
+            result = self.strategy.choose_move(
+                [self.mock_token1, self.mock_token2], 3, {}
+            )
             # Should choose token with most steps (least to lose)
             self.assertEqual(result, self.mock_token2)
 
@@ -371,22 +374,30 @@ class TestOptimistStrategy(unittest.TestCase):
         with patch.object(
             self.strategy,
             "get_opponent_tokens_in_range",
-            side_effect=[["opponent1"], []]
+            side_effect=[["opponent1"], []],
         ):
-            result = self.strategy.choose_move([self.mock_token1, self.mock_token2], 3, {})
+            result = self.strategy.choose_move(
+                [self.mock_token1, self.mock_token2], 3, {}
+            )
             self.assertEqual(result, self.mock_token1)
 
     def test_choose_move_no_captures(self):
         """Test choose_move when no captures are available."""
         # Mock no opponents for either token
-        with patch.object(self.strategy, "get_opponent_tokens_in_range", return_value=[]):
-            result = self.strategy.choose_move([self.mock_token1, self.mock_token2], 3, {})
+        with patch.object(
+            self.strategy, "get_opponent_tokens_in_range", return_value=[]
+        ):
+            result = self.strategy.choose_move(
+                [self.mock_token1, self.mock_token2], 3, {}
+            )
             # Should choose token that advances furthest
             self.assertEqual(result, self.mock_token2)
 
     def test_choose_move_single_token(self):
         """Test choose_move with single movable token."""
-        with patch.object(self.strategy, "get_opponent_tokens_in_range", return_value=[]):
+        with patch.object(
+            self.strategy, "get_opponent_tokens_in_range", return_value=[]
+        ):
             result = self.strategy.choose_move([self.mock_token1], 3, {})
             self.assertEqual(result, self.mock_token1)
 
@@ -469,11 +480,11 @@ class TestProbabilisticStrategy(unittest.TestCase):
         """Test choose_move selects highest scoring move."""
         # Mock calculate_expected_value to return higher score for token1
         with patch.object(
-            self.strategy,
-            "calculate_expected_value",
-            side_effect=[2.0, 1.0]
+            self.strategy, "calculate_expected_value", side_effect=[2.0, 1.0]
         ):
-            result = self.strategy.choose_move([self.mock_token1, self.mock_token2], 3, {})
+            result = self.strategy.choose_move(
+                [self.mock_token1, self.mock_token2], 3, {}
+            )
             self.assertEqual(result, self.mock_token1)
 
     def test_choose_move_single_token(self):
@@ -485,7 +496,14 @@ class TestProbabilisticStrategy(unittest.TestCase):
     def test_calculate_expected_value_basic(self):
         """Test calculate_expected_value basic scoring."""
         # Mock game state with board as dict
-        game_state = GameStateData(board={}, players=[], current_player=0, turn_count=0, game_status="ongoing", sixes_in_row=0)
+        game_state = GameStateData(
+            board={},
+            players=[],
+            current_player=0,
+            turn_count=0,
+            game_status="ongoing",
+            sixes_in_row=0,
+        )
 
         value = self.strategy.calculate_expected_value(self.mock_token1, 3, game_state)
         self.assertGreater(value, 0)
@@ -495,7 +513,14 @@ class TestProbabilisticStrategy(unittest.TestCase):
         # Set up token to be able to finish
         self.mock_token1.steps_taken = 54  # 54 + 3 = 57
 
-        game_state = GameStateData(board={}, players=[], current_player=0, turn_count=0, game_status="ongoing", sixes_in_row=0)
+        game_state = GameStateData(
+            board={},
+            players=[],
+            current_player=0,
+            turn_count=0,
+            game_status="ongoing",
+            sixes_in_row=0,
+        )
 
         value = self.strategy.calculate_expected_value(self.mock_token1, 3, game_state)
         # Should include finish bonus
@@ -507,14 +532,21 @@ class TestProbabilisticStrategy(unittest.TestCase):
         mock_opponent = Mock()
         mock_opponent.color = "blue"
 
-        game_state = GameStateData(board={}, players=[], current_player=0, turn_count=0, game_status="ongoing", sixes_in_row=0)
+        game_state = GameStateData(
+            board={},
+            players=[],
+            current_player=0,
+            turn_count=0,
+            game_status="ongoing",
+            sixes_in_row=0,
+        )
 
         with patch.object(
-            self.strategy,
-            "get_opponent_tokens_in_range",
-            return_value=[mock_opponent]
+            self.strategy, "get_opponent_tokens_in_range", return_value=[mock_opponent]
         ):
-            value = self.strategy.calculate_expected_value(self.mock_token1, 3, game_state)
+            value = self.strategy.calculate_expected_value(
+                self.mock_token1, 3, game_state
+            )
             # Should include capture bonus
             self.assertGreater(value, 20)  # Base advancement + capture bonus
 
@@ -524,7 +556,14 @@ class TestProbabilisticStrategy(unittest.TestCase):
         self.mock_token1.is_at_home.return_value = True
         self.mock_token1.steps_taken = 0
 
-        game_state = GameStateData(board={}, players=[], current_player=0, turn_count=0, game_status="ongoing", sixes_in_row=0)
+        game_state = GameStateData(
+            board={},
+            players=[],
+            current_player=0,
+            turn_count=0,
+            game_status="ongoing",
+            sixes_in_row=0,
+        )
 
         value = self.strategy.calculate_expected_value(self.mock_token1, 6, game_state)
         # Should include exit home bonus
@@ -532,7 +571,14 @@ class TestProbabilisticStrategy(unittest.TestCase):
 
     def test_calculate_capture_risk_safe_position(self):
         """Test calculate_capture_risk for safe position."""
-        game_state = GameStateData(board={}, players=[], current_player=0, turn_count=0, game_status="ongoing", sixes_in_row=0)
+        game_state = GameStateData(
+            board={},
+            players=[],
+            current_player=0,
+            turn_count=0,
+            game_status="ongoing",
+            sixes_in_row=0,
+        )
 
         with patch.object(self.strategy, "is_move_safe", return_value=True):
             risk = self.strategy.calculate_capture_risk(self.mock_token1, 3, game_state)
@@ -541,7 +587,14 @@ class TestProbabilisticStrategy(unittest.TestCase):
     def test_calculate_capture_risk_unsafe_position(self):
         """Test calculate_capture_risk for unsafe position."""
         # Mock opponent tokens that could reach the new position
-        game_state = GameStateData(board={"8": [{"color": "blue", "position": 8}]}, players=[], current_player=0, turn_count=0, game_status="ongoing", sixes_in_row=0)  # 2 steps away
+        game_state = GameStateData(
+            board={"8": [{"color": "blue", "position": 8}]},
+            players=[],
+            current_player=0,
+            turn_count=0,
+            game_status="ongoing",
+            sixes_in_row=0,
+        )  # 2 steps away
 
         with patch.object(self.strategy, "is_move_safe", return_value=False):
             risk = self.strategy.calculate_capture_risk(self.mock_token1, 3, game_state)
@@ -562,7 +615,14 @@ class TestProbabilisticStrategy(unittest.TestCase):
         """Test calculate_capture_risk when moving from home."""
         self.mock_token1.is_at_home.return_value = True
 
-        game_state = GameStateData(board={}, players=[], current_player=0, turn_count=0, game_status="ongoing", sixes_in_row=0)
+        game_state = GameStateData(
+            board={},
+            players=[],
+            current_player=0,
+            turn_count=0,
+            game_status="ongoing",
+            sixes_in_row=0,
+        )
 
         with patch.object(self.strategy, "is_move_safe", return_value=False):
             risk = self.strategy.calculate_capture_risk(self.mock_token1, 6, game_state)

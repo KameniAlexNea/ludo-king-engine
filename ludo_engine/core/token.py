@@ -28,6 +28,7 @@ class Token:
     Each token belongs to a player (identified by color) and tracks
     its current position and state on the board.
     """
+
     token_id: int
     color: str
     position: int = -1  # -1 means token is in home, 0-55 are board positions
@@ -146,5 +147,5 @@ class Token:
             color=data["color"],
             position=data["position"],
             state=TokenState(data["state"]),
-            steps_taken=data["steps_taken"]
+            steps_taken=data["steps_taken"],
         )

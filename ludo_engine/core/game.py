@@ -6,7 +6,6 @@ Ludo game flow, including turn management, rule enforcement, and game state.
 """
 
 import random
-from dataclasses import asdict
 from typing import List, Optional
 
 from ..strategies.factory import StrategyFactory
