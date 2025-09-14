@@ -7,7 +7,7 @@ that use complex heuristics and probabilistic reasoning.
 
 from typing import List, Optional
 
-from ..core.constants import LudoConstants
+from ..core.constants import HeuristicConstants, LudoConstants
 from ..core.token import Token
 from .base_strategy import BaseStrategy
 
@@ -121,23 +121,23 @@ class ProbabilisticStrategy(BaseStrategy):
 
         # Base value for advancement
         new_position = token.steps_taken + dice_roll
-        value += new_position * 0.5
+        value += new_position * HeuristicConstants.ADVANCED_ADVANCEMENT_MULTIPLIER
 
         # High value for finishing
         if new_position >= LudoConstants.BOARD_SIZE:
-            value += 100.0
+            value += HeuristicConstants.ADVANCED_FINISH_BONUS
 
         # Value for captures
         opponents = self.get_opponent_tokens_in_range(token, dice_roll, game_state)
-        value += len(opponents) * 25.0
+        value += len(opponents) * HeuristicConstants.ADVANCED_CAPTURE_BONUS
 
         # Cost of being captured (probability-based)
         capture_risk = self.calculate_capture_risk(token, dice_roll, game_state)
-        value -= capture_risk * 15.0
+        value -= capture_risk * HeuristicConstants.ADVANCED_CAPTURE_RISK_PENALTY
 
         # Value for getting out of home
         if token.is_at_home() and dice_roll == 6:
-            value += 30.0
+            value += HeuristicConstants.ADVANCED_EXIT_HOME_BONUS
 
         return value
 
@@ -169,6 +169,8 @@ class ProbabilisticStrategy(BaseStrategy):
                     distance = new_position - position
                     if 1 <= distance <= 6:
                         # Probability that opponent rolls exactly this distance
-                        risk += 1.0 / 6.0
+                        risk += HeuristicConstants.PROBABILITY_PER_DISTANCE
 
-        return min(risk, 1.0)  # Cap at 100% probability
+        return min(
+            risk, HeuristicConstants.MAX_CAPTURE_PROBABILITY
+        )  # Cap at 100% probability

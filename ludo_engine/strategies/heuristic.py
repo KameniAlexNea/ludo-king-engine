@@ -8,7 +8,7 @@ heuristics to make move decisions.
 import random
 from typing import List, Optional
 
-from ..core.constants import LudoConstants
+from ..core.constants import HeuristicConstants, LudoConstants
 from ..core.token import Token
 from .base_strategy import BaseStrategy
 
@@ -114,29 +114,31 @@ class BalancedStrategy(BaseStrategy):
         score = 0.0
 
         # Base score for advancing
-        score += (token.steps_taken + dice_roll) * 0.1
+        score += (
+            token.steps_taken + dice_roll
+        ) * HeuristicConstants.HEURISTIC_ADVANCEMENT_MULTIPLIER
 
         # Bonus for captures
         opponent_tokens = self.get_opponent_tokens_in_range(
             token, dice_roll, game_state
         )
-        score += len(opponent_tokens) * 10.0
+        score += len(opponent_tokens) * HeuristicConstants.HEURISTIC_CAPTURE_BONUS
 
         # Bonus for safe moves
         if self.is_move_safe(token, dice_roll, game_state):
-            score += 5.0
+            score += HeuristicConstants.HEURISTIC_SAFE_MOVE_BONUS
 
         # Bonus for getting out of home
         if token.is_at_home() and dice_roll == 6:
-            score += 15.0
+            score += HeuristicConstants.HEURISTIC_EXIT_HOME_BONUS
 
         # Bonus for reaching finish
         if token.steps_taken + dice_roll >= LudoConstants.BOARD_SIZE:
-            score += 20.0
+            score += HeuristicConstants.HEURISTIC_FINISH_BONUS
 
         # Penalty for leaving token vulnerable
         # (Simple check - could be improved with more sophisticated analysis)
         if not self.is_move_safe(token, dice_roll, game_state):
-            score -= 2.0
+            score -= HeuristicConstants.HEURISTIC_VULNERABILITY_PENALTY
 
         return score
