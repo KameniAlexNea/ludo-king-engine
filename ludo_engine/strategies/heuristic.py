@@ -8,6 +8,7 @@ heuristics to make move decisions.
 import random
 from typing import List, Optional
 
+from ..core.constants import LudoConstants
 from ..core.token import Token
 from .base_strategy import BaseStrategy
 
@@ -130,7 +131,7 @@ class BalancedStrategy(BaseStrategy):
             score += 15.0
 
         # Bonus for reaching finish
-        if token.steps_taken + dice_roll >= 56:
+        if token.steps_taken + dice_roll >= LudoConstants.BOARD_SIZE:
             score += 20.0
 
         # Penalty for leaving token vulnerable

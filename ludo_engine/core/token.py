@@ -105,13 +105,15 @@ class Token:
 
             # Simple linear movement - each player needs 57 steps to finish
             # (1 step to get on board + 56 steps around)
-            if self.steps_taken >= 57:
+            if self.steps_taken >= LudoConstants.BOARD_SIZE + 1:
                 self.state = TokenState.FINISHED
-                self.position = 56  # Finish position
+                self.position = LudoConstants.BOARD_SIZE  # Finish position
             else:
                 # Calculate position on circular track
                 start_pos = self._get_start_position()
-                self.position = (start_pos + self.steps_taken - 1) % 56
+                self.position = (
+                    start_pos + self.steps_taken - 1
+                ) % LudoConstants.BOARD_SIZE
 
             return True
 

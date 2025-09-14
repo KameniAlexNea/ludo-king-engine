@@ -12,6 +12,8 @@ if TYPE_CHECKING:
     from ..core.player import Player
     from ..core.token import Token
 
+from ..core.constants import LudoConstants
+
 
 class BaseStrategy(ABC):
     """
@@ -93,9 +95,8 @@ class BaseStrategy(ABC):
         new_position = token.position + dice_roll
         if token.is_at_home() and dice_roll == 6:
             # Moving from home
-            start_positions = {"red": 0, "blue": 14, "green": 28, "yellow": 42}
-            new_position = start_positions.get(token.color, 0)
-        elif new_position >= 56:
+            new_position = LudoConstants.START_POSITIONS.get(token.color, 0)
+        elif new_position >= LudoConstants.BOARD_SIZE:
             return []  # Moving to finish, no captures possible
 
         # Check game state for opponent tokens at new position
@@ -131,13 +132,14 @@ class BaseStrategy(ABC):
         # Calculate new position
         new_position = token.position + dice_roll
         if token.is_at_home() and dice_roll == 6:
-            start_positions = {"red": 0, "blue": 14, "green": 28, "yellow": 42}
-            new_position = start_positions.get(token.color, 0)
+            new_position = LudoConstants.START_POSITIONS.get(token.color, 0)
 
         # Safe positions where tokens cannot be captured
-        safe_positions = {1, 9, 14, 22, 28, 35, 42, 48}
 
-        return new_position in safe_positions or new_position >= 56
+        return (
+            new_position in LudoConstants.SAFE_POSITIONS
+            or new_position >= LudoConstants.BOARD_SIZE
+        )
 
     def count_tokens_ahead(self, token: "Token", game_state: dict) -> int:
         """

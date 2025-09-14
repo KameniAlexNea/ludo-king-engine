@@ -77,7 +77,7 @@ class WinnerStrategy(BaseStrategy):
         # Prioritize tokens that can finish
         finishing_tokens = []
         for token in movable_tokens:
-            if token.steps_taken + dice_roll >= 56:
+            if token.steps_taken + dice_roll >= LudoConstants.BOARD_SIZE:
                 finishing_tokens.append(token)
 
         if finishing_tokens:
@@ -124,7 +124,7 @@ class ProbabilisticStrategy(BaseStrategy):
         value += new_position * 0.5
 
         # High value for finishing
-        if new_position >= 56:
+        if new_position >= LudoConstants.BOARD_SIZE:
             value += 100.0
 
         # Value for captures
