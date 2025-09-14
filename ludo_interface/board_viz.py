@@ -1,436 +1,277 @@
-"""
-Board visualization for the Ludo game using PIL/Pillow.
-
-This module provides functionality to draw the Ludo board and visualize
-game states including token positions, player colors, and game progress.
-"""
-
 from typing import Dict, List, Tuple
 
-try:
-    from PIL import Image, ImageDraw, ImageFont
-except ImportError:
-    raise ImportError("PIL/Pillow is required for board visualization. Install with: pip install Pillow")
+from PIL import Image, ImageDraw, ImageFont
 
-from ludo_engine.core.constants import LudoConstants
+from ludo_engine.core.constants import Colors, LudoConstants
+from ludo_engine.core.token import TokenState
 
-# Color scheme
+# Styling
 COLOR_MAP = {
-    'red': (230, 60, 60),
-    'green': (60, 170, 90), 
-    'yellow': (245, 205, 55),
-    'blue': (65, 100, 210),
+    Colors.RED: (230, 60, 60),
+    Colors.GREEN: (60, 170, 90),
+    Colors.YELLOW: (245, 205, 55),
+    Colors.BLUE: (65, 100, 210),
 }
-
 BG_COLOR = (245, 245, 245)
 GRID_LINE = (210, 210, 210)
 PATH_COLOR = (255, 255, 255)
-SAFE_COLOR = (190, 190, 190)
+STAR_COLOR = (190, 190, 190)  # safe/star
 HOME_SHADE = (235, 235, 235)
 CENTER_COLOR = (255, 255, 255)
 
-# Try to load a font, fall back to default if not available
 FONT = None
-try:
+try:  # optional font
     FONT = ImageFont.truetype("DejaVuSans.ttf", 14)
-except (OSError, ImportError):
-    try:
-        FONT = ImageFont.load_default()
-    except:
-        FONT = None
+except Exception:
+    pass
 
-# Board layout constants - using a 15x15 grid for proper Ludo layout
-CELL_SIZE = 32
-GRID_SIZE = 15
-BOARD_SIZE = GRID_SIZE * CELL_SIZE
+# Basic geometric layout (15x15 grid for classic style)
+CELL = 32
+GRID = 15
+BOARD_SIZE = GRID * CELL
 
-# Define the main path positions on the board grid
-MAIN_PATH_POSITIONS = {
-    # Bottom row (red home stretch)
-    0: (7, 14), 1: (6, 14), 2: (5, 14), 3: (4, 14), 4: (3, 14), 5: (2, 14),
-    # Left column (yellow home stretch)
-    6: (0, 13), 7: (0, 12), 8: (0, 11), 9: (0, 10), 10: (0, 9), 11: (0, 8),
-    # Top row (blue home stretch)
-    12: (1, 6), 13: (2, 6), 14: (3, 6), 15: (4, 6), 16: (5, 6), 17: (6, 6),
-    # Right column (green home stretch)
-    18: (14, 7), 19: (14, 8), 20: (14, 9), 21: (14, 10), 22: (14, 11), 23: (14, 12),
-    # Continue bottom row
-    24: (13, 14), 25: (12, 14), 26: (11, 14), 27: (10, 14), 28: (9, 14), 29: (8, 14),
-    # Continue left column
-    30: (0, 5), 31: (0, 4), 32: (0, 3), 33: (0, 2), 34: (0, 1), 35: (0, 0),
-    # Continue top row
-    36: (8, 6), 37: (9, 6), 38: (10, 6), 39: (11, 6), 40: (12, 6), 41: (13, 6),
-    # Continue right column
-    42: (14, 5), 43: (14, 4), 44: (14, 3), 45: (14, 2), 46: (14, 1), 47: (14, 0),
-    # Final stretch to center
-    48: (7, 13), 49: (7, 12), 50: (7, 11), 51: (7, 10), 52: (7, 9), 53: (7, 8),
-    54: (7, 7), 55: (7, 6), 56: (7, 5),  # Center positions
+# Derived constants
+HOME_COLUMN_START = 100  # Home column starts at position 100
+HOME_COLUMN_END = 105    # Home column ends at position 105
+HOME_COLUMN_SIZE = 6     # Home column has 6 positions (100-105)
+
+# We derive path coordinates procedurally using a canonical 52-step outer path.
+# Layout: Imagine a cross with a 3-wide corridor. We'll build a ring path list of (col,row).
+
+
+def _build_path_grid() -> List[Tuple[int, int]]:
+    # Manual procedural trace of standard 52 cells referencing a 15x15 layout.
+    # Start from (6,0) and move clockwise replicating earlier static mapping but generated.
+    seq = []
+    # Up column from (6,0)->(6,5)
+    for r in range(0, 6):
+        seq.append((6, r))
+    # Left row (5,6)->(0,6)
+    for c in range(5, -1, -1):
+        seq.append((c, 6))
+    # Down column (0,7)->(0,8)
+    for r in range(7, 9):
+        seq.append((0, r))
+    # Right row (1,8)->(5,8)
+    for c in range(1, 6):
+        seq.append((c, 8))
+    # Down column (6,9)->(6,14)
+    for r in range(9, 15):
+        seq.append((6, r))
+    # Right row (7,14)->(8,14)
+    for c in range(7, 9):
+        seq.append((c, 14))
+    # Up column (8,13)->(8,9)
+    for r in range(13, 8, -1):
+        seq.append((8, r))
+    # Right row (9,8)->(14,8)
+    for c in range(9, 15):
+        seq.append((c, 8))
+    # Up column (14,7)->(14,6)
+    for r in range(7, 5, -1):
+        seq.append((14, r))
+    # Left row (13,6)->(9,6)
+    for c in range(13, 8, -1):
+        seq.append((c, 6))
+    # Up column (8,5)->(8,0)
+    for r in range(5, -1, -1):
+        seq.append((8, r))
+    # Left row (7,0)
+    seq.append((7, 0))
+    # Ensure length 52
+    return seq
+
+
+PATH_LIST = _build_path_grid()
+PATH_INDEX_TO_COORD = {i: coord for i, coord in enumerate(PATH_LIST)}
+
+# Home quadrants bounding boxes (col range inclusive)
+HOME_QUADRANTS = {
+    # Reordered to follow counter-clockwise Red -> Green -> Yellow -> Blue
+    Colors.RED: ((0, 5), (0, 5)),  # top-left
+    Colors.GREEN: ((0, 5), (9, 14)),  # bottom-left
+    Colors.YELLOW: ((9, 14), (9, 14)),  # bottom-right
+    Colors.BLUE: ((9, 14), (0, 5)),  # top-right
 }
 
-def _get_board_position(position: int, color: str) -> Tuple[int, int]:
-    """
-    Convert a logical game position to board coordinates.
-    
-    Args:
-        position: Logical position in the game (0-56)
-        color: Player color
-        
-    Returns:
-        Tuple of (col, row) coordinates on the board grid
-    """
-    if position in MAIN_PATH_POSITIONS:
-        return MAIN_PATH_POSITIONS[position]
-    
-    # Default to center if position not found
-    return (7, 7)
 
-def _get_home_position(token_id: int, color: str) -> Tuple[int, int]:
-    """Get home position for a token based on color and token ID."""
-    # Define home quadrants for each color
-    home_positions = {
-        'red': [(3, 11), (5, 11), (3, 13), (5, 13)],      # Bottom-left
-        'blue': [(9, 3), (11, 3), (9, 5), (11, 5)],       # Top-right
-        'green': [(3, 3), (5, 3), (3, 5), (5, 5)],        # Top-left
-        'yellow': [(9, 11), (11, 11), (9, 13), (11, 13)], # Bottom-right
-    }
-    
-    positions = home_positions.get(color, home_positions['red'])
-    return positions[token_id % len(positions)]
+def _cell_bbox(col: int, row: int):
+    x0 = col * CELL
+    y0 = row * CELL
+    return (x0, y0, x0 + CELL, y0 + CELL)
 
-def _get_finish_position(color: str, token_id: int) -> Tuple[int, int]:
-    """Get finish position for a color in the center."""
-    # Center positions for finished tokens - arranged by color
-    center_positions = {
-        'red': [(6, 7), (7, 7), (8, 7), (7, 8)],      # Bottom of center
-        'blue': [(7, 6), (7, 7), (7, 8), (6, 7)],     # Left of center
-        'green': [(6, 7), (7, 7), (8, 7), (7, 6)],    # Top of center
-        'yellow': [(7, 6), (7, 7), (7, 8), (8, 7)],   # Right of center
-    }
-    positions = center_positions.get(color, center_positions['red'])
-    return positions[token_id % len(positions)]
 
-def draw_board(game_state: Dict, show_ids: bool = True) -> Image.Image:
+def _draw_home_quadrants(d: ImageDraw.ImageDraw):
+    """Draw only a colored border for each player's home quadrant."""
+    border_width = 6
+    for color, ((c0, c1), (r0, r1)) in HOME_QUADRANTS.items():
+        box = (c0 * CELL, r0 * CELL, (c1 + 1) * CELL, (r1 + 1) * CELL)
+        # Draw base (background) to ensure any prior drawings are covered
+        d.rectangle(box, fill=BG_COLOR)
+        # Pillow's rectangle outline draws centered on the edge; for a thicker
+        # appearance we can draw multiple inset rectangles.
+        for w in range(border_width):
+            inset_box = (
+                box[0] + w,
+                box[1] + w,
+                box[2] - w,
+                box[3] - w,
+            )
+            d.rectangle(inset_box, outline=COLOR_MAP[color])
+
+
+def _token_home_grid_position(color: str, token_id: int) -> Tuple[int, int]:
+    (c0, c1), (r0, r1) = HOME_QUADRANTS[color]
+    cols = [c0 + 1, c0 + 3]
+    rows = [r0 + 1, r0 + 3]
+    col = cols[token_id % 2]
+    row = rows[token_id // 2]
+    return col, row
+
+
+def _home_column_positions_for_color(color: str) -> Dict[int, Tuple[int, int]]:
     """
-    Draw the Ludo board with current game state.
-    
-    Args:
-        game_state: Dictionary containing game state with player and token information
-        show_ids: Whether to show token IDs on the board
-        
-    Returns:
-        PIL Image of the board
+    Map home column indices (100..104) to board coordinates; 105 is final finish.
+
+    GameConstants.HOME_COLUMN_SIZE = 6 covers 100..105 inclusive, but per spec 105 is
+    not a drawable lane square—tokens reaching 105 are considered finished and moved
+    to the center aggregation. We therefore only allocate 5 visual squares (100-104).
     """
-    img = Image.new('RGB', (BOARD_SIZE, BOARD_SIZE), BG_COLOR)
-    draw = ImageDraw.Draw(img)
-    
-    # Draw grid
-    for i in range(GRID_SIZE + 1):
-        # Vertical lines
-        draw.line([(i * CELL_SIZE, 0), (i * CELL_SIZE, BOARD_SIZE)], fill=GRID_LINE)
-        # Horizontal lines  
-        draw.line([(0, i * CELL_SIZE), (BOARD_SIZE, i * CELL_SIZE)], fill=GRID_LINE)
-    
-    # Draw home areas for each color
-    home_areas = {
-        'red': (0, 9 * CELL_SIZE, 6 * CELL_SIZE, BOARD_SIZE),        # Bottom-left
-        'blue': (9 * CELL_SIZE, 0, BOARD_SIZE, 6 * CELL_SIZE),       # Top-right
-        'green': (0, 0, 6 * CELL_SIZE, 6 * CELL_SIZE),               # Top-left
-        'yellow': (9 * CELL_SIZE, 9 * CELL_SIZE, BOARD_SIZE, BOARD_SIZE), # Bottom-right
-    }
-    
-    for color, area in home_areas.items():
-        # Draw a subtle background for home areas
-        draw.rectangle(area, fill=HOME_SHADE, outline=COLOR_MAP[color], width=2)
-    
-    # Draw the main path cells
-    for pos, (col, row) in MAIN_PATH_POSITIONS.items():
-        x1, y1 = col * CELL_SIZE, row * CELL_SIZE
-        x2, y2 = x1 + CELL_SIZE, y1 + CELL_SIZE
-        
-        # Highlight safe positions
-        if pos in LudoConstants.SAFE_POSITIONS:
-            draw.rectangle([x1, y1, x2, y2], fill=SAFE_COLOR, outline=GRID_LINE)
+    mapping: Dict[int, Tuple[int, int]] = {}
+    center = (7, 7)
+    entry_index = LudoConstants.HOME_STRETCH_START[color]  # Use HOME_STRETCH_START instead of HOME_COLUMN_ENTRIES
+    entry_coord = PATH_INDEX_TO_COORD[entry_index]
+    ex, ey = entry_coord
+    dx = 0 if ex == center[0] else (1 if center[0] > ex else -1)
+    dy = 0 if ey == center[1] else (1 if center[1] > ey else -1)
+    cx, cy = ex + dx, ey + dy
+    # Only create squares for 100..104 (size - 1)
+    for offset in range(HOME_COLUMN_SIZE - 1):  # exclude final 105
+        mapping[HOME_COLUMN_START + offset] = (cx, cy)
+        cx += dx
+        cy += dy
+    return mapping
+
+
+HOME_COLUMN_COORDS = {
+    color: _home_column_positions_for_color(color) for color in Colors.ALL_COLORS
+}
+
+
+def draw_board(tokens: Dict[str, List[Dict]], show_ids: bool = True) -> Image.Image:
+    img = Image.new("RGB", (BOARD_SIZE, BOARD_SIZE), BG_COLOR)
+    d = ImageDraw.Draw(img)
+
+    # Quadrants
+    _draw_home_quadrants(d)
+
+    # Precompute special colored squares: start positions & home entry positions
+    start_positions = LudoConstants.START_POSITIONS  # color -> index
+    home_entries = LudoConstants.HOME_STRETCH_START  # color -> index (use HOME_STRETCH_START)
+    start_index_to_color = {idx: clr for clr, idx in start_positions.items()}
+    entry_index_to_color = {idx: clr for clr, idx in home_entries.items()}
+
+    # Main path cells with coloring rules
+    for idx, (c, r) in PATH_INDEX_TO_COORD.items():
+        bbox = _cell_bbox(c, r)
+        outline = GRID_LINE
+        if idx in start_index_to_color:  # starting squares (safe)
+            fill = COLOR_MAP[start_index_to_color[idx]]
+        elif (
+            idx in entry_index_to_color
+        ):  # home entry squares (NOT safe) keep path color, colored outline
+            fill = PATH_COLOR
+            outline = COLOR_MAP[entry_index_to_color[idx]]
+        elif idx in LudoConstants.SAFE_POSITIONS:  # global safe/star positions
+            fill = STAR_COLOR
         else:
-            draw.rectangle([x1, y1, x2, y2], fill=PATH_COLOR, outline=GRID_LINE)
-    
-    # Draw center finish area
-    center_x1, center_y1 = 6 * CELL_SIZE, 6 * CELL_SIZE
-    center_x2, center_y2 = center_x1 + 3 * CELL_SIZE, center_y1 + 3 * CELL_SIZE
-    draw.rectangle([center_x1, center_y1, center_x2, center_y2], 
-                  fill=CENTER_COLOR, outline=(0, 0, 0), width=3)
-    
-    # Draw tokens
-    players = game_state.get('players', [])
-    
-    for player in players:
-        color = player.get('color', 'red')
-        tokens = player.get('tokens', [])
-        player_color = COLOR_MAP.get(color, COLOR_MAP['red'])
-        
-        for token in tokens:
-            token_id = token.get('token_id', 0)
-            position = token.get('position', 0)
-            state = token.get('state', 'home')
-            
-            if state == 'home':
-                col, row = _get_home_position(token_id, color)
-            elif state == 'finished':
-                col, row = _get_finish_position(color, token_id)
-            else:  # active
-                col, row = _get_board_position(position, color)
-            
-            # Draw token
-            x = col * CELL_SIZE + CELL_SIZE // 4
-            y = row * CELL_SIZE + CELL_SIZE // 4
-            radius = CELL_SIZE // 3
-            
-            draw.ellipse([x, y, x + radius * 2, y + radius * 2], 
-                        fill=player_color, outline=(0, 0, 0), width=2)
-            
-            # Draw token ID if requested
+            fill = PATH_COLOR
+        d.rectangle(bbox, fill=fill, outline=outline)
+
+    # Home columns (tinted player color)
+    for color, pos_map in HOME_COLUMN_COORDS.items():
+        col_rgb = COLOR_MAP[color]
+        tint = tuple(min(255, int(v * 1.15)) for v in col_rgb)  # light tint
+        for pos, (c, r) in pos_map.items():
+            bbox = _cell_bbox(c, r)
+            d.rectangle(bbox, fill=tint, outline=col_rgb)
+
+    # Center finish region (position 105) draw four color triangles
+    cx0, cy0, cx1, cy1 = _cell_bbox(7, 7)
+    midx = (cx0 + cx1) // 2
+    midy = (cy0 + cy1) // 2
+    d.rectangle((cx0, cy0, cx1, cy1), fill=CENTER_COLOR, outline=(80, 80, 80), width=3)
+    # Triangles: top(red), right(green), bottom(yellow), left(blue) typical clockwise
+    d.polygon([(cx0, cy0), (cx1, cy0), (midx, midy)], fill=COLOR_MAP[Colors.RED])  # top
+    d.polygon(
+        [(cx1, cy0), (cx1, cy1), (midx, midy)], fill=COLOR_MAP[Colors.BLUE]
+    )  # right (swapped: was GREEN)
+    d.polygon(
+        [(cx0, cy1), (cx1, cy1), (midx, midy)], fill=COLOR_MAP[Colors.YELLOW]
+    )  # bottom
+    d.polygon(
+        [(cx0, cy0), (cx0, cy1), (midx, midy)], fill=COLOR_MAP[Colors.GREEN]
+    )  # left (swapped: was BLUE)
+
+    # Finish anchors per color inside their triangle (stack tokens exactly here)
+    finish_anchor = {
+        Colors.RED: (midx, cy0 + (midy - cy0) // 2),
+        # Swapped BLUE and GREEN to align with triangle color swap
+        Colors.BLUE: (cx1 - (cx1 - midx) // 2, midy),  # right side now BLUE
+        Colors.YELLOW: (midx, cy1 - (cy1 - midy) // 2),
+        Colors.GREEN: (cx0 + (midx - cx0) // 2, midy),  # left side now GREEN
+    }
+
+    # Grid overlay (subtle)
+    for i in range(GRID + 1):
+        d.line((0, i * CELL, BOARD_SIZE, i * CELL), fill=(230, 230, 230))
+        d.line((i * CELL, 0, i * CELL, BOARD_SIZE), fill=(230, 230, 230))
+
+    # Tokens
+    for color, tlist in tokens.items():
+        base_color = COLOR_MAP[color]
+        for tk in tlist:
+            state = tk["state"]
+            pos = tk["position"]
+            tid = tk["token_id"]
+            if state == TokenState.HOME.value:
+                c, r = _token_home_grid_position(color, tid)
+            elif (
+                state == TokenState.ACTIVE.value
+                and HOME_COLUMN_START <= pos <= HOME_COLUMN_END
+            ):
+                coord_map = HOME_COLUMN_COORDS[color]
+                if pos not in coord_map:
+                    continue
+                c, r = coord_map[pos]
+            elif state == TokenState.FINISHED.value:
+                ax, ay = finish_anchor[color]
+                # Draw stacked (superposed) circle; tokens overlap fully
+                r_pix = CELL // 2 - 4
+                x0 = ax - r_pix
+                y0 = ay - r_pix
+                x1 = ax + r_pix
+                y1 = ay + r_pix
+                d.ellipse((x0, y0, x1, y1), fill=base_color, outline=(0, 0, 0))
+                if show_ids and FONT:
+                    d.text((ax - 5, ay - 8), str(tid), fill=(0, 0, 0), font=FONT)
+                continue
+            else:  # active on main path
+                if 0 <= pos < len(PATH_INDEX_TO_COORD):
+                    c, r = PATH_INDEX_TO_COORD[pos]
+                else:
+                    continue
+            bbox = _cell_bbox(c, r)
+            x0, y0, x1, y1 = bbox
+            inset = 4
+            token_box = (x0 + inset, y0 + inset, x1 - inset, y1 - inset)
+            d.ellipse(token_box, fill=base_color, outline=(0, 0, 0))
             if show_ids and FONT:
-                text_x = x + radius - 5
-                text_y = y + radius - 7
-                draw.text((text_x, text_y), str(token_id), fill=(255, 255, 255), font=FONT)
-    
+                d.text(
+                    (x0 + CELL // 2 - 5, y0 + CELL // 2 - 8),
+                    str(tid),
+                    fill=(0, 0, 0),
+                    font=FONT,
+                )
+
     return img
-
-from typing import Dict, List, Tuple
-
-try:
-    from PIL import Image, ImageDraw, ImageFont
-except ImportError:
-    raise ImportError("PIL/Pillow is required for board visualization. Install with: pip install Pillow")
-
-from ludo_engine.core.constants import LudoConstants
-
-# Color scheme
-COLOR_MAP = {
-    'red': (230, 60, 60),
-    'green': (60, 170, 90), 
-    'yellow': (245, 205, 55),
-    'blue': (65, 100, 210),
-}
-
-BG_COLOR = (245, 245, 245)
-GRID_LINE = (210, 210, 210)
-PATH_COLOR = (255, 255, 255)
-SAFE_COLOR = (190, 190, 190)
-HOME_SHADE = (235, 235, 235)
-CENTER_COLOR = (255, 255, 255)
-
-# Try to load a font, fall back to default if not available
-FONT = None
-try:
-    FONT = ImageFont.truetype("DejaVuSans.ttf", 14)
-except (OSError, ImportError):
-    try:
-        FONT = ImageFont.load_default()
-    except:
-        FONT = None
-
-# Board layout constants
-CELL_SIZE = 32
-GRID_SIZE = 15
-BOARD_SIZE = GRID_SIZE * CELL_SIZE
-
-def _get_board_position(position: int, color: str) -> Tuple[int, int]:
-    """
-    Convert a logical game position to board coordinates.
-    
-    Args:
-        position: Logical position in the game
-        color: Player color
-        
-    Returns:
-        Tuple of (col, row) coordinates on the board grid
-    """
-    # For simplicity, we'll create a basic board layout
-    # This is a simplified version - in a full implementation you'd have
-    # a proper mapping of the 56 positions around the board
-    
-    start_pos = LudoConstants.START_POSITIONS.get(color, 0)
-    adjusted_pos = (position - start_pos) % LudoConstants.BOARD_SIZE
-    
-    # Create a rough circular layout
-    positions_per_side = 14
-    
-    if adjusted_pos < positions_per_side:  # Top side
-        return (1 + adjusted_pos, 6)
-    elif adjusted_pos < 2 * positions_per_side:  # Right side
-        return (14, 7 + (adjusted_pos - positions_per_side))
-    elif adjusted_pos < 3 * positions_per_side:  # Bottom side
-        return (13 - (adjusted_pos - 2 * positions_per_side), 14)
-    else:  # Left side
-        return (0, 13 - (adjusted_pos - 3 * positions_per_side))
-
-def _get_home_position(token_id: int, color: str) -> Tuple[int, int]:
-    """Get home position for a token based on color and token ID."""
-    # Define home quadrants for each color
-    home_positions = {
-        'red': [(2, 2), (4, 2), (2, 4), (4, 4)],
-        'blue': [(10, 2), (12, 2), (10, 4), (12, 4)],
-        'green': [(2, 10), (4, 10), (2, 12), (4, 12)],
-        'yellow': [(10, 10), (12, 10), (10, 12), (12, 12)],
-    }
-    
-    positions = home_positions.get(color, home_positions['red'])
-    return positions[token_id % len(positions)]
-
-def _get_finish_position(color: str) -> Tuple[int, int]:
-    """Get finish position for a color in the center."""
-    # Center positions for finished tokens
-    center_positions = {
-        'red': (6, 6),
-        'blue': (8, 6),
-        'green': (6, 8),
-        'yellow': (8, 8),
-    }
-    return center_positions.get(color, (7, 7))
-
-def draw_board(game_state: Dict, show_ids: bool = True) -> Image.Image:
-    """
-    Draw the Ludo board with current game state.
-    
-    Args:
-        game_state: Dictionary containing game state with player and token information
-        show_ids: Whether to show token IDs on the board
-        
-    Returns:
-        PIL Image of the board
-    """
-    img = Image.new('RGB', (BOARD_SIZE, BOARD_SIZE), BG_COLOR)
-    draw = ImageDraw.Draw(img)
-    
-    # Draw grid
-    for i in range(GRID_SIZE + 1):
-        # Vertical lines
-        draw.line([(i * CELL_SIZE, 0), (i * CELL_SIZE, BOARD_SIZE)], fill=GRID_LINE)
-        # Horizontal lines  
-        draw.line([(0, i * CELL_SIZE), (BOARD_SIZE, i * CELL_SIZE)], fill=GRID_LINE)
-    
-    # Draw home areas for each color
-    home_areas = {
-        'red': (0, 0, 6 * CELL_SIZE, 6 * CELL_SIZE),
-        'blue': (9 * CELL_SIZE, 0, BOARD_SIZE, 6 * CELL_SIZE),
-        'green': (0, 9 * CELL_SIZE, 6 * CELL_SIZE, BOARD_SIZE),
-        'yellow': (9 * CELL_SIZE, 9 * CELL_SIZE, BOARD_SIZE, BOARD_SIZE),
-    }
-    
-    for color, area in home_areas.items():
-        # Draw a subtle background for home areas
-        draw.rectangle(area, fill=HOME_SHADE, outline=COLOR_MAP[color], width=2)
-    
-    # Draw the main path (simplified rectangular path)
-    path_cells = []
-    
-    # Top row
-    for i in range(6, 9):
-        path_cells.append((i, 6))
-    
-    # Right column
-    for i in range(6, 9):
-        path_cells.append((8, i))
-        
-    # Bottom row  
-    for i in range(8, 5, -1):
-        path_cells.append((i, 8))
-        
-    # Left column
-    for i in range(8, 5, -1):
-        path_cells.append((6, i))
-    
-    # Draw path cells
-    for col, row in path_cells:
-        x1, y1 = col * CELL_SIZE, row * CELL_SIZE
-        x2, y2 = x1 + CELL_SIZE, y1 + CELL_SIZE
-        draw.rectangle([x1, y1, x2, y2], fill=PATH_COLOR, outline=GRID_LINE)
-    
-    # Draw center finish area
-    center_x1, center_y1 = 7 * CELL_SIZE, 7 * CELL_SIZE
-    center_x2, center_y2 = center_x1 + CELL_SIZE, center_y1 + CELL_SIZE
-    draw.rectangle([center_x1, center_y1, center_x2, center_y2], 
-                  fill=CENTER_COLOR, outline=(0, 0, 0), width=2)
-    
-    # Draw tokens
-    players = game_state.get('players', [])
-    
-    for player in players:
-        color = player.get('color', 'red')
-        tokens = player.get('tokens', [])
-        player_color = COLOR_MAP.get(color, COLOR_MAP['red'])
-        
-        for token in tokens:
-            token_id = token.get('token_id', 0)
-            position = token.get('position', 0)
-            state = token.get('state', 'home')
-            
-            if state == 'home':
-                col, row = _get_home_position(token_id, color)
-            elif state == 'finished':
-                col, row = _get_finish_position(color)
-            else:  # active
-                col, row = _get_board_position(position, color)
-            
-            # Draw token
-            x = col * CELL_SIZE + CELL_SIZE // 4
-            y = row * CELL_SIZE + CELL_SIZE // 4
-            radius = CELL_SIZE // 3
-            
-            draw.ellipse([x, y, x + radius * 2, y + radius * 2], 
-                        fill=player_color, outline=(0, 0, 0), width=2)
-            
-            # Draw token ID if requested
-            if show_ids and FONT:
-                text_x = x + radius - 5
-                text_y = y + radius - 7
-                draw.text((text_x, text_y), str(token_id), fill=(255, 255, 255), font=FONT)
-    
-    return img
-
-
-def tokens_to_dict(game) -> Dict:
-    """
-    Convert game state to dictionary format for visualization.
-    
-    Args:
-        game: LudoGame instance
-        
-    Returns:
-        Dictionary containing game state information
-    """
-    game_state = {
-        'players': []
-    }
-    
-    for player in game.players:
-        player_data = {
-            'color': player.color,
-            'tokens': []
-        }
-        
-        for token in player.tokens:
-            # Get the token state properly
-            if hasattr(token.state, 'value'):
-                state = token.state.value
-            else:
-                state = str(token.state).lower()
-            
-            # Normalize state names
-            if 'home' in state:
-                state = 'home'
-            elif 'finish' in state or 'finished' in state:
-                state = 'finished'
-            else:
-                state = 'active'
-            
-            token_data = {
-                'token_id': token.token_id,
-                'position': token.position,
-                'state': state
-            }
-            player_data['tokens'].append(token_data)
-        
-        game_state['players'].append(player_data)
-    
-    return game_state

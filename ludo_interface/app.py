@@ -1,46 +1,37 @@
-"""
-Gradio-based web interface for the Ludo game.
-
-This module provides an interactive web interface for playing Ludo games,
-visualizing board states, and comparing different AI strategies.
-"""
-
-import base64
-import io
-import json
 import os
-import sys
-import time
-from typing import Dict, List, Optional
+from typing import Dict, List
 
-# Add the project root to the path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Set up Gradio directories to fix folder creation while saving cache
 os.environ.setdefault("GRADIO_TEMP_DIR", os.path.join(os.getcwd(), "gradio_runtime"))
 os.environ.setdefault(
     "GRADIO_CACHE_DIR",
     os.path.join(os.getcwd(), "gradio_runtime", "cache"),
 )
 
-try:
-    import gradio as gr
-except ImportError:
-    raise ImportError("Gradio is required for the web interface. Install with: pip install gradio")
+import base64
+import io
+import json
 
-from ludo_engine import LudoGame, StrategyFactory
-from .board_viz import draw_board, tokens_to_dict
+import gradio as gr
 
-# Available strategies for the interface
+from ludo_engine.core.game import LudoGame
+from ludo_engine.core.constants import Colors
+from ludo_engine.strategies.factory import StrategyFactory
+from ludo_interface.board_viz import draw_board
+
 AI_STRATEGIES = StrategyFactory.get_available_strategies()
-DEFAULT_COLORS = ['red', 'blue', 'green', 'yellow']
+DEFAULT_PLAYERS = [
+    Colors.RED,
+    Colors.GREEN,
+    Colors.YELLOW,
+    Colors.BLUE,
+]
 
 
 def _img_to_data_uri(pil_img):
-    """Convert PIL image to data URI for inline display."""
+    """Return an inline data URI for the PIL image to avoid Gradio temp file folders."""
     buf = io.BytesIO()
-    pil_img.save(buf, format='PNG')
-    b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+    pil_img.save(buf, format="PNG")
+    b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
     return (
         "<div style='display:flex;justify-content:center;'>"
         f"<img src='data:image/png;base64,{b64}' "
@@ -49,377 +40,250 @@ def _img_to_data_uri(pil_img):
     )
 
 
-def _init_game(strategies: List[str]) -> LudoGame:
-    """Initialize a new game with the specified strategies."""
-    # Filter out None strategies and ensure minimum 2 players
-    valid_strategies = [s for s in strategies if s is not None]
-    
-    if len(valid_strategies) < 2:
-        raise ValueError("At least 2 strategies are required to start a game")
-    
-    # Limit to maximum 4 players
-    valid_strategies = valid_strategies[:4]
-    n_players = len(valid_strategies)
-    
-    game = LudoGame(
-        player_colors=DEFAULT_COLORS[:n_players],
-        strategies=valid_strategies,
-        seed=None  # Use random seed for variety
-    )
-    game.start_game()  # Important: start the game!
+def _init_game(strategies: List[str]):
+    # Instantiate strategies via factory
+    strategy_objs = []
+    for i, strat_name in enumerate(strategies):
+        strategy = StrategyFactory.create_strategy(strat_name)
+        strategy_objs.append(strategy)
+    # Build game with chosen strategies
+    game = LudoGame(DEFAULT_PLAYERS)
+    # Attach strategies
+    for player, strat in zip(game.players, strategy_objs):
+        player.set_strategy(strat)
     return game
 
 
-def _serialize_move(turn_result) -> str:
-    """Convert turn result to human-readable string."""
-    if not turn_result:
+def _game_state_tokens(game: LudoGame) -> Dict[str, List[Dict]]:
+    token_map: Dict[str, List[Dict]] = {c: [] for c in Colors.ALL_COLORS}
+    for p in game.players:
+        for t in p.tokens:
+            token_map[p.color].append(t.to_dict())
+    return token_map
+
+
+def _serialize_move(move_result: Dict) -> str:
+    if not move_result or not move_result.get("success"):
         return "No move"
-    
-    parts = []
-    
-    # Get player color - handle different formats
-    if hasattr(turn_result, 'player'):
-        player_color = turn_result.player
-    elif hasattr(turn_result, 'current_player') and turn_result.current_player:
-        player_color = turn_result.current_player.color
-    else:
-        player_color = "Unknown"
-    
-    parts.append(f"{player_color}")
-    
-    # Get dice roll
-    if hasattr(turn_result, 'dice_roll'):
-        dice_roll = turn_result.dice_roll
-        parts.append(f"rolled {dice_roll}")
-    
-    # Check if move was made
-    if hasattr(turn_result, 'move_made') and turn_result.move_made:
-        parts.append("made a move")
-    elif hasattr(turn_result, 'dice_roll') and turn_result.dice_roll == 6:
-        parts.append("can move token out of home")
-    else:
-        parts.append("no valid moves")
-    
-    # Check for captures
-    if hasattr(turn_result, 'captured_tokens') and turn_result.captured_tokens:
-        parts.append(f"captured {len(turn_result.captured_tokens)} token(s)")
-    
-    # Check if token finished
-    if hasattr(turn_result, 'finished_tokens') and turn_result.finished_tokens > 0:
-        parts.append(f"{turn_result.finished_tokens} token(s) finished!")
-    
-    # Check for extra turn
-    if hasattr(turn_result, 'another_turn') and turn_result.another_turn:
-        parts.append("gets extra turn")
-    
+    parts = [
+        f"{move_result['player_color']} token {move_result['token_id']} -> {move_result['new_position']}"
+    ]
+    if move_result.get("captured_tokens"):
+        cap = move_result["captured_tokens"]
+        parts.append(f"captured {len(cap)}")
+    if move_result.get("token_finished"):
+        parts.append("finished")
+    if move_result.get("extra_turn"):
+        parts.append("extra turn")
     return ", ".join(parts)
 
 
-def _play_step(game: LudoGame) -> tuple:
-    """Play one step of the game and return results."""
-    if game.is_finished():
-        winner = game.get_winner()
-        return game, f"Game over - Winner: {winner}", tokens_to_dict(game)
-    
-    # Play one turn
-    turn_result = game.play_turn()
-    
-    # Create description
-    desc = _serialize_move(turn_result)
-    
-    # Check if game is finished after this turn
-    if game.is_finished():
-        winner = game.get_winner()
-        desc += f" | GAME OVER - Winner: {winner}"
-    
-    return game, desc, tokens_to_dict(game)
+def _play_step(game: LudoGame):
+    if game.game_over:
+        return game, "Game over", _game_state_tokens(game)
+    current_player = game.get_current_player()
+    dice = game.roll_dice()
+    valid = game.get_valid_moves(current_player, dice)
+    if not valid:
+        # If rolled a 6, player gets another turn even with no moves
+        extra_turn = dice == 6
+        if not extra_turn:
+            game.next_turn()
+
+        # Debug info: show all token positions
+        token_positions = []
+        for i, token in enumerate(current_player.tokens):
+            token_positions.append(f"token {i}: {token.position} ({token.state.value})")
+        positions_str = ", ".join(token_positions)
+
+        return (
+            game,
+            f"{current_player.color.value} rolled {dice} - no moves{' (extra turn)' if extra_turn else ''} | Positions: {positions_str}",
+            _game_state_tokens(game),
+        )
+    # If player has strategy use it; else pick first
+    chosen = None
+    ctx = game.get_ai_decision_context(dice)
+    token_choice = current_player.make_strategic_decision(ctx)
+    # find move with that token_id
+    for mv in valid:
+        if mv["token_id"] == token_choice:
+            chosen = mv
+            break
+    if chosen is None:
+        chosen = valid[0]
+    move_res = game.execute_move(current_player, chosen["token_id"], dice)
+    desc = f"{current_player.color.value} rolled {dice}: {_serialize_move(move_res)}"
+    if move_res.get("extra_turn") and not game.game_over:
+        # do not advance turn
+        pass
+    else:
+        if not game.game_over:
+            game.next_turn()
+    if game.game_over:
+        desc += f" | WINNER: {game.winner.color.value}"
+    return game, desc, _game_state_tokens(game)
 
 
 def launch_app():
-    """Launch the Gradio interface."""
-    
-    with gr.Blocks(title="Ludo Game Interface") as demo:
-        gr.Markdown("# 🎲 Ludo Game Interface")
-        gr.Markdown("Play Ludo with different AI strategies and watch the games unfold!")
-        
+    with gr.Blocks(title="Ludo AI Visualizer") as demo:
+        gr.Markdown("# Ludo AI Visualizer")
         with gr.Tabs():
-            with gr.TabItem("🎮 Play Game"):
+            with gr.TabItem("Play Game"):
                 with gr.Row():
                     strategy_inputs = []
-                    for i, color in enumerate(DEFAULT_COLORS):
+                    for color in DEFAULT_PLAYERS:
                         strategy_inputs.append(
                             gr.Dropdown(
                                 choices=AI_STRATEGIES,
-                                value=AI_STRATEGIES[0] if AI_STRATEGIES else 'random',
-                                label=f"{color.title()} Strategy"
+                                value=AI_STRATEGIES[0],
+                                label=f"{color.value} strategy",
                             )
                         )
-                
                 with gr.Row():
-                    init_btn = gr.Button("🎯 Start New Game", variant="primary")
-                    step_btn = gr.Button("➡️ Play Step")
-                    auto_steps = gr.Number(value=10, label="Auto Steps", minimum=1, maximum=100)
-                    auto_delay = gr.Number(value=0.5, label="Delay (seconds)", minimum=0.1, maximum=2.0)
-                    run_auto_btn = gr.Button("🤖 Run Auto Steps")
-                
+                    init_btn = gr.Button("Start New Game")
+                    step_btn = gr.Button("Play Step")
+                    auto_steps_n = gr.Number(value=1, label="Steps")
+                    auto_delay = gr.Number(value=0.2, label="Delay (s)")
+                    run_auto_btn = gr.Button("Run Auto Steps")
                 with gr.Row():
                     show_ids = gr.Checkbox(label="Show Token IDs", value=True)
-                    export_btn = gr.Button("📤 Export Game State")
-                    history_btn = gr.Button("📜 Show Move History")
-                
+                    export_btn = gr.Button("Export Game State")
+                    move_history_btn = gr.Button("Show Move History (last 50)")
                 with gr.Row(equal_height=True):
                     with gr.Column(scale=3):
-                        board_display = gr.HTML(label="Game Board")
+                        board_plot = gr.HTML(label="Board")
                     with gr.Column(scale=1):
-                        last_move = gr.Textbox(label="Last Move", interactive=False)
-                        move_history = gr.Textbox(label="Move History", lines=10, interactive=False)
-                
-                game_stats = gr.JSON(
-                    label="Game Statistics",
-                    value={"games": 0, "wins": {color: 0 for color in DEFAULT_COLORS}}
+                        log = gr.Textbox(label="Last Action", interactive=False)
+                        history_box = gr.Textbox(label="Move History", lines=10)
+                stats_display = gr.JSON(
+                    label="Performance",
+                    value={"games": 0, "wins": {c.value: 0 for c in DEFAULT_PLAYERS}},
                 )
-            
-            with gr.TabItem("🏆 Tournament Mode"):
-                with gr.Row():
-                    tournament_strategies = []
-                    for i, color in enumerate(DEFAULT_COLORS):
-                        tournament_strategies.append(
-                            gr.Dropdown(
-                                choices=AI_STRATEGIES,
-                                value=AI_STRATEGIES[i % len(AI_STRATEGIES)] if AI_STRATEGIES else 'random',
-                                label=f"{color.title()} Strategy"
-                            )
+            with gr.TabItem("Simulate Multiple Games"):
+                sim_strat_inputs = []
+                for color in DEFAULT_PLAYERS:
+                    sim_strat_inputs.append(
+                        gr.Dropdown(
+                            choices=AI_STRATEGIES,
+                            value=AI_STRATEGIES[0],
+                            label=f"{color.value} strategy",
                         )
-                
-                with gr.Row():
-                    num_games = gr.Slider(
-                        minimum=10, maximum=1000, value=100, step=10,
-                        label="Number of Games"
                     )
-                    run_tournament_btn = gr.Button("🏁 Run Tournament", variant="primary")
-                
-                tournament_results = gr.Textbox(
-                    label="Tournament Results", 
-                    lines=15, 
-                    interactive=False
-                )
-        
-        # Hidden state components
+                with gr.Row():
+                    bulk_games = gr.Slider(
+                        10, 2000, value=200, step=10, label="Number of Games"
+                    )
+                    bulk_run_btn = gr.Button("Run Simulation")
+                bulk_results = gr.Textbox(label="Simulation Results")
+        export_box = gr.Textbox(label="Game State JSON", lines=6, visible=False)
         game_state = gr.State()
-        history_state = gr.State([])
-        stats_state = gr.State({"games": 0, "wins": {color: 0 for color in DEFAULT_COLORS}})
-        export_state = gr.State("")
-        
-        def init_new_game(*strategies):
-            """Initialize a new game with selected strategies."""
-            strategies_list = [s for s in strategies if s is not None]
-            if len(strategies_list) < 2:
-                raise ValueError("At least 2 strategies must be selected to start a game")
-            
-            game = _init_game(strategies_list)
-            game_dict = tokens_to_dict(game)
-            board_img = draw_board(game_dict, show_ids=True)
-            board_html = _img_to_data_uri(board_img)
-            
+        move_history = gr.State([])
+        stats_state = gr.State(
+            {"games": 0, "wins": {c.value: 0 for c in DEFAULT_PLAYERS}}
+        )
+
+        def _init(*strats):
+            game = _init_game(list(strats))
+            pil_img = draw_board(_game_state_tokens(game), show_ids=True)
+            html = _img_to_data_uri(pil_img)
             return (
                 game,
-                board_html,
-                "Game initialized - Ready to play!",
+                html,
+                "Game initialized",
                 [],
-                {"games": 0, "wins": {color: 0 for color in DEFAULT_COLORS}}
+                {"games": 0, "wins": {c.value: 0 for c in DEFAULT_PLAYERS}},
             )
-        
-        def play_single_step(game, history, show_token_ids):
-            """Play a single step of the game."""
-            if game is None:
-                return None, None, "No game initialized", history
-            
-            game, move_desc, game_dict = _play_step(game)
-            history = history + [move_desc]
-            
-            # Keep only last 50 moves
+
+        def _steps(game, history: list[str], show):
+            game, desc, tokens = _play_step(game)
+            history.append(desc)
             if len(history) > 50:
                 history = history[-50:]
-            
-            board_img = draw_board(game_dict, show_ids=show_token_ids)
-            board_html = _img_to_data_uri(board_img)
-            
-            return game, board_html, move_desc, history
-        
-        def run_auto_steps(num_steps, delay, game, history, show_token_ids):
-            """Run multiple steps automatically with delay."""
+            pil_img = draw_board(tokens, show_ids=show)
+            html = _img_to_data_uri(pil_img)
+            return game, html, desc, history
+
+        import time
+
+        def _run_auto(n, delay, game: LudoGame, history: list[str], show: bool):
             if game is None:
-                return None, None, "No game initialized", history
-            
-            for _ in range(int(num_steps)):
-                if game.is_finished():
-                    board_img = draw_board(tokens_to_dict(game), show_ids=show_token_ids)
-                    board_html = _img_to_data_uri(board_img)
-                    yield game, board_html, "Game already finished", history
-                    break
-                
-                game, move_desc, game_dict = _play_step(game)
-                history = history + [move_desc]
-                
-                # Keep only last 50 moves
+                return None, None, "No game", history
+            tokens = _game_state_tokens(game)
+            desc = ""
+            for _ in range(int(n)):
+                game, step_desc, tokens = _play_step(game)
+                desc = step_desc
+                history.append(step_desc)
                 if len(history) > 50:
                     history = history[-50:]
-                
-                board_img = draw_board(game_dict, show_ids=show_token_ids)
-                board_html = _img_to_data_uri(board_img)
-                
-                yield game, board_html, move_desc, history
-                
-                if delay > 0:
-                    time.sleep(delay)
-        
-        def export_game_state(game):
-            """Export current game state as JSON."""
-            if game is None:
-                return "No game to export"
-            
-            try:
-                game_dict = tokens_to_dict(game)
-                return json.dumps(game_dict, indent=2)
-            except Exception as e:
-                return f"Error exporting game state: {str(e)}"
-        
-        def show_move_history(history):
-            """Format and return move history."""
-            if not history:
-                return "No moves yet"
-            return "\n".join(f"{i+1}. {move}" for i, move in enumerate(history[-20:]))
-        
-        def run_tournament(num_games_val, *strategies):
-            """Run a tournament with multiple games."""
-            # Filter out None strategies and ensure minimum 2 players
-            strategies_list = [s for s in strategies if s is not None]
-            if len(strategies_list) < 2:
-                return "Error: At least 2 strategies must be selected for tournament"
-            
-            # Limit to maximum 4 players
-            strategies_list = strategies_list[:4]
-            n_players = len(strategies_list)
-            
-            # Initialize win counts only for active players
-            active_colors = DEFAULT_COLORS[:n_players]
-            win_counts = {color: 0 for color in active_colors}
-            total_turns = 0
-            
-            for game_num in range(int(num_games_val)):
-                game = _init_game(strategies_list)
-                
-                # Play game to completion
-                turns_in_game = 0
-                while not game.is_finished() and turns_in_game < 1000:  # Safety limit
-                    game.play_turn()
-                    turns_in_game += 1
-                
-                total_turns += turns_in_game
-                
-                # Record winner
-                if game.is_finished():
-                    winner_color = game.get_winner()  # This returns a string
-                    if winner_color and winner_color in win_counts:
-                        win_counts[winner_color] += 1
-            
-            # Format results
-            total_games = sum(win_counts.values())
-            avg_turns = total_turns / max(1, total_games)
-            
-            results_text = f"🏆 TOURNAMENT RESULTS ({total_games} games)\n"
-            results_text += "=" * 50 + "\n\n"
-            
-            # Sort by wins
-            sorted_results = sorted(win_counts.items(), key=lambda x: x[1], reverse=True)
-            
-            for i, (color, wins) in enumerate(sorted_results):
-                win_rate = (wins / max(1, total_games)) * 100
-                color_index = active_colors.index(color)
-                strategy_name = strategies_list[color_index]
-                
-                emoji = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else "  "
-                results_text += f"{emoji} {color.title()} ({strategy_name}): {wins} wins ({win_rate:.1f}%)\n"
-            
-            results_text += f"\n📊 Average game length: {avg_turns:.1f} turns"
-            
-            return results_text
-        
-        def update_stats(stats, game):
-            """Update game statistics when a game finishes."""
-            if game and game.is_finished():
+                pil_img = draw_board(tokens, show_ids=show)
+                html = _img_to_data_uri(pil_img)
+                yield game, html, desc, history
+                if game.game_over:
+                    break
+                if delay and delay > 0:
+                    time.sleep(float(delay))
+
+        def _export(game: LudoGame):
+            if not game:
+                return "No game"
+            state_dict = {
+                "current_turn": game.current_player_index,
+                "tokens": _game_state_tokens(game),
+                "game_over": game.game_over,
+                "winner": game.winner.color.value if game.winner else None,
+            }
+            return json.dumps(state_dict, indent=2)
+
+        def _run_bulk(n_games, *strats):
+            win_counts = {c.value: 0 for c in DEFAULT_PLAYERS}
+            for _ in range(int(n_games)):
+                g = _init_game(list(strats))
+                while not g.game_over:
+                    g, _, _ = _play_step(g)
+                win_counts[g.winner.color.value] += 1
+            total = sum(win_counts.values()) or 1
+            summary = {
+                k: {"wins": v, "win_rate": round(v / total, 3)}
+                for k, v in win_counts.items()
+            }
+            return json.dumps(summary, indent=2)
+
+        def _update_stats(stats, game: LudoGame):
+            if game and game.game_over and game.winner:
                 stats = dict(stats)
                 stats["games"] += 1
-                winner_color = game.get_winner()  # This returns a string
-                if winner_color and winner_color in stats["wins"]:
-                    stats["wins"][winner_color] += 1
+                stats["wins"][game.winner.color.value] += 1
             return stats
-        
-        # Wire up the interface
+
         init_btn.click(
-            init_new_game,
-            inputs=strategy_inputs,
-            outputs=[game_state, board_display, last_move, history_state, stats_state]
+            _init,
+            strategy_inputs,
+            [game_state, board_plot, log, move_history, stats_state],
         )
-        
         step_btn.click(
-            play_single_step,
-            inputs=[game_state, history_state, show_ids],
-            outputs=[game_state, board_display, last_move, history_state]
-        ).then(
-            update_stats,
-            inputs=[stats_state, game_state],
-            outputs=[stats_state]
-        ).then(
-            lambda stats: stats,
-            inputs=[stats_state],
-            outputs=[game_stats]
+            _steps,
+            [game_state, move_history, show_ids],
+            [game_state, board_plot, log, move_history],
+        ).then(_update_stats, [stats_state, game_state], [stats_state]).then(
+            lambda s: s, [stats_state], [stats_display]
         )
-        
         run_auto_btn.click(
-            run_auto_steps,
-            inputs=[auto_steps, auto_delay, game_state, history_state, show_ids],
-            outputs=[game_state, board_display, last_move, history_state]
-        ).then(
-            update_stats,
-            inputs=[stats_state, game_state],
-            outputs=[stats_state]
-        ).then(
-            lambda stats: stats,
-            inputs=[stats_state],
-            outputs=[game_stats]
+            _run_auto,
+            [auto_steps_n, auto_delay, game_state, move_history, show_ids],
+            [game_state, board_plot, log, move_history],
+        ).then(_update_stats, [stats_state, game_state], [stats_state]).then(
+            lambda s: s, [stats_state], [stats_display]
         )
-        
-        export_btn.click(
-            export_game_state,
-            inputs=[game_state],
-            outputs=[export_state]
-        ).then(
-            lambda state: gr.Textbox(value=state, visible=True),
-            inputs=[export_state],
-            outputs=[gr.Textbox(label="Exported Game State", lines=10)]
+        move_history_btn.click(
+            lambda h: "\n".join(h[-50:]), [move_history], [history_box]
         )
-        
-        history_btn.click(
-            show_move_history,
-            inputs=[history_state],
-            outputs=[move_history]
-        )
-        
-        run_tournament_btn.click(
-            run_tournament,
-            inputs=[num_games] + tournament_strategies,
-            outputs=[tournament_results]
-        )
-    
+        export_btn.click(_export, [game_state], [export_box])
+        bulk_run_btn.click(_run_bulk, [bulk_games] + sim_strat_inputs, [bulk_results])
+
     return demo
 
 
-def main():
-    """Main entry point for the Gradio interface."""
-    app = launch_app()
-    app.launch(share=False, server_name="0.0.0.0", server_port=7860)
-
-
 if __name__ == "__main__":
-    main()
+    launch_app().launch()
