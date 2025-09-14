@@ -30,10 +30,10 @@ CELL = 32
 GRID = 15
 BOARD_SIZE = GRID * CELL
 
-# Derived constants
-HOME_COLUMN_START = 100  # Home column starts at position 100
-HOME_COLUMN_END = 105    # Home column ends at position 105
-HOME_COLUMN_SIZE = 6     # Home column has 6 positions (100-105)
+# Derived constants based on engine position system
+HOME_COLUMN_START = LudoConstants.BOARD_SIZE + 1  # 57 - start of home column
+HOME_COLUMN_END = LudoConstants.TOTAL_STEPS_TO_FINISH  # 57 - end of home column
+HOME_COLUMN_SIZE = LudoConstants.TOTAL_STEPS_TO_FINISH - LudoConstants.BOARD_SIZE  # 1 position
 
 # We derive path coordinates procedurally using a canonical 52-step outer path.
 # Layout: Imagine a cross with a 3-wide corridor. We'll build a ring path list of (col,row).
@@ -131,25 +131,22 @@ def _token_home_grid_position(color: str, token_id: int) -> Tuple[int, int]:
 
 def _home_column_positions_for_color(color: str) -> Dict[int, Tuple[int, int]]:
     """
-    Map home column indices (100..104) to board coordinates; 105 is final finish.
+    Map home column indices to board coordinates.
 
-    GameConstants.HOME_COLUMN_SIZE = 6 covers 100..105 inclusive, but per spec 105 is
-    not a drawable lane square—tokens reaching 105 are considered finished and moved
-    to the center aggregation. We therefore only allocate 5 visual squares (100-104).
+    In the engine, tokens reach the home column when steps_taken > BOARD_SIZE (56).
+    The final position before finishing is at steps_taken = TOTAL_STEPS_TO_FINISH (57).
+    We map this to the visual home column position.
     """
     mapping: Dict[int, Tuple[int, int]] = {}
     center = (7, 7)
-    entry_index = LudoConstants.HOME_STRETCH_START[color]  # Use HOME_STRETCH_START instead of HOME_COLUMN_ENTRIES
+    entry_index = LudoConstants.HOME_STRETCH_START[color]
     entry_coord = PATH_INDEX_TO_COORD[entry_index]
     ex, ey = entry_coord
     dx = 0 if ex == center[0] else (1 if center[0] > ex else -1)
     dy = 0 if ey == center[1] else (1 if center[1] > ey else -1)
     cx, cy = ex + dx, ey + dy
-    # Only create squares for 100..104 (size - 1)
-    for offset in range(HOME_COLUMN_SIZE - 1):  # exclude final 105
-        mapping[HOME_COLUMN_START + offset] = (cx, cy)
-        cx += dx
-        cy += dy
+    # Only one position in home column (steps 57)
+    mapping[LudoConstants.TOTAL_STEPS_TO_FINISH] = (cx, cy)
     return mapping
 
 
@@ -234,16 +231,23 @@ def draw_board(tokens: Dict[str, List[Dict]], show_ids: bool = True) -> Image.Im
             state = tk["state"]
             pos = tk["position"]
             tid = tk["token_id"]
+            steps = tk.get("steps_taken", 0)  # Get steps_taken from token data
             if state == TokenState.HOME.value:
                 c, r = _token_home_grid_position(color, tid)
             elif (
                 state == TokenState.ACTIVE.value
-                and HOME_COLUMN_START <= pos <= HOME_COLUMN_END
+                and steps > LudoConstants.BOARD_SIZE
             ):
+                # Token is in home column (final stretch)
                 coord_map = HOME_COLUMN_COORDS[color]
-                if pos not in coord_map:
-                    continue
-                c, r = coord_map[pos]
+                if LudoConstants.TOTAL_STEPS_TO_FINISH in coord_map:
+                    c, r = coord_map[LudoConstants.TOTAL_STEPS_TO_FINISH]
+                else:
+                    # Fallback to current position on board
+                    if 0 <= pos < len(PATH_INDEX_TO_COORD):
+                        c, r = PATH_INDEX_TO_COORD[pos]
+                    else:
+                        continue
             elif state == TokenState.FINISHED.value:
                 ax, ay = finish_anchor[color]
                 # Draw stacked (superposed) circle; tokens overlap fully

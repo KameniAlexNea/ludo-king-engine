@@ -51,6 +51,7 @@ def _init_game(strategies: List[str]):
     # Attach strategies
     for player, strat in zip(game.players, strategy_objs):
         player.set_strategy(strat)
+    game.start_game()  # Start the game
     return game
 
 
@@ -79,16 +80,17 @@ def _serialize_move(move_result: Dict) -> str:
 
 
 def _play_step(game: LudoGame):
-    if game.game_over:
+    if game.is_finished():
         return game, "Game over", _game_state_tokens(game)
     current_player = game.get_current_player()
     dice = game.roll_dice()
-    valid = game.get_valid_moves(current_player, dice)
+    movable_tokens = current_player.get_movable_tokens(dice)
+    valid = [{"token_id": t.token_id} for t in movable_tokens]
     if not valid:
         # If rolled a 6, player gets another turn even with no moves
         extra_turn = dice == 6
         if not extra_turn:
-            game.next_turn()
+            game._next_player()
 
         # Debug info: show all token positions
         token_positions = []
@@ -98,30 +100,34 @@ def _play_step(game: LudoGame):
 
         return (
             game,
-            f"{current_player.color.value} rolled {dice} - no moves{' (extra turn)' if extra_turn else ''} | Positions: {positions_str}",
+            f"{current_player.color} rolled {dice} - no moves{' (extra turn)' if extra_turn else ''} | Positions: {positions_str}",
             _game_state_tokens(game),
         )
     # If player has strategy use it; else pick first
-    chosen = None
-    ctx = game.get_ai_decision_context(dice)
-    token_choice = current_player.make_strategic_decision(ctx)
-    # find move with that token_id
-    for mv in valid:
-        if mv["token_id"] == token_choice:
-            chosen = mv
-            break
-    if chosen is None:
-        chosen = valid[0]
-    move_res = game.execute_move(current_player, chosen["token_id"], dice)
-    desc = f"{current_player.color.value} rolled {dice}: {_serialize_move(move_res)}"
-    if move_res.get("extra_turn") and not game.game_over:
+    chosen_token = None
+    ctx = game.get_game_state()
+    chosen_token = current_player.choose_move(dice, ctx)
+    if chosen_token is None:
+        chosen_token = movable_tokens[0]
+    success, captured = game.board.move_token(chosen_token, dice)
+    move_res = {
+        "success": success,
+        "player_color": current_player.color,
+        "token_id": chosen_token.token_id,
+        "new_position": chosen_token.position,
+        "captured_tokens": captured,
+        "token_finished": chosen_token.is_finished(),
+        "extra_turn": dice == 6 or len(captured) > 0
+    }
+    desc = f"{current_player.color} rolled {dice}: {_serialize_move(move_res)}"
+    if move_res.get("extra_turn") and not game.is_finished():
         # do not advance turn
         pass
     else:
-        if not game.game_over:
-            game.next_turn()
-    if game.game_over:
-        desc += f" | WINNER: {game.winner.color.value}"
+        if not game.is_finished():
+            game._next_player()
+    if game.is_finished():
+        desc += f" | WINNER: {game.get_winner()}"
     return game, desc, _game_state_tokens(game)
 
 
@@ -137,7 +143,7 @@ def launch_app():
                             gr.Dropdown(
                                 choices=AI_STRATEGIES,
                                 value=AI_STRATEGIES[0],
-                                label=f"{color.value} strategy",
+                                label=f"{color} strategy",
                             )
                         )
                 with gr.Row():
@@ -158,7 +164,7 @@ def launch_app():
                         history_box = gr.Textbox(label="Move History", lines=10)
                 stats_display = gr.JSON(
                     label="Performance",
-                    value={"games": 0, "wins": {c.value: 0 for c in DEFAULT_PLAYERS}},
+                    value={"games": 0, "wins": {c: 0 for c in DEFAULT_PLAYERS}},
                 )
             with gr.TabItem("Simulate Multiple Games"):
                 sim_strat_inputs = []
@@ -167,7 +173,7 @@ def launch_app():
                         gr.Dropdown(
                             choices=AI_STRATEGIES,
                             value=AI_STRATEGIES[0],
-                            label=f"{color.value} strategy",
+                            label=f"{color} strategy",
                         )
                     )
                 with gr.Row():
@@ -180,7 +186,7 @@ def launch_app():
         game_state = gr.State()
         move_history = gr.State([])
         stats_state = gr.State(
-            {"games": 0, "wins": {c.value: 0 for c in DEFAULT_PLAYERS}}
+            {"games": 0, "wins": {c: 0 for c in DEFAULT_PLAYERS}}
         )
 
         def _init(*strats):
@@ -192,7 +198,7 @@ def launch_app():
                 html,
                 "Game initialized",
                 [],
-                {"games": 0, "wins": {c.value: 0 for c in DEFAULT_PLAYERS}},
+                {"games": 0, "wins": {c: 0 for c in DEFAULT_PLAYERS}},
             )
 
         def _steps(game, history: list[str], show):
@@ -220,7 +226,7 @@ def launch_app():
                 pil_img = draw_board(tokens, show_ids=show)
                 html = _img_to_data_uri(pil_img)
                 yield game, html, desc, history
-                if game.game_over:
+                if game.is_finished():
                     break
                 if delay and delay > 0:
                     time.sleep(float(delay))
@@ -231,18 +237,20 @@ def launch_app():
             state_dict = {
                 "current_turn": game.current_player_index,
                 "tokens": _game_state_tokens(game),
-                "game_over": game.game_over,
-                "winner": game.winner.color.value if game.winner else None,
+                "game_over": game.is_finished(),
+                "winner": game.get_winner(),
             }
             return json.dumps(state_dict, indent=2)
 
         def _run_bulk(n_games, *strats):
-            win_counts = {c.value: 0 for c in DEFAULT_PLAYERS}
+            win_counts = {c: 0 for c in DEFAULT_PLAYERS}
             for _ in range(int(n_games)):
                 g = _init_game(list(strats))
-                while not g.game_over:
+                while not g.is_finished():
                     g, _, _ = _play_step(g)
-                win_counts[g.winner.color.value] += 1
+                winner = g.get_winner()
+                if winner:
+                    win_counts[winner] += 1
             total = sum(win_counts.values()) or 1
             summary = {
                 k: {"wins": v, "win_rate": round(v / total, 3)}
@@ -251,10 +259,10 @@ def launch_app():
             return json.dumps(summary, indent=2)
 
         def _update_stats(stats, game: LudoGame):
-            if game and game.game_over and game.winner:
+            if game and game.is_finished() and game.get_winner():
                 stats = dict(stats)
                 stats["games"] += 1
-                stats["wins"][game.winner.color.value] += 1
+                stats["wins"][game.get_winner()] += 1
             return stats
 
         init_btn.click(
