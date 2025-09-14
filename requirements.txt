@@ -1,0 +1,20 @@
+# Core dependencies for the ludo engine
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+
+# Optional: Uncomment for LLM strategy support
+# langchain-groq>=0.0.1
+# langchain-ollama>=0.0.1
+# ollama>=0.1.0
+
+# Optional: Uncomment for RL environment support
+# gymnasium>=0.29.0
+# stable-baselines3>=2.3.0
+# ray[rllib]>=2.10.0
+
+# Development dependencies (uncomment for development)
+# pytest>=7.0.0
+# pytest-cov>=4.0.0
+# black>=23.0.0
+# flake8>=6.0.0
+# mypy>=1.0.0

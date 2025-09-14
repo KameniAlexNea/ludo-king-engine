@@ -1,0 +1,61 @@
+[project]
+name = "ludo-king-engine"
+version = "1.0.0"
+description = "Pure Python Ludo engine extracted from ludo-king-ai with game mechanics and strategy framework."
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    # Core dependencies (minimal for the extracted engine)
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+# Optional dependencies for LLM strategies
+llm = [
+    "langchain-groq>=0.0.1",
+    "langchain-ollama>=0.0.1",
+    "ollama>=0.1.0",
+]
+
+# Optional dependencies for RL environments
+rl = [
+    "gymnasium>=0.29.0",
+    "stable-baselines3>=2.3.0",
+    "ray[rllib]>=2.10.0",
+]
+
+# Development dependencies
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+# All optional dependencies
+all = [
+    "ludo-king-engine[llm,rl,dev]"
+]
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=ludo --cov-report=term-missing"
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
