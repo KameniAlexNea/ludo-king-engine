@@ -77,37 +77,39 @@ def _serialize_move(turn_result) -> str:
     
     parts = []
     
-    # Get player color from turn result (it's a string)
-    player_color = getattr(turn_result, 'player', 'Unknown')
+    # Get player color - handle different formats
+    if hasattr(turn_result, 'player'):
+        player_color = turn_result.player
+    elif hasattr(turn_result, 'current_player') and turn_result.current_player:
+        player_color = turn_result.current_player.color
+    else:
+        player_color = "Unknown"
+    
+    parts.append(f"{player_color}")
     
     # Get dice roll
-    dice_roll = getattr(turn_result, 'dice_roll', 0)
-    parts.append(f"{player_color} rolled {dice_roll}")
+    if hasattr(turn_result, 'dice_roll'):
+        dice_roll = turn_result.dice_roll
+        parts.append(f"rolled {dice_roll}")
     
     # Check if move was made
-    if getattr(turn_result, 'move_made', False):
-        token_moved = getattr(turn_result, 'token_moved', None)
-        if token_moved:
-            token_id = getattr(token_moved, 'id', 'Unknown')
-            position = getattr(token_moved, 'position', 'Unknown')
-            parts.append(f"moved token {token_id} to position {position}")
-        else:
-            parts.append("made a move")
+    if hasattr(turn_result, 'move_made') and turn_result.move_made:
+        parts.append("made a move")
+    elif hasattr(turn_result, 'dice_roll') and turn_result.dice_roll == 6:
+        parts.append("can move token out of home")
     else:
         parts.append("no valid moves")
     
     # Check for captures
-    captured_tokens = getattr(turn_result, 'captured_tokens', [])
-    if captured_tokens:
-        parts.append(f"captured {len(captured_tokens)} token(s)")
+    if hasattr(turn_result, 'captured_tokens') and turn_result.captured_tokens:
+        parts.append(f"captured {len(turn_result.captured_tokens)} token(s)")
     
     # Check if token finished
-    finished_tokens = getattr(turn_result, 'finished_tokens', 0)
-    if finished_tokens > 0:
-        parts.append(f"{finished_tokens} token(s) finished!")
+    if hasattr(turn_result, 'finished_tokens') and turn_result.finished_tokens > 0:
+        parts.append(f"{turn_result.finished_tokens} token(s) finished!")
     
     # Check for extra turn
-    if getattr(turn_result, 'another_turn', False):
+    if hasattr(turn_result, 'another_turn') and turn_result.another_turn:
         parts.append("gets extra turn")
     
     return ", ".join(parts)
@@ -116,7 +118,8 @@ def _serialize_move(turn_result) -> str:
 def _play_step(game: LudoGame) -> tuple:
     """Play one step of the game and return results."""
     if game.is_finished():
-        return game, "Game over", tokens_to_dict(game)
+        winner = game.get_winner()
+        return game, f"Game over - Winner: {winner}", tokens_to_dict(game)
     
     # Play one turn
     turn_result = game.play_turn()
@@ -124,10 +127,10 @@ def _play_step(game: LudoGame) -> tuple:
     # Create description
     desc = _serialize_move(turn_result)
     
-    # Check if game is finished
+    # Check if game is finished after this turn
     if game.is_finished():
-        winner_color = game.get_winner()  # This returns a string
-        desc += f" | GAME OVER - Winner: {winner_color}"
+        winner = game.get_winner()
+        desc += f" | GAME OVER - Winner: {winner}"
     
     return game, desc, tokens_to_dict(game)
 
@@ -249,16 +252,16 @@ def launch_app():
                 return None, None, "No game initialized", history
             
             for _ in range(int(num_steps)):
+                if game.is_finished():
+                    board_img = draw_board(tokens_to_dict(game), show_ids=show_token_ids)
+                    board_html = _img_to_data_uri(board_img)
+                    yield game, board_html, "Game already finished", history
+                    break
+                
                 game, move_desc, game_dict = _play_step(game)
                 history = history + [move_desc]
                 
-                # Break if game is over
-                if "Game over" in move_desc or "GAME OVER" in move_desc:
-                    board_img = draw_board(game_dict, show_ids=show_token_ids)
-                    board_html = _img_to_data_uri(board_img)
-                    yield game, board_html, move_desc, history
-                    break
-                
+                # Keep only last 50 moves
                 if len(history) > 50:
                     history = history[-50:]
                 

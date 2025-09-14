@@ -21,6 +21,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
+    "gradio>=5.45.0",
     "tox>=4.30.2",
 ]
 
@@ -42,3 +43,7 @@ ludo-gradio = "ludo_interface.app:main"
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["ludo_engine*", "ludo_interface*"]
+exclude = ["gradio_runtime*"]
