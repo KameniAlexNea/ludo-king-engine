@@ -163,25 +163,23 @@ class LudoGame:
 
             if success:
                 turn_result.move_made = True
-                # Create TokenInfo directly from token data
-                token_dict = chosen_token.to_dict()
+                # Create TokenInfo directly from token attributes
                 turn_result.token_moved = TokenInfo(
-                    id=token_dict["token_id"],
-                    color=token_dict["color"],
-                    position=token_dict["position"],
-                    steps_taken=token_dict["steps_taken"],
+                    id=chosen_token.token_id,
+                    color=chosen_token.color,
+                    position=chosen_token.position,
+                    steps_taken=chosen_token.steps_taken,
                     is_finished=chosen_token.state.value == "finished",
                     is_at_home=chosen_token.state.value == "home",
                 )
                 turn_result.captured_tokens = []
                 for captured_token in captured_tokens:
-                    captured_dict = captured_token.to_dict()
                     turn_result.captured_tokens.append(
                         TokenInfo(
-                            id=captured_dict["token_id"],
-                            color=captured_dict["color"],
-                            position=captured_dict["position"],
-                            steps_taken=captured_dict["steps_taken"],
+                            id=captured_token.token_id,
+                            color=captured_token.color,
+                            position=captured_token.position,
+                            steps_taken=captured_token.steps_taken,
                             is_finished=captured_token.state.value == "finished",
                             is_at_home=captured_token.state.value == "home",
                         )

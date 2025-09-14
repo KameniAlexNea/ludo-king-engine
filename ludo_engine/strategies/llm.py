@@ -46,7 +46,7 @@ Key strategies to consider:
 Analyze the current game state and choose the best move."""
 
     def choose_move(
-        self, movable_tokens: List[Token], dice_roll: int, game_state: dict
+        self, movable_tokens: List[Token], dice_roll: int, game_state
     ) -> Optional[Token]:
         """
         Choose move using LLM reasoning.
@@ -76,7 +76,7 @@ Analyze the current game state and choose the best move."""
         return selected_token or movable_tokens[0]  # Fallback to first token
 
     def _format_game_state(
-        self, movable_tokens: List[Token], dice_roll: int, game_state: dict
+        self, movable_tokens: List[Token], dice_roll: int, game_state
     ) -> str:
         """Format game state into natural language for LLM."""
         description = f"You rolled a {dice_roll}. "

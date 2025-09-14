@@ -44,7 +44,60 @@ class BaseStrategy(ABC):
 
     @abstractmethod
     def choose_move(
-        self, movable_tokens: List["Token"], dice_roll: int, game_state: dict
+        self, movable_tokens: List["Token"], dice_roll: int, game_state
+    ) -> Optional["Token"]:
+        """
+        Choose which token to move from the available options.
+
+        Args:
+            movable_tokens: List of tokens that can be moved
+            dice_roll: The dice roll value (1-6)
+            game_state: Current game state (GameStateData object)
+
+        Returns:
+            The token to move, or None if no move should be made
+        """
+
+
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, List, Optional
+
+if TYPE_CHECKING:
+    from ..core.player import Player
+    from ..core.token import Token
+
+
+
+class BaseStrategy(ABC):
+    """
+    Abstract base class for all Ludo game strategies.
+
+    Strategies are responsible for making move decisions given the current
+    game state and available options.
+    """
+
+    def __init__(self, name: str):
+        """
+        Initialize the strategy.
+
+        Args:
+            name: Human-readable name for this strategy
+        """
+        self.name = name
+        self.player: Optional["Player"] = None
+
+    def set_player(self, player: "Player"):
+        """
+        Set the player that this strategy is controlling.
+
+        Args:
+            player: The player this strategy will make decisions for
+        """
+        self.player = player
+
+    @abstractmethod
+    def choose_move(
+        self, movable_tokens: List["Token"], dice_roll: int, game_state
     ) -> Optional["Token"]:
         """
         Choose which token to move from the available options.
@@ -59,7 +112,7 @@ class BaseStrategy(ABC):
         """
         pass
 
-    def evaluate_move(self, token: "Token", dice_roll: int, game_state: dict) -> float:
+    def evaluate_move(self, token: "Token", dice_roll: int, game_state) -> float:
         """
         Evaluate the desirability of moving a specific token.
 
@@ -100,7 +153,7 @@ class BaseStrategy(ABC):
             return []  # Moving to finish, no captures possible
 
         # Check game state for opponent tokens at new position
-        board_state = game_state.get("board", {})
+        board_state = game_state.board
         tokens_at_position = board_state.get(str(new_position), [])
 
         opponent_tokens = []
@@ -114,7 +167,7 @@ class BaseStrategy(ABC):
 
         return opponent_tokens
 
-    def is_move_safe(self, token: "Token", dice_roll: int, game_state: dict) -> bool:
+    def is_move_safe(self, token: "Token", dice_roll: int, game_state) -> bool:
         """
         Check if a move would leave the token in a safe position.
 
@@ -141,7 +194,7 @@ class BaseStrategy(ABC):
             or new_position >= LudoConstants.BOARD_SIZE
         )
 
-    def count_tokens_ahead(self, token: "Token", game_state: dict) -> int:
+    def count_tokens_ahead(self, token: "Token", game_state) -> int:
         """
         Count how many of player's own tokens are ahead of this token.
 

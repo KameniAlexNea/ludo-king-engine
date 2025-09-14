@@ -19,7 +19,7 @@ class CautiousStrategy(BaseStrategy):
         super().__init__("Cautious")
 
     def choose_move(
-        self, movable_tokens: List[Token], dice_roll: int, game_state: dict
+        self, movable_tokens: List[Token], dice_roll: int, game_state
     ) -> Optional[Token]:
         """Choose most cautious move available."""
         if not movable_tokens:
@@ -45,7 +45,7 @@ class OptimistStrategy(BaseStrategy):
         super().__init__("Optimist")
 
     def choose_move(
-        self, movable_tokens: List[Token], dice_roll: int, game_state: dict
+        self, movable_tokens: List[Token], dice_roll: int, game_state
     ) -> Optional[Token]:
         """Choose aggressive move with potential for high reward."""
         if not movable_tokens:
@@ -68,7 +68,7 @@ class WinnerStrategy(BaseStrategy):
         super().__init__("Winner")
 
     def choose_move(
-        self, movable_tokens: List[Token], dice_roll: int, game_state: dict
+        self, movable_tokens: List[Token], dice_roll: int, game_state
     ) -> Optional[Token]:
         """Choose move that best advances toward victory."""
         if not movable_tokens:
@@ -95,7 +95,7 @@ class ProbabilisticStrategy(BaseStrategy):
         super().__init__("Probabilistic")
 
     def choose_move(
-        self, movable_tokens: List[Token], dice_roll: int, game_state: dict
+        self, movable_tokens: List[Token], dice_roll: int, game_state
     ) -> Optional[Token]:
         """Choose move based on probabilistic analysis."""
         if not movable_tokens:
@@ -114,7 +114,7 @@ class ProbabilisticStrategy(BaseStrategy):
         return best_token
 
     def calculate_expected_value(
-        self, token: Token, dice_roll: int, game_state: dict
+        self, token: Token, dice_roll: int, game_state
     ) -> float:
         """Calculate expected value of moving this token."""
         value = 0.0
@@ -141,9 +141,7 @@ class ProbabilisticStrategy(BaseStrategy):
 
         return value
 
-    def calculate_capture_risk(
-        self, token: Token, dice_roll: int, game_state: dict
-    ) -> float:
+    def calculate_capture_risk(self, token: Token, dice_roll: int, game_state) -> float:
         """Calculate probability of being captured after this move."""
         if not token.can_move(dice_roll):
             return 0.0
@@ -159,7 +157,7 @@ class ProbabilisticStrategy(BaseStrategy):
 
         # Count opponent tokens that could reach this position
         risk = 0.0
-        board_state = game_state.get("board", {})
+        board_state = game_state.board
 
         for pos_str, tokens_data in board_state.items():
             position = int(pos_str)

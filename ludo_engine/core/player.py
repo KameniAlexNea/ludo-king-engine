@@ -82,7 +82,7 @@ class Player:
         """Check if player can make any move with the dice roll."""
         return len(self.get_movable_tokens(dice_roll)) > 0
 
-    def choose_move(self, dice_roll: int, game_state: dict) -> Optional[Token]:
+    def choose_move(self, dice_roll: int, game_state) -> Optional[Token]:
         """
         Choose which token to move based on strategy.
 

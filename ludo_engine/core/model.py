@@ -151,3 +151,23 @@ class PlayerData:
     name: str
     tokens: List[TokenInfo]
     stats: PlayerStats
+
+
+@dataclass
+class GameReplayMetadata:
+    """Metadata for game replay."""
+
+    timestamp: str
+    players: List[str]
+    strategies: List[str]
+    total_turns: int
+    winner: Optional[str]
+
+
+@dataclass
+class GameReplayData:
+    """Complete game replay data."""
+
+    metadata: GameReplayMetadata
+    history: List[Dict[str, Any]]  # Turn results as dictionaries
+    final_state: GameStateData

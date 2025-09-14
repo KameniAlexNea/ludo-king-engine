@@ -41,9 +41,9 @@ def main():
     results1 = game1.play_game(max_turns=50)
     results2 = game2.play_game(max_turns=50)
 
-    print(f"Game 1: {results1['turns_played']} turns, Winner: {results1['winner']}")
-    print(f"Game 2: {results2['turns_played']} turns, Winner: {results2['winner']}")
-    print(f"Results identical: {results1['winner'] == results2['winner']}")
+    print(f"Game 1: {results1.turns_played} turns, Winner: {results1.winner}")
+    print(f"Game 2: {results2.turns_played} turns, Winner: {results2.winner}")
+    print(f"Results identical: {results1.winner == results2.winner}")
 
     # 3. Strategy comparison
     print("\n=== Strategy Performance Analysis ===")
@@ -51,12 +51,18 @@ def main():
 
     comparison = utils.compare_strategies("balanced", "probabilistic", games=10)
     print("Balanced vs Probabilistic (10 games):")
-    print(
-        f"  Balanced wins: {comparison['strategy1_wins']} ({comparison['strategy1_win_rate']:.1f}%)"
+    strategy1_rate = (
+        (comparison.strategy1_wins / comparison.games_played) * 100
+        if comparison.games_played > 0
+        else 0
     )
-    print(
-        f"  Probabilistic wins: {comparison['strategy2_wins']} ({comparison['strategy2_win_rate']:.1f}%)"
+    strategy2_rate = (
+        (comparison.strategy2_wins / comparison.games_played) * 100
+        if comparison.games_played > 0
+        else 0
     )
+    print(f"  Balanced wins: {comparison.strategy1_wins} ({strategy1_rate:.1f}%)")
+    print(f"  Probabilistic wins: {comparison.strategy2_wins} ({strategy2_rate:.1f}%)")
 
     # 4. Mini tournament
     print("\n=== Mini Tournament ===")
@@ -67,11 +73,11 @@ def main():
 
     print("Tournament Results:")
     sorted_results = sorted(
-        tournament["win_rates"].items(), key=lambda x: x[1], reverse=True
+        tournament.win_rates.items(), key=lambda x: x[1], reverse=True
     )
     for rank, (strategy, win_rate) in enumerate(sorted_results, 1):
-        wins = tournament["wins"][strategy]
-        total = tournament["total_games"]
+        wins = tournament.wins[strategy]
+        total = tournament.total_games
         print(
             f"  {rank}. {strategy.capitalize()}: {wins}/{total} wins ({win_rate:.1f}%)"
         )
@@ -83,11 +89,11 @@ def main():
 
     analysis = utils.analyze_game_results(results)
     print("Game Analysis:")
-    print(f"  Game length: {analysis['game_length']} turns")
-    print(f"  Move efficiency: {analysis['efficiency']:.2f} moves/turn")
-    print(f"  Winner: {results['winner']}")
+    print(f"  Game length: {analysis.game_length} turns")
+    print(f"  Move efficiency: {analysis.efficiency:.2f} moves/turn")
+    print(f"  Winner: {results.winner}")
 
-    for color, performance in analysis["player_performance"].items():
+    for color, performance in analysis.player_performance.items():
         print(f"  {color.capitalize()}:")
         print(f"    Finish rate: {performance['finish_rate']:.1%}")
         print(f"    Capture efficiency: {performance['capture_efficiency']:.3f}")
@@ -114,7 +120,7 @@ def main():
     # Test custom strategy
     game = LudoGame(["red", "blue"], ["custom", "random"], seed=54321)
     results = game.play_game(max_turns=100)
-    print(f"✓ Custom strategy game completed: Winner = {results['winner']}")
+    print(f"✓ Custom strategy game completed: Winner = {results.winner}")
 
     # 7. Show pure Python nature
     print("\n=== Pure Python Implementation ===")

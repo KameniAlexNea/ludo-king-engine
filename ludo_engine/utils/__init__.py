@@ -8,7 +8,15 @@ statistics, and common operations.
 from typing import Any, Dict, List
 
 from ..core.game import LudoGame
-from ..core.model import GameAnalysis, GameResults, StrategyComparison, TournamentResult
+from ..core.model import (
+    GameAnalysis,
+    GameReplayData,
+    GameReplayMetadata,
+    GameResults,
+    GameStateData,
+    StrategyComparison,
+    TournamentResult,
+)
 
 
 def analyze_game_results(results: GameResults) -> GameAnalysis:
@@ -119,9 +127,9 @@ def run_strategy_tournament(
                 player_stats = player.get_stats()
 
                 stats["games_played"] += 1
-                stats["total_tokens_finished"] += player_stats["tokens_finished"]
-                stats["total_captures"] += player_stats["tokens_captured"]
-                stats["total_moves"] += player_stats["total_moves"]
+                stats["total_tokens_finished"] += player_stats.tokens_finished
+                stats["total_captures"] += player_stats.tokens_captured
+                stats["total_moves"] += player_stats.total_moves
 
     # Calculate averages
     for strategy in strategies:
@@ -261,30 +269,28 @@ def export_game_replay(game: LudoGame, filename: str):
         game: Completed LudoGame instance
         filename: Output filename
     """
-    import json
+    import pickle
     from datetime import datetime
 
     game_state = game.get_game_state()
 
-    replay_data = {
-        "metadata": {
-            "timestamp": datetime.now().isoformat(),
-            "players": [player.color for player in game.players],
-            "strategies": [player.strategy.name for player in game.players],
-            "total_turns": game.turn_count,
-            "winner": game.get_winner(),
-        },
-        "history": game.game_history,
-        "final_state": (
-            game_state.to_dict() if hasattr(game_state, "to_dict") else game_state
+    replay_data = GameReplayData(
+        metadata=GameReplayMetadata(
+            timestamp=datetime.now().isoformat(),
+            players=[player.color for player in game.players],
+            strategies=[player.strategy.name for player in game.players],
+            total_turns=game.turn_count,
+            winner=game.get_winner(),
         ),
-    }
+        history=game.game_history,
+        final_state=game_state,
+    )
 
-    with open(filename, "w") as f:
-        json.dump(replay_data, f, indent=2)
+    with open(filename, "wb") as f:
+        pickle.dump(replay_data, f)
 
 
-def load_game_replay(filename: str) -> Dict[str, Any]:
+def load_game_replay(filename: str) -> GameReplayData:
     """
     Load game replay data from file.
 
@@ -292,9 +298,9 @@ def load_game_replay(filename: str) -> Dict[str, Any]:
         filename: Input filename
 
     Returns:
-        Replay data dictionary
+        GameReplayData object
     """
-    import json
+    import pickle
 
-    with open(filename, "r") as f:
-        return json.load(f)
+    with open(filename, "rb") as f:
+        return pickle.load(f)

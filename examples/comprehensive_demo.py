@@ -35,17 +35,17 @@ def demonstrate_basic_game():
     results = game.play_game(max_turns=500)  # Prevent infinite games
 
     print("\nGame Results:")
-    print(f"Winner: {results['winner']}")
-    print(f"Turns played: {results['turns_played']}")
-    print(f"Total moves: {results['total_moves']}")
+    print(f"Winner: {results.winner}")
+    print(f"Turns played: {results.turns_played}")
+    print(f"Total moves: {results.total_moves}")
 
     print("\nPlayer Statistics:")
-    for stats in results["player_stats"]:
-        print(f"  {stats['name']} ({stats['color']}):")
-        print(f"    Tokens finished: {stats['tokens_finished']}")
-        print(f"    Tokens captured: {stats['tokens_captured']}")
-        print(f"    Total moves: {stats['total_moves']}")
-        print(f"    Sixes rolled: {stats['sixes_rolled']}")
+    for stats in results.player_stats:
+        print(f"  {stats.name} ({stats.color}):")
+        print(f"    Tokens finished: {stats.tokens_finished}")
+        print(f"    Tokens captured: {stats.tokens_captured}")
+        print(f"    Total moves: {stats.total_moves}")
+        print(f"    Sixes rolled: {stats.sixes_rolled}")
 
 
 def demonstrate_strategy_comparison():
@@ -69,7 +69,7 @@ def demonstrate_strategy_comparison():
         )
 
         results = game.play_game(max_turns=300)
-        winner_color = results["winner"]
+        winner_color = results.winner
 
         if winner_color:
             # Find which strategy won
@@ -108,7 +108,7 @@ def demonstrate_advanced_strategies():
     print("\nPlaying game with advanced strategies...")
     results = game.play_game(max_turns=400)
 
-    print(f"Winner: {results['winner']} ({results['turns_played']} turns)")
+    print(f"Winner: {results.winner} ({results.turns_played} turns)")
 
 
 def demonstrate_game_analysis():
@@ -139,24 +139,22 @@ def demonstrate_game_analysis():
         # Play turn
         turn_result = game.play_turn()
 
-        print(f"  Dice roll: {turn_result['dice_roll']}")
-        print(f"  Move made: {turn_result['move_made']}")
+        print(f"  Dice roll: {turn_result.dice_roll}")
+        print(f"  Move made: {turn_result.move_made}")
 
-        if turn_result["captured_tokens"]:
-            print(
-                f"  Captured {len(turn_result['captured_tokens'])} opponent token(s)!"
-            )
+        if turn_result.captured_tokens:
+            print(f"  Captured {len(turn_result.captured_tokens)} opponent token(s)!")
 
-        if turn_result["finished_tokens"] > 0:
-            print(f"  Has {turn_result['finished_tokens']} token(s) finished!")
+        if turn_result.finished_tokens > 0:
+            print(f"  Has {turn_result.finished_tokens} token(s) finished!")
 
-        if turn_result["another_turn"]:
+        if turn_result.another_turn:
             print("  Gets another turn!")
 
     print(f"\nGame state after {turn + 1} turns:")
     game_state = game.get_game_state()
-    print(f"Current player: {game.players[game_state['current_player']].name}")
-    print(f"Total turns: {game_state['turn_count']}")
+    print(f"Current player: {game.players[game_state.current_player].name}")
+    print(f"Total turns: {game_state.turn_count}")
 
 
 def demonstrate_tournament_mode():
@@ -194,10 +192,10 @@ def demonstrate_tournament_mode():
             strategy_name = player.strategy.name.lower()
             tournament_results[strategy_name]["games"] += 1
 
-            if player.color == results["winner"]:
+            if player.color == results.winner:
                 tournament_results[strategy_name]["wins"] += 1
 
-        print(f"  Round {round_num + 1}: Winner = {results['winner']}")
+        print(f"  Round {round_num + 1}: Winner = {results.winner}")
 
     print("\nTournament Results:")
     sorted_results = sorted(

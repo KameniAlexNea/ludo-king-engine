@@ -19,7 +19,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ludo_engine.core.game import LudoGame
 from ludo_engine.core.model import (
+    GameReplayData,
+    GameReplayMetadata,
     GameResults,
+    GameStateData,
     GameStatus,
     PlayerStats,
     StrategyComparison,
@@ -150,20 +153,26 @@ class TestStrategyTournament(unittest.TestCase):
         mock_player1 = Mock()
         mock_player1.color = "red"
         mock_player1.strategy = mock_strategy1
-        mock_player1.get_stats.return_value = {
-            "tokens_finished": 4,
-            "tokens_captured": 2,
-            "total_moves": 30,
-        }
+        mock_player1.get_stats.return_value = PlayerStats(
+            color="red",
+            name="Player_1",
+            tokens_finished=4,
+            tokens_captured=2,
+            total_moves=30,
+            sixes_rolled=5,
+        )
 
         mock_player2 = Mock()
         mock_player2.color = "blue"
         mock_player2.strategy = mock_strategy2
-        mock_player2.get_stats.return_value = {
-            "tokens_finished": 1,
-            "tokens_captured": 1,
-            "total_moves": 28,
-        }
+        mock_player2.get_stats.return_value = PlayerStats(
+            color="blue",
+            name="Player_2",
+            tokens_finished=1,
+            tokens_captured=1,
+            total_moves=28,
+            sixes_rolled=4,
+        )
 
         mock_game.players = [mock_player1, mock_player2]
         mock_game.play_game.return_value = GameResults(
@@ -213,20 +222,26 @@ class TestStrategyTournament(unittest.TestCase):
         mock_player1 = Mock()
         mock_player1.color = "red"
         mock_player1.strategy = mock_strategy1
-        mock_player1.get_stats.return_value = {
-            "tokens_finished": 4,
-            "tokens_captured": 2,
-            "total_moves": 30,
-        }
+        mock_player1.get_stats.return_value = PlayerStats(
+            color="red",
+            name="Player_1",
+            tokens_finished=4,
+            tokens_captured=2,
+            total_moves=30,
+            sixes_rolled=5,
+        )
 
         mock_player2 = Mock()
         mock_player2.color = "blue"
         mock_player2.strategy = mock_strategy2
-        mock_player2.get_stats.return_value = {
-            "tokens_finished": 1,
-            "tokens_captured": 1,
-            "total_moves": 28,
-        }
+        mock_player2.get_stats.return_value = PlayerStats(
+            color="blue",
+            name="Player_2",
+            tokens_finished=1,
+            tokens_captured=1,
+            total_moves=28,
+            sixes_rolled=4,
+        )
 
         mock_game.players = [mock_player1, mock_player2]
         mock_game.play_game.return_value = GameResults(
@@ -373,13 +388,44 @@ class TestGameReplay(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.mock_game = Mock(spec=LudoGame)
+        self.mock_game.game_id = "test_game_123"
+        self.mock_game.players = ["Alice", "Bob", "Charlie", "Diana"]
         self.mock_game.turn_count = 5
-        self.mock_game.game_state = Mock()
-        self.mock_game.game_state.value = "finished"
+        self.mock_game.status = GameStatus.FINISHED
         self.mock_game.winner = "red"
-        self.mock_game.game_history = []
+        self.mock_game.game_history = [
+            {
+                "player": "Alice",
+                "dice_roll": 6,
+                "move_made": True,
+                "token_moved": {"id": 0, "color": "red", "position": 6},
+                "captured_tokens": [],
+                "finished_tokens": 0,
+                "another_turn": True,
+                "game_finished": False,
+                "winner": None,
+            }
+        ]
+
+        # Mock methods
+        self.mock_game.get_game_state.return_value = GameStateData(
+            board={},
+            players=[],
+            current_player=0,
+            turn_count=5,
+            game_status=GameStatus.FINISHED,
+            sixes_in_row=0,
+        )
         self.mock_game.get_winner.return_value = "red"
-        self.mock_game.get_game_state.return_value = {"board": {}, "players": {}}
+
+        # Mock board
+        self.mock_game.board = Mock()
+        self.mock_game.board.get_all_positions.return_value = {
+            "Alice": [6, 0, 0, 0],
+            "Bob": [0, 0, 0, 0],
+            "Charlie": [0, 0, 0, 0],
+            "Diana": [0, 0, 0, 0],
+        }
 
         # Mock players with strategy
         mock_strategy = Mock()
@@ -388,16 +434,19 @@ class TestGameReplay(unittest.TestCase):
         mock_player = Mock(spec=Player)
         mock_player.color = "red"
         mock_player.strategy = mock_strategy
-        mock_player.get_stats.return_value = {
-            "tokens_finished": 4,
-            "tokens_captured": 2,
-            "total_moves": 25,
-        }
+        mock_player.get_stats.return_value = PlayerStats(
+            color="red",
+            name="Player_1",
+            tokens_finished=4,
+            tokens_captured=2,
+            total_moves=25,
+            sixes_rolled=5,
+        )
         self.mock_game.players = [mock_player]
 
     def test_export_game_replay(self):
         """Test exporting game replay."""
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pkl") as f:
             temp_filename = f.name
 
         try:
@@ -407,16 +456,16 @@ class TestGameReplay(unittest.TestCase):
             self.assertTrue(os.path.exists(temp_filename))
 
             # Verify file content
-            with open(temp_filename, "r") as f:
-                import json
+            with open(temp_filename, "rb") as f:
+                import pickle
 
-                data = json.load(f)
+                replay_data = pickle.load(f)
 
-            self.assertIn("metadata", data)
-            self.assertIn("history", data)
-            self.assertIn("final_state", data)
-            self.assertEqual(data["metadata"]["winner"], "red")
-            self.assertEqual(data["metadata"]["strategies"], ["TestStrategy"])
+            self.assertIsInstance(replay_data, GameReplayData)
+            self.assertIsInstance(replay_data.metadata, GameReplayMetadata)
+            self.assertEqual(replay_data.metadata.winner, "red")
+            self.assertEqual(replay_data.metadata.strategies, ["TestStrategy"])
+            self.assertEqual(replay_data.metadata.total_turns, 5)
 
         finally:
             if os.path.exists(temp_filename):
@@ -424,30 +473,55 @@ class TestGameReplay(unittest.TestCase):
 
     def test_load_game_replay(self):
         """Test loading game replay."""
-        replay_data = {
-            "game_state": "finished",
-            "turn_count": 10,
-            "winner": "blue",
-            "players": [
+        replay_data = GameReplayData(
+            metadata=GameReplayMetadata(
+                timestamp="2023-01-01T00:00:00",
+                players=["red", "blue"],
+                strategies=["TestStrategy", "OtherStrategy"],
+                total_turns=10,
+                winner="blue",
+            ),
+            history=[
                 {
-                    "color": "red",
-                    "stats": {"tokens_finished": 3},
+                    "player": "red",
+                    "dice_roll": 6,
+                    "move_made": True,
+                    "token_moved": {"id": 0, "color": "red", "position": 6},
+                    "captured_tokens": [],
+                    "finished_tokens": 0,
+                    "another_turn": True,
+                    "game_finished": False,
+                    "winner": None,
                 }
             ],
-        }
+            final_state=GameStateData(
+                board={},
+                players=[],
+                current_player=0,
+                turn_count=10,
+                game_status=GameStatus.FINISHED,
+                sixes_in_row=0,
+            ),
+        )
 
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
-            import json
-
-            json.dump(replay_data, f)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pkl") as f:
             temp_filename = f.name
 
         try:
+            # Write the replay data
+            with open(temp_filename, "wb") as f:
+                import pickle
+
+                pickle.dump(replay_data, f)
+
+            # Load and verify
             loaded_data = load_game_replay(temp_filename)
 
-            self.assertEqual(loaded_data["game_state"], "finished")
-            self.assertEqual(loaded_data["turn_count"], 10)
-            self.assertEqual(loaded_data["winner"], "blue")
+            self.assertIsInstance(loaded_data, GameReplayData)
+            self.assertEqual(loaded_data.metadata.timestamp, "2023-01-01T00:00:00")
+            self.assertEqual(loaded_data.metadata.total_turns, 10)
+            self.assertEqual(loaded_data.metadata.winner, "blue")
+            self.assertEqual(len(loaded_data.history), 1)
 
         finally:
             if os.path.exists(temp_filename):
@@ -456,7 +530,7 @@ class TestGameReplay(unittest.TestCase):
     def test_load_game_replay_file_not_found(self):
         """Test loading replay from non-existent file."""
         with self.assertRaises(FileNotFoundError):
-            load_game_replay("non_existent_file.json")
+            load_game_replay("non_existent_file.pkl")
 
 
 if __name__ == "__main__":
