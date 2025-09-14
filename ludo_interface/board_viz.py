@@ -286,13 +286,12 @@ def _draw_special_squares(d: ImageDraw.ImageDraw):
 
 def _get_token_position(token: Token) -> Tuple[float, float]:
     """Get the visual position for a token based on the matplotlib implementation."""
-    state = token.state.value
     pos = token.position
     tid = token.token_id
     color = token.color
     steps = token.steps_taken
 
-    if state == TokenState.HOME.value:
+    if token.is_at_home():
         # Token in home nest - use the nest positions from matplotlib
         nest_offsets = [(1, 1), (4, 1), (1, 4), (4, 4)]
         if color == Colors.RED:
@@ -308,17 +307,26 @@ def _get_token_position(token: Token) -> Tuple[float, float]:
             ox, oy = nest_offsets[tid]
             return 9 + ox + 0.5, 0 + oy + 0.5
 
-    elif state == TokenState.ACTIVE.value:
+    elif token.is_active():
         if steps > LudoConstants.BOARD_SIZE:
-            # In home column - use first position of home column
+            # In home column - position based on progress in home column
+            home_steps = steps - LudoConstants.BOARD_SIZE
             if color == Colors.RED:
-                return 1.5, 7.5
+                # Red home column: x positions 1-5, y=7
+                x_pos = 1 + home_steps  # 1, 2, 3, 4, 5
+                return x_pos + 0.5, 7.5
             elif color == Colors.GREEN:
-                return 7.5, 13.5
+                # Green home column: x=7, y positions 13-9
+                y_pos = 13 - home_steps  # 13, 12, 11, 10, 9
+                return 7.5, y_pos + 0.5
             elif color == Colors.YELLOW:
-                return 13.5, 7.5
+                # Yellow home column: x positions 13-9, y=7
+                x_pos = 13 - home_steps  # 13, 12, 11, 10, 9
+                return x_pos + 0.5, 7.5
             elif color == Colors.BLUE:
-                return 7.5, 1.5
+                # Blue home column: x=7, y positions 1-5
+                y_pos = 1 + home_steps  # 1, 2, 3, 4, 5
+                return 7.5, y_pos + 0.5
         else:
             # Compute path index from steps and color, aligned to PATH_LIST and START_CELLS
             steps_taken = token.steps_taken
@@ -334,7 +342,7 @@ def _get_token_position(token: Token) -> Tuple[float, float]:
             cx, cy = PATH_LIST[path_idx]
             return cx + 0.5, cy + 0.5
 
-    elif state == TokenState.FINISHED.value:
+    elif token.is_finished():
         # Token finished - place in center triangles
         if color == Colors.RED:
             return 6.5, 7.5  # left triangle
@@ -349,7 +357,7 @@ def _get_token_position(token: Token) -> Tuple[float, float]:
     return 7.5, 7.5
 
 
-def draw_board(tokens: Dict[str, List], show_ids: bool = True) -> Image.Image:
+def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.Image:
     """Draw the Ludo board with tokens - exact replica of matplotlib version."""
     img = Image.new("RGB", (BOARD_SIZE, BOARD_SIZE), PIL_COLOR_MAP["white"])
     d = ImageDraw.Draw(img)
