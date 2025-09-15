@@ -27,7 +27,20 @@ from ludo_engine.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import get_opponent_main_positions
 
-MoveDict = Dict[str, object]
+
+@dataclass
+class MoveEvaluation:
+    move: ValidMove
+    hy_risk_immediate: float
+    hy_risk_horizon: float
+    hy_risk_blended: float
+    hy_risk_proximity_factor: float
+    hy_risk_cluster_factor: float
+    hy_risk_impact_weight: float
+    hy_risk_score: float
+    hy_opportunity: float
+    hy_composite_raw: float
+    hy_lead_factor: float
 
 
 @dataclass
@@ -65,7 +78,7 @@ class HybridProbStrategy(Strategy):
         finished = float(player_state.finished_tokens)
         my_progress = finished / float(GameConstants.TOKENS_PER_PLAYER)
         opp_progresses = [
-            o.finished_tokens / float(GameConstants.TOKENS_PER_PLAYER)
+            o.tokens_finished / float(GameConstants.TOKENS_PER_PLAYER)
             for o in opponents
         ]
         opp_mean = (
@@ -97,12 +110,12 @@ class HybridProbStrategy(Strategy):
         opp_token_progress_map = self._collect_opponent_token_progress(game_context)
         baseline_active = player_state.active_tokens
 
-        scored: List[MoveDict] = []
+        scored: List[MoveEvaluation] = []
 
         for mv in moves:
             # Finish priority
-            if mv.get("move_type") == "finish":
-                return mv["token_id"]
+            if mv.move_type == "finish":
+                return mv.token_id
 
             immediate_risk = self._immediate_risk(mv, opponent_positions)
             horizon_risk = self._horizon_risk(mv, opponent_positions, horizon)
@@ -131,7 +144,7 @@ class HybridProbStrategy(Strategy):
             opp_score += self._capture_value(mv, opp_token_progress_map)
             opp_score += self._progress_value(mv)
             opp_score += self._home_column_value(mv)
-            if mv.get("is_safe_move"):
+            if mv.is_safe_move:
                 opp_score += StrategyConstants.HYBRID_SAFE_LANDING_BONUS
             if self.cfg.use_extra_turn_ev:
                 opp_score += self._extra_turn_ev(mv)
@@ -153,48 +166,52 @@ class HybridProbStrategy(Strategy):
                 risk_score**StrategyConstants.HYBRID_COMPOSITE_RISK_POWER
             )
 
-            mv["hy_risk_immediate"] = immediate_risk
-            mv["hy_risk_horizon"] = horizon_risk
-            mv["hy_risk_blended"] = blended_risk
-            mv["hy_risk_proximity_factor"] = proximity_factor
-            mv["hy_risk_cluster_factor"] = cluster_factor
-            mv["hy_risk_impact_weight"] = impact_weight
-            mv["hy_risk_score"] = risk_score
-            mv["hy_opportunity"] = opp_score
-            mv["hy_composite_raw"] = composite_raw
-            mv["hy_lead_factor"] = lead_factor
+            scores = MoveEvaluation(
+                move=mv,
+                hy_risk_immediate=immediate_risk,
+                hy_risk_horizon=horizon_risk,
+                hy_risk_blended=blended_risk,
+                hy_risk_proximity_factor=proximity_factor,
+                hy_risk_cluster_factor=cluster_factor,
+                hy_risk_impact_weight=impact_weight,
+                hy_risk_score=risk_score,
+                hy_opportunity=opp_score,
+                hy_composite_raw=composite_raw,
+                hy_lead_factor=lead_factor,
+            )
 
-            scored.append(mv)
+            scored.append(scores)
 
         # Optional Pareto pruning
-        candidates = self._pareto_filter(scored) if self.cfg.pareto_prune else scored
+        candidates: list[MoveEvaluation] = (
+            self._pareto_filter(scored) if self.cfg.pareto_prune else scored
+        )
 
         # Normalization
         if self.cfg.normalize and len(candidates) > 1:
             self._normalize_composite(candidates)
-        else:
-            for m in candidates:
-                m["hy_composite"] = m.get("hy_composite_raw", 0.0)
 
         # Select best; tie-breaker: lower risk_score then higher opportunity
         best = max(
             candidates,
             key=lambda m: (
-                m["hy_composite"],
-                -m["hy_risk_score"],
-                m["hy_opportunity"],
+                m.hy_composite_raw,
+                -m.hy_risk_score,
+                m.hy_opportunity,
             ),
         )
-        return best["token_id"]
+        return best.move.token_id
 
     # ---- Risk helpers ----
-    def _immediate_risk(self, move: MoveDict, opponent_positions: List[int]) -> float:
-        tgt = move.get("target_position")
+    def _immediate_risk(
+        self, move: MoveEvaluation, opponent_positions: List[int]
+    ) -> float:
+        tgt = move.move.target_position
         if not isinstance(tgt, int):
             return 0.0
         if (
-            move.get("is_safe_move")
-            or move.get("move_type") in {"finish", "advance_home_column"}
+            move.move.is_safe_move
+            or move.move.move_type in {"finish", "advance_home_column"}
             or tgt >= BoardConstants.HOME_COLUMN_START
         ):
             return 0.0
@@ -208,14 +225,14 @@ class HybridProbStrategy(Strategy):
         return 1 - (5 / 6) ** threats
 
     def _horizon_risk(
-        self, move: MoveDict, opponent_positions: List[int], turns: int
+        self, move: MoveEvaluation, opponent_positions: List[int], turns: int
     ) -> float:
-        tgt = move.get("target_position")
+        tgt = move.move.target_position
         if not isinstance(tgt, int):
             return 0.0
         if (
-            move.get("is_safe_move")
-            or move.get("move_type") in {"finish", "advance_home_column"}
+            move.move.is_safe_move
+            or move.move.move_type in {"finish", "advance_home_column"}
             or tgt >= BoardConstants.HOME_COLUMN_START
         ):
             return 0.0
@@ -230,10 +247,12 @@ class HybridProbStrategy(Strategy):
             p_no_capture *= (1 - p_turn) ** max(1, turns)
         return 1.0 - p_no_capture
 
-    def _proximity_factor(self, move: MoveDict, opponent_positions: List[int]) -> float:
+    def _proximity_factor(
+        self, move: MoveEvaluation, opponent_positions: List[int]
+    ) -> float:
         if not opponent_positions:
             return 1.0
-        tgt = move.get("target_position")
+        tgt = move.move.target_position
         if not isinstance(tgt, int):
             return 1.0
         dists = [self._backward_distance(tgt, opp) for opp in opponent_positions]
@@ -244,10 +263,12 @@ class HybridProbStrategy(Strategy):
         val = math.exp(max(0.0, (StrategyConstants.HYBRID_PROXIMITY_REF - min_d)) / 3.0)
         return min(StrategyConstants.HYBRID_PROXIMITY_PENALTY_CAP, max(1.0, val))
 
-    def _cluster_factor(self, move: MoveDict, opponent_positions: List[int]) -> float:
+    def _cluster_factor(
+        self, move: MoveEvaluation, opponent_positions: List[int]
+    ) -> float:
         if not opponent_positions:
             return 1.0
-        tgt = move.get("target_position")
+        tgt = move.move.target_position
         if not isinstance(tgt, int):
             return 1.0
         close = 0
@@ -259,8 +280,8 @@ class HybridProbStrategy(Strategy):
             return 1.0
         return 1.0 + StrategyConstants.HYBRID_CLUSTER_INCREMENT * (close - 1)
 
-    def _impact_weight(self, move: MoveDict) -> float:
-        cur = move.get("current_position")
+    def _impact_weight(self, move: MoveEvaluation) -> float:
+        cur = move.move.current_position
         if not isinstance(cur, int):
             return 1.0
         if cur < 0:
@@ -275,21 +296,20 @@ class HybridProbStrategy(Strategy):
 
     # ---- Opportunity helpers ----
     def _capture_value(
-        self, move: MoveDict, opp_token_progress_map: Dict[str, float]
+        self, move: MoveEvaluation, opp_token_progress_map: Dict[str, float]
     ) -> float:
-        if not move.get("captures_opponent"):
+        if not move.move.captures_opponent:
             return 0.0
-        captured = move.get("captured_tokens", [])
+        captured = move.move.captured_tokens
         total_scale = 0.0
         for c in captured:
-            tid = c.get("token_id")
-            prog = opp_token_progress_map.get(tid, 0.5)
+            prog = opp_token_progress_map.get(c.player_color, 0.5)
             total_scale += 1.0 + prog
         return StrategyConstants.HYBRID_CAPTURE_BASE * max(1.0, total_scale)
 
-    def _progress_value(self, move: MoveDict) -> float:
-        cur = move.get("current_position")
-        tgt = move.get("target_position")
+    def _progress_value(self, move: MoveEvaluation) -> float:
+        cur = move.move.current_position
+        tgt = move.move.target_position
         if not isinstance(cur, int) or not isinstance(tgt, int):
             return 0.0
         delta = 0.0
@@ -311,12 +331,12 @@ class HybridProbStrategy(Strategy):
             delta**StrategyConstants.HYBRID_PROGRESS_POWER
         ) * StrategyConstants.HYBRID_PROGRESS_SCALE
 
-    def _home_column_value(self, move: MoveDict) -> float:
-        mt = move.get("move_type")
+    def _home_column_value(self, move: MoveEvaluation) -> float:
+        mt = move.move.move_type
         if mt == "finish":
             return StrategyConstants.HYBRID_FINISH_BONUS
         if mt == "advance_home_column":
-            pos = move.get("target_position")
+            pos = move.move.target_position
             if isinstance(pos, int):
                 depth = pos - GameConstants.HOME_COLUMN_START
                 return (
@@ -328,8 +348,8 @@ class HybridProbStrategy(Strategy):
             return StrategyConstants.HYBRID_EXIT_HOME_BONUS
         return 0.0
 
-    def _extra_turn_ev(self, move: MoveDict) -> float:
-        capture_turn = 1.0 if move.get("captures_opponent") else 0.0
+    def _extra_turn_ev(self, move: MoveEvaluation) -> float:
+        capture_turn = 1.0 if move.move.captures_opponent else 0.0
         roll_six_prob = 1.0 / 6.0
         expected_additional = capture_turn + roll_six_prob
         return (
@@ -339,11 +359,11 @@ class HybridProbStrategy(Strategy):
         )
 
     def _risk_suppression_bonus(
-        self, move: MoveDict, opponent_positions: List[int]
+        self, move: MoveEvaluation, opponent_positions: List[int]
     ) -> float:
-        if not move.get("captures_opponent"):
+        if not move.move.captures_opponent:
             return 0.0
-        tgt = move.get("target_position")
+        tgt = move.move.target_position
         if not isinstance(tgt, int):
             return 0.0
         removed = 0
@@ -355,16 +375,16 @@ class HybridProbStrategy(Strategy):
             return 0.0
         return removed * StrategyConstants.HYBRID_RISK_SUPPRESSION_COEFF
 
-    def _spread_bonus(self, move: MoveDict, baseline_active: int) -> float:
+    def _spread_bonus(self, move: MoveEvaluation, baseline_active: int) -> float:
         if (
-            move.get("move_type") == "exit_home"
+            move.move.move_type == "exit_home"
             and baseline_active < StrategyConstants.HYBRID_SPREAD_ACTIVE_TARGET
         ):
             return StrategyConstants.HYBRID_SPREAD_BONUS
         return 0.0
 
-    def _future_safety_potential(self, move: MoveDict) -> float:
-        tgt = move.get("target_position")
+    def _future_safety_potential(self, move: MoveEvaluation) -> float:
+        tgt = move.move.target_position
         if not isinstance(tgt, int) or tgt >= BoardConstants.HOME_COLUMN_START:
             return 0.0
         safe_set = BoardConstants.get_all_safe_squares()
@@ -376,19 +396,19 @@ class HybridProbStrategy(Strategy):
         return potential
 
     # ---- Selection helpers ----
-    def _pareto_filter(self, moves: Sequence[MoveDict]) -> List[MoveDict]:
-        result: List[MoveDict] = []
+    def _pareto_filter(self, moves: Sequence[MoveEvaluation]) -> List[MoveEvaluation]:
+        result: List[MoveEvaluation] = []
         for m in moves:
             dominated = False
             for o in moves:
                 if o is m:
                     continue
                 if (
-                    o.get("hy_opportunity", 0.0) >= m.get("hy_opportunity", 0.0)
-                    and o.get("hy_risk_score", 1.0) <= m.get("hy_risk_score", 1.0)
+                    o.hy_opportunity >= m.hy_opportunity
+                    and o.hy_risk_score <= m.hy_risk_score
                     and (
-                        o.get("hy_opportunity", 0.0) > m.get("hy_opportunity", 0.0)
-                        or o.get("hy_risk_score", 1.0) < m.get("hy_risk_score", 1.0)
+                        o.hy_opportunity > m.hy_opportunity
+                        or o.hy_risk_score < m.hy_risk_score
                     )
                 ):
                     dominated = True
@@ -397,15 +417,15 @@ class HybridProbStrategy(Strategy):
                 result.append(m)
         return result if result else list(moves)
 
-    def _normalize_composite(self, moves: Sequence[MoveDict]):
-        scores = [m.get("hy_composite_raw", 0.0) for m in moves]
+    def _normalize_composite(self, moves: Sequence[MoveEvaluation]):
+        scores = [m.hy_composite_raw for m in moves]
         if not scores:
             return
         mean = sum(scores) / len(scores)
         var = sum((s - mean) ** 2 for s in scores) / max(1, len(scores))
         std = math.sqrt(var) or 1.0
         for m in moves:
-            m["hy_composite"] = (m.get("hy_composite_raw", 0.0) - mean) / std
+            m.hy_composite_raw = (m.hy_composite_raw - mean) / std
 
     # ---- Generic helpers ----
     def _collect_opponent_positions(
@@ -414,15 +434,21 @@ class HybridProbStrategy(Strategy):
         res = get_opponent_main_positions(game_context, current_color)
         return res
 
-    def _collect_opponent_token_progress(self, game_context: AIDecisionContext) -> Dict[str, float]:
+    def _collect_opponent_token_progress(
+        self, game_context: AIDecisionContext
+    ) -> Dict[str, float]:
         result: Dict[str, float] = {}
-        for opp in game_context.get("opponents", []):
-            for t in opp.get("tokens", []):
-                tid = t.get("token_id")
-                finished = float(t.get("finished_steps", 0))
-                result[tid] = min(
-                    1.0, max(0.0, finished / float(GameConstants.FINISH_POSITION))
-                )
+        for opp in game_context.opponents:
+            finished = opp.tokens_finished
+            prog = 0
+            start = BoardConstants.START_POSITIONS[opp.color]
+            for t in opp.positions_occupied:
+                prog += self._backward_distance(start, t) or 0 / GameConstants.MAIN_BOARD_SIZE
+            result[opp.color] = min(
+                1.0,
+                finished / GameConstants.TOKENS_TO_WIN
+                + prog / len(opp.positions_occupied) if opp.positions_occupied else 0.0,
+            )
         return result
 
     def _backward_distance(self, from_pos: int, opp_pos: int) -> Optional[int]:

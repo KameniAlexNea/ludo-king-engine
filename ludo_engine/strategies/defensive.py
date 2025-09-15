@@ -247,6 +247,3 @@ class DefensiveStrategy(Strategy):
         else:
             to_entry = (GameConstants.MAIN_BOARD_SIZE - position) + entry
         return to_entry + GameConstants.HOME_COLUMN_SIZE
-
-    # --- Shared helpers & constants ---
-    # _my_main_positions removed in favor of utils.get_my_main_positions
