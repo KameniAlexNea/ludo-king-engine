@@ -3,7 +3,6 @@ Random Strategy - Makes completely random valid moves.
 """
 
 import random
-from typing import Dict
 
 from ludo_engine.model import AIDecisionContext
 from ludo_engine.strategies.base import Strategy

@@ -5,7 +5,7 @@ maintaining safety. Prefers finishing > deep home advancement > safe captures
 > safe progression > exits (only when necessary) > fallback.
 """
 
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
 from ludo_engine.model import AIDecisionContext, ValidMove

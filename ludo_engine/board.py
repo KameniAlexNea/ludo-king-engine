@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Set, Tuple
 
 from ludo_engine.constants import BoardConstants
-from ludo_engine.model import BoardPositionInfo, BoardState, PositionInfo, TokenInfo
+from ludo_engine.model import BoardPositionInfo, BoardState, PositionInfo
 from ludo_engine.player import Player, PlayerColor
 from ludo_engine.token import Token, TokenState
 
@@ -272,7 +272,7 @@ class Board:
                     BoardPositionInfo(
                         player_color=token.player_color,
                         token_id=token.token_id,
-                        state=token.state.value
+                        state=token.state.value,
                     )
                     for token in tokens
                 ]
@@ -290,18 +290,13 @@ class Board:
             safe_positions=safe_positions,
             star_positions=star_positions,
             player_start_positions=self.start_positions,
-            home_column_entries=self.home_entries
+            home_column_entries=self.home_entries,
         )
 
     def get_position_info(self, position: int) -> PositionInfo:
         """Get detailed information about a specific position."""
         if position == -1:
-            return PositionInfo(
-                type="home",
-                position=position,
-                is_safe=True,
-                tokens=[]
-            )
+            return PositionInfo(type="home", position=position, is_safe=True, tokens=[])
         elif 100 <= position <= 105:
             return PositionInfo(
                 type="home_column",
@@ -309,7 +304,7 @@ class Board:
                 is_safe=True,
                 tokens=[
                     token.to_dict() for token in self.get_tokens_at_position(position)
-                ]
+                ],
             )
         elif 0 <= position < self.main_path_size:
             board_pos = self.positions.get(position, Position(position))
@@ -321,14 +316,11 @@ class Board:
                 color=board_pos.color,
                 tokens=[
                     token.to_dict() for token in self.get_tokens_at_position(position)
-                ]
+                ],
             )
         else:
             return PositionInfo(
-                type="unknown",
-                position=position,
-                is_safe=False,
-                tokens=[]
+                type="unknown", position=position, is_safe=False, tokens=[]
             )
 
     def update_token_position(self, token: Token, old_position: int, new_position: int):

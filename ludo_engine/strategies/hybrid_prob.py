@@ -101,8 +101,8 @@ class HybridProbStrategy(Strategy):
 
         for mv in moves:
             # Finish priority
-            if mv.move_type == "finish":
-                return mv.token_id
+            if mv.get("move_type") == "finish":
+                return mv["token_id"]
 
             immediate_risk = self._immediate_risk(mv, opponent_positions)
             horizon_risk = self._horizon_risk(mv, opponent_positions, horizon)
@@ -131,7 +131,7 @@ class HybridProbStrategy(Strategy):
             opp_score += self._capture_value(mv, opp_token_progress_map)
             opp_score += self._progress_value(mv)
             opp_score += self._home_column_value(mv)
-            if mv.is_safe_move:
+            if mv.get("is_safe_move"):
                 opp_score += StrategyConstants.HYBRID_SAFE_LANDING_BONUS
             if self.cfg.use_extra_turn_ev:
                 opp_score += self._extra_turn_ev(mv)
@@ -153,42 +153,48 @@ class HybridProbStrategy(Strategy):
                 risk_score**StrategyConstants.HYBRID_COMPOSITE_RISK_POWER
             )
 
-            # Skip diagnostic attributes for now (dataclasses don't allow arbitrary attribute assignment)
-            # mv["hy_risk_immediate"] = immediate_risk
-            # mv["hy_risk_horizon"] = horizon_risk
-            # mv["hy_risk_blended"] = blended_risk
-            # mv["hy_risk_proximity_factor"] = proximity_factor
-            # mv["hy_risk_cluster_factor"] = cluster_factor
-            # mv["hy_risk_impact_weight"] = impact_weight
-            # mv["hy_risk_score"] = risk_score
-            # mv["hy_opportunity"] = opp_score
-            # mv["hy_composite_raw"] = composite_raw
-            # mv["hy_lead_factor"] = lead_factor
+            mv["hy_risk_immediate"] = immediate_risk
+            mv["hy_risk_horizon"] = horizon_risk
+            mv["hy_risk_blended"] = blended_risk
+            mv["hy_risk_proximity_factor"] = proximity_factor
+            mv["hy_risk_cluster_factor"] = cluster_factor
+            mv["hy_risk_impact_weight"] = impact_weight
+            mv["hy_risk_score"] = risk_score
+            mv["hy_opportunity"] = opp_score
+            mv["hy_composite_raw"] = composite_raw
+            mv["hy_lead_factor"] = lead_factor
 
             scored.append(mv)
 
         # Optional Pareto pruning
         candidates = self._pareto_filter(scored) if self.cfg.pareto_prune else scored
 
-        # Normalization - simplified since we don't have diagnostic attributes
+        # Normalization
         if self.cfg.normalize and len(candidates) > 1:
             self._normalize_composite(candidates)
         else:
-            # Without diagnostic attributes, we can't normalize
-            pass
+            for m in candidates:
+                m["hy_composite"] = m.get("hy_composite_raw", 0.0)
 
-        # Select best based on strategic value (simplified selection)
-        best = max(candidates, key=lambda m: m.strategic_value)
-        return best.token_id
+        # Select best; tie-breaker: lower risk_score then higher opportunity
+        best = max(
+            candidates,
+            key=lambda m: (
+                m["hy_composite"],
+                -m["hy_risk_score"],
+                m["hy_opportunity"],
+            ),
+        )
+        return best["token_id"]
 
     # ---- Risk helpers ----
-    def _immediate_risk(self, move: ValidMove, opponent_positions: List[int]) -> float:
-        tgt = move.target_position
+    def _immediate_risk(self, move: MoveDict, opponent_positions: List[int]) -> float:
+        tgt = move.get("target_position")
         if not isinstance(tgt, int):
             return 0.0
         if (
-            move.is_safe_move
-            or move.move_type in {"finish", "advance_home_column"}
+            move.get("is_safe_move")
+            or move.get("move_type") in {"finish", "advance_home_column"}
             or tgt >= BoardConstants.HOME_COLUMN_START
         ):
             return 0.0

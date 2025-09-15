@@ -122,8 +122,7 @@ class KillerStrategy(Strategy):
         best_risky = self._get_highest_value_move(risky_moves) if risky_moves else None
         best_safe = self._get_highest_value_move(safe_moves) if safe_moves else None
         if best_risky and (
-            not best_safe
-            or best_risky.strategic_value > best_safe.strategic_value + 5
+            not best_safe or best_risky.strategic_value > best_safe.strategic_value + 5
         ):
             return best_risky.token_id
 
@@ -132,7 +131,9 @@ class KillerStrategy(Strategy):
         return best_move.token_id if best_move else 0
 
     # --- Capture scoring ---
-    def _choose_capture(self, moves: List[ValidMove], ctx: AIDecisionContext) -> int | None:
+    def _choose_capture(
+        self, moves: List[ValidMove], ctx: AIDecisionContext
+    ) -> int | None:
         capture_moves = self._get_capture_moves(moves)
         if not capture_moves:
             return None

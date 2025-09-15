@@ -46,8 +46,7 @@ class ProbabilisticV2Strategy(Strategy):
         my_finished = float(player_state.finished_tokens)
         my_progress = my_finished / float(GameConstants.TOKENS_PER_PLAYER)
         opp_progresses = [
-            float(opp.finished_tokens)
-            / float(GameConstants.TOKENS_PER_PLAYER)
+            float(opp.finished_tokens) / float(GameConstants.TOKENS_PER_PLAYER)
             for opp in opponents
         ]
         opp_mean = sum(opp_progresses) / max(1.0, len(opp_progresses))
@@ -137,7 +136,9 @@ class ProbabilisticV2Strategy(Strategy):
         """Return list of opponent token positions on main loop 0..51."""
         return get_opponent_main_positions_with_fallback(game_context, current_color)
 
-    def _collect_opponent_token_progress(self, game_context: AIDecisionContext) -> Dict[str, float]:
+    def _collect_opponent_token_progress(
+        self, game_context: AIDecisionContext
+    ) -> Dict[str, float]:
         """Map token id to its normalized progress from 0 to 1 if info exists."""
         result = {}
         opponents = game_context.opponents

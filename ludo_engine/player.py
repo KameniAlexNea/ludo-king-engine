@@ -4,10 +4,15 @@ Each player has a color and controls 4 tokens.
 """
 
 from enum import Enum
-from typing import Dict, List
+from typing import List
 
 from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
-from ludo_engine.model import PlayerState, StrategicComponents, TokenInfo, ValidMove, AIDecisionContext
+from ludo_engine.model import (
+    AIDecisionContext,
+    PlayerState,
+    StrategicComponents,
+    ValidMove,
+)
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.token import Token, TokenState
 
@@ -134,7 +139,7 @@ class Player:
                 1 for token in self.tokens if token.is_in_home_column()
             ),
             finished_tokens=self.get_finished_tokens_count(),
-            has_won=self.has_won()
+            has_won=self.has_won(),
         )
 
     def get_possible_moves(self, dice_value: int) -> List[ValidMove]:
@@ -178,7 +183,7 @@ class Player:
                         "acceleration": strategic_components.acceleration,
                         "safety": strategic_components.safety,
                         "vulnerability_penalty": strategic_components.vulnerability_penalty,
-                    }
+                    },
                 )
 
                 possible_moves.append(move_info)
@@ -226,7 +231,7 @@ class Player:
             forward_progress=0.0,
             acceleration=0.0,
             safety=0.0,
-            vulnerability_penalty=0.0
+            vulnerability_penalty=0.0,
         )
 
         # 1 & 2: Home column / finish logic
@@ -254,9 +259,7 @@ class Player:
             # Heuristic: fewer remaining steps => larger bonus
             # Convert to pseudo remaining advantage (higher when closer)
             advantage = max(0, 60 - steps_remaining)  # 60 is rough total path+home
-            components.acceleration = (
-                advantage * StrategyConstants.ACCELERATION_WEIGHT
-            )
+            components.acceleration = advantage * StrategyConstants.ACCELERATION_WEIGHT
 
         # 5: Safety bonus for landing square
         if BoardConstants.is_safe_position(target_position, self.color.value):
@@ -269,16 +272,18 @@ class Player:
             and not BoardConstants.is_home_column_position(target_position)
             and token.is_active()
         ):
-            components.vulnerability_penalty = -StrategyConstants.VULNERABILITY_PENALTY_WEIGHT
+            components.vulnerability_penalty = (
+                -StrategyConstants.VULNERABILITY_PENALTY_WEIGHT
+            )
 
         total = (
-            components.exit_home +
-            components.finish +
-            components.home_column_depth +
-            components.forward_progress +
-            components.acceleration +
-            components.safety +
-            components.vulnerability_penalty
+            components.exit_home
+            + components.finish
+            + components.home_column_depth
+            + components.forward_progress
+            + components.acceleration
+            + components.safety
+            + components.vulnerability_penalty
         )
         return total, components
 

@@ -215,7 +215,7 @@ class Token:
             is_in_home=self.is_in_home(),
             is_active=self.is_active(),
             is_in_home_column=self.is_in_home_column(),
-            is_finished=self.is_finished()
+            is_finished=self.is_finished(),
         )
 
     def __str__(self) -> str:

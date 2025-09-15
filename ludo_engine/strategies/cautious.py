@@ -5,7 +5,7 @@ exiting home unless required, and slightly relaxes rules only when falling
 behind late game.
 """
 
-from typing import Dict, List, Set
+from typing import List, Set
 
 from ludo_engine.constants import BoardConstants, StrategyConstants
 from ludo_engine.model import AIDecisionContext, ValidMove
@@ -128,12 +128,12 @@ class CautiousStrategy(Strategy):
         # 7. Last resort: any move with minimal exposure
         moves.sort(
             key=lambda m: (
-                threat_info.get(
-                    m.token_id, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE)
-                )[0],
-                threat_info.get(
-                    m.token_id, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE)
-                )[1],
+                threat_info.get(m.token_id, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE))[
+                    0
+                ],
+                threat_info.get(m.token_id, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE))[
+                    1
+                ],
                 -int(self._creates_block(m, my_main_positions)),
                 -m.strategic_value,
             )
@@ -157,9 +157,7 @@ class CautiousStrategy(Strategy):
         player_state = ctx.player_state
         my_finished = player_state.finished_tokens
         opponents = ctx.opponents
-        max_opp_finished = max(
-            (o.tokens_finished for o in opponents), default=0
-        )
+        max_opp_finished = max((o.tokens_finished for o in opponents), default=0)
         deficit = max_opp_finished - my_finished
 
         if max_opp_finished >= 3 and my_finished <= 1:

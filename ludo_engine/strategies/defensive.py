@@ -47,9 +47,7 @@ class DefensiveStrategy(Strategy):
         active = player_state.active_tokens
         opponents = game_context.opponents
 
-        leading_finished = max(
-            (o.tokens_finished for o in opponents), default=0
-        )
+        leading_finished = max((o.tokens_finished for o in opponents), default=0)
         pressure = (
             leading_finished >= StrategyConstants.DEFENSIVE_EXIT_PRESSURE_THRESHOLD
         )
@@ -123,12 +121,8 @@ class DefensiveStrategy(Strategy):
         # 8. Fallback: minimal threat then highest strategic value
         moves.sort(
             key=lambda m: (
-                threat_map.get(m.token_id, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE))[
-                    0
-                ],
-                threat_map.get(m.token_id, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE))[
-                    1
-                ],
+                threat_map.get(m.token_id, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE))[0],
+                threat_map.get(m.token_id, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE))[1],
                 -m.strategic_value,
             )
         )
@@ -148,7 +142,6 @@ class DefensiveStrategy(Strategy):
 
     # --- Block Logic ---
     def _own_block_positions(self, ctx: AIDecisionContext) -> List[int]:
-        current_color = ctx.player_state.color
         positions: Dict[int, int] = {}
         for token in ctx.player_state.tokens:
             if token.position >= 0 and not BoardConstants.is_home_column_position(
@@ -211,7 +204,10 @@ class DefensiveStrategy(Strategy):
 
     # --- Repositioning ---
     def _reposition_improves(
-        self, mv: ValidMove, threat_map: Dict[int, Tuple[int, int]], ctx: AIDecisionContext
+        self,
+        mv: ValidMove,
+        threat_map: Dict[int, Tuple[int, int]],
+        ctx: AIDecisionContext,
     ) -> bool:
         tid = mv.token_id
         current_threat = threat_map.get(tid, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE))
@@ -235,12 +231,8 @@ class DefensiveStrategy(Strategy):
         ordered = sorted(
             moves,
             key=lambda m: (
-                threat_map.get(m.token_id, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE))[
-                    0
-                ],
-                threat_map.get(m.token_id, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE))[
-                    1
-                ],
+                threat_map.get(m.token_id, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE))[0],
+                threat_map.get(m.token_id, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE))[1],
                 -m.strategic_value,
             ),
         )

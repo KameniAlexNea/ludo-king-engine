@@ -3,7 +3,7 @@ Base strategy classes and interfaces for Ludo AI.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from ludo_engine.model import AIDecisionContext, ValidMove
 
@@ -44,7 +44,9 @@ class Strategy(ABC):
                 return move
         return None
 
-    def _get_moves_by_type(self, valid_moves: List[ValidMove], move_type: str) -> List[ValidMove]:
+    def _get_moves_by_type(
+        self, valid_moves: List[ValidMove], move_type: str
+    ) -> List[ValidMove]:
         """Get all moves of specified type."""
         return [move for move in valid_moves if move.move_type == move_type]
 
@@ -60,13 +62,17 @@ class Strategy(ABC):
         """Get all risky moves."""
         return [move for move in valid_moves if not move.is_safe_move]
 
-    def _get_highest_value_move(self, valid_moves: List[ValidMove]) -> Optional[ValidMove]:
+    def _get_highest_value_move(
+        self, valid_moves: List[ValidMove]
+    ) -> Optional[ValidMove]:
         """Get move with highest strategic value."""
         if not valid_moves:
             return None
         return max(valid_moves, key=lambda m: m.strategic_value)
 
-    def _get_lowest_value_move(self, valid_moves: List[ValidMove]) -> Optional[ValidMove]:
+    def _get_lowest_value_move(
+        self, valid_moves: List[ValidMove]
+    ) -> Optional[ValidMove]:
         """Get move with lowest strategic value."""
         if not valid_moves:
             return None

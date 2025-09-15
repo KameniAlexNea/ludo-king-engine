@@ -4,7 +4,7 @@ Manages game flow, rules, and provides interface for AI players.
 """
 
 import random
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 from ludo_engine.board import Board
 from ludo_engine.constants import GameConstants
@@ -15,7 +15,6 @@ from ludo_engine.model import (
     MoveResult,
     OpponentInfo,
     PlayerConfiguration,
-    PlayerState,
     StrategicAnalysis,
     TurnResult,
     ValidMove,
@@ -126,10 +125,7 @@ class LudoGame:
 
             if can_move:
                 captured_tokens = [
-                    CapturedToken(
-                        player_color=t.player_color,
-                        token_id=t.token_id
-                    )
+                    CapturedToken(player_color=t.player_color, token_id=t.token_id)
                     for t in tokens_to_capture
                 ]
 
@@ -143,13 +139,15 @@ class LudoGame:
                     captures_opponent=len(tokens_to_capture) > 0,
                     captured_tokens=captured_tokens,
                     strategic_value=move.strategic_value,
-                    strategic_components=move.strategic_components
+                    strategic_components=move.strategic_components,
                 )
                 valid_moves.append(valid_move)
 
         return valid_moves
 
-    def execute_move(self, player: Player, token_id: int, dice_value: int) -> MoveResult:
+    def execute_move(
+        self, player: Player, token_id: int, dice_value: int
+    ) -> MoveResult:
         """
         Execute a move for a player.
 
@@ -172,7 +170,7 @@ class LudoGame:
                 captured_tokens=[],
                 token_finished=False,
                 extra_turn=False,
-                error="Invalid token ID"
+                error="Invalid token ID",
             )
 
         token = player.tokens[token_id]
@@ -189,7 +187,7 @@ class LudoGame:
                 captured_tokens=[],
                 token_finished=False,
                 extra_turn=False,
-                error="Token cannot move with this dice value"
+                error="Token cannot move with this dice value",
             )
 
         old_position = token.position
@@ -206,7 +204,7 @@ class LudoGame:
                 captured_tokens=[],
                 token_finished=False,
                 extra_turn=False,
-                error="Invalid target position"
+                error="Invalid target position",
             )
 
         # Validate board occupancy / capture
@@ -224,7 +222,7 @@ class LudoGame:
                 captured_tokens=[],
                 token_finished=False,
                 extra_turn=False,
-                error="Invalid move - position blocked"
+                error="Invalid move - position blocked",
             )
 
         # Apply board side-effects (captures & relocation) first
@@ -267,10 +265,10 @@ class LudoGame:
             new_position=token.position,
             captured_tokens=captured_token_objects,
             token_finished=token.is_finished(),
-            extra_turn=extra_turn
+            extra_turn=extra_turn,
         )
 
-                # Record move in history
+        # Record move in history
         self.move_history.append(move_result)
 
         # Check for game over
@@ -305,7 +303,7 @@ class LudoGame:
                 moves=[],
                 extra_turn=False,
                 turn_ended=True,
-                error="Game is already over"
+                error="Game is already over",
             )
 
         current_player = self.get_current_player()
@@ -317,7 +315,7 @@ class LudoGame:
             consecutive_sixes=self.consecutive_sixes,
             moves=[],
             extra_turn=False,
-            turn_ended=False
+            turn_ended=False,
         )
 
         # Check for 3 consecutive sixes
@@ -392,7 +390,7 @@ class LudoGame:
             player_color=current_player.color.value,
             dice_value=dice_value,
             consecutive_sixes=self.consecutive_sixes,
-            turn_count=self.turn_count
+            turn_count=self.turn_count,
         )
 
         player_state = current_player.get_game_state()
@@ -402,7 +400,7 @@ class LudoGame:
                 color=p.color.value,
                 tokens_finished=p.get_finished_tokens_count(),
                 tokens_active=sum(1 for t in p.tokens if t.is_active()),
-                threat_level=self._calculate_threat_level(p)
+                threat_level=self._calculate_threat_level(p),
             )
             for p in self.players
             if p != current_player
@@ -417,7 +415,7 @@ class LudoGame:
             player_state=player_state,
             opponents=opponents,
             valid_moves=valid_moves,
-            strategic_analysis=strategic_analysis
+            strategic_analysis=strategic_analysis,
         )
 
     def _calculate_threat_level(self, player: Player) -> float:
@@ -434,12 +432,8 @@ class LudoGame:
     ) -> StrategicAnalysis:
         """Analyze the strategic situation for AI decision making."""
         can_capture = any(move.captures_opponent for move in valid_moves)
-        can_finish_token = any(
-            move.move_type == "finish" for move in valid_moves
-        )
-        can_exit_home = any(
-            move.move_type == "exit_home" for move in valid_moves
-        )
+        can_finish_token = any(move.move_type == "finish" for move in valid_moves)
+        can_exit_home = any(move.move_type == "exit_home" for move in valid_moves)
         safe_moves = [move for move in valid_moves if move.is_safe_move]
         risky_moves = [move for move in valid_moves if not move.is_safe_move]
 
@@ -453,7 +447,7 @@ class LudoGame:
             can_exit_home=can_exit_home,
             safe_moves=safe_moves,
             risky_moves=risky_moves,
-            best_strategic_move=best_strategic_move
+            best_strategic_move=best_strategic_move,
         )
 
     def get_player_configurations(self) -> List[PlayerConfiguration]:
@@ -474,7 +468,7 @@ class LudoGame:
                 has_strategy=player.strategy is not None,
                 tokens_finished=player.get_finished_tokens_count(),
                 tokens_active=sum(1 for t in player.tokens if t.is_active()),
-                tokens_in_home=sum(1 for t in player.tokens if t.is_in_home())
+                tokens_in_home=sum(1 for t in player.tokens if t.is_in_home()),
             )
             configs.append(config)
         return configs

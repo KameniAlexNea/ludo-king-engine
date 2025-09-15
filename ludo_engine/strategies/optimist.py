@@ -4,7 +4,7 @@ Bold, opportunistic: prefers high-value risky advancements, proactive exits,
 and future capture potential while still finishing when convenient.
 """
 
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
 from ludo_engine.model import AIDecisionContext, ValidMove
@@ -90,7 +90,9 @@ class OptimistStrategy(Strategy):
         return best_move.token_id if best_move else 0
 
     # --- Capture scoring ---
-    def _score_captures(self, captures: List[ValidMove], ctx: AIDecisionContext) -> ValidMove | None:
+    def _score_captures(
+        self, captures: List[ValidMove], ctx: AIDecisionContext
+    ) -> ValidMove | None:
         entries = BoardConstants.HOME_COLUMN_ENTRIES
         scored: List[Tuple[float, ValidMove]] = []
         for mv in captures:

@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 @dataclass
 class TokenInfo:
     """Information about a token."""
+
     token_id: int
     player_color: str
     state: str
@@ -23,6 +24,7 @@ class TokenInfo:
 @dataclass
 class CapturedToken:
     """Information about a captured token."""
+
     player_color: str
     token_id: int
 
@@ -30,6 +32,7 @@ class CapturedToken:
 @dataclass
 class MoveResult:
     """Result of executing a move."""
+
     success: bool
     player_color: str
     token_id: int
@@ -46,6 +49,7 @@ class MoveResult:
 @dataclass
 class ValidMove:
     """A valid move that can be made."""
+
     token_id: int
     current_position: int
     current_state: str
@@ -61,6 +65,7 @@ class ValidMove:
 @dataclass
 class TurnResult:
     """Result of playing a complete turn."""
+
     player_color: str
     dice_value: int
     consecutive_sixes: int
@@ -74,6 +79,7 @@ class TurnResult:
 @dataclass
 class PlayerState:
     """Current state of a player."""
+
     player_id: int
     color: str
     start_position: int
@@ -88,6 +94,7 @@ class PlayerState:
 @dataclass
 class OpponentInfo:
     """Information about an opponent player."""
+
     color: str
     tokens_finished: int
     tokens_active: int
@@ -97,6 +104,7 @@ class OpponentInfo:
 @dataclass
 class StrategicAnalysis:
     """Strategic analysis of the current situation."""
+
     can_capture: bool
     can_finish_token: bool
     can_exit_home: bool
@@ -108,6 +116,7 @@ class StrategicAnalysis:
 @dataclass
 class CurrentSituation:
     """Current game situation."""
+
     player_color: str
     dice_value: int
     consecutive_sixes: int
@@ -117,6 +126,7 @@ class CurrentSituation:
 @dataclass
 class AIDecisionContext:
     """Context provided to AI for decision making."""
+
     current_situation: CurrentSituation
     player_state: PlayerState
     opponents: List[OpponentInfo]
@@ -127,6 +137,7 @@ class AIDecisionContext:
 @dataclass
 class PlayerConfiguration:
     """Configuration information for a player."""
+
     color: str
     player_id: int
     strategy_name: str
@@ -140,6 +151,7 @@ class PlayerConfiguration:
 @dataclass
 class BoardPositionInfo:
     """Information about tokens at a board position."""
+
     player_color: str
     token_id: int
     state: str
@@ -148,6 +160,7 @@ class BoardPositionInfo:
 @dataclass
 class BoardState:
     """Complete board state for AI analysis."""
+
     current_player: str
     board_positions: Dict[int, List[BoardPositionInfo]]
     safe_positions: List[int]
@@ -159,6 +172,7 @@ class BoardState:
 @dataclass
 class PositionInfo:
     """Detailed information about a specific position."""
+
     type: str
     position: int
     is_safe: bool
@@ -170,6 +184,7 @@ class PositionInfo:
 @dataclass
 class StrategicComponents:
     """Breakdown of strategic value components."""
+
     exit_home: float
     finish: float
     home_column_depth: float
