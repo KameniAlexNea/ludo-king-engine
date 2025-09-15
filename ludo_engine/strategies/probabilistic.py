@@ -31,7 +31,7 @@ from typing import List
 from ludo_engine.constants import BoardConstants, GameConstants
 from ludo_engine.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
-from ludo_engine.strategies.utils import get_opponent_main_positions_with_fallback
+from ludo_engine.strategies.utils import get_opponent_main_positions
 
 
 class ProbabilisticStrategy(Strategy):
@@ -95,7 +95,7 @@ class ProbabilisticStrategy(Strategy):
         self, game_context: AIDecisionContext, current_color: str
     ) -> List[int]:
         """Extract opponent positions on main path with utils; fallback to board map."""
-        return get_opponent_main_positions_with_fallback(game_context, current_color)
+        return get_opponent_main_positions(game_context, current_color)
 
     def _circular_distance_backward(self, from_pos: int, opp_pos: int) -> int:
         """Distance moving backward along circular 52 path from from_pos to opp_pos.

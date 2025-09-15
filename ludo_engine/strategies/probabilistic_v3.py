@@ -45,8 +45,8 @@ from ludo_engine.constants import BoardConstants, GameConstants
 from ludo_engine.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
-    get_my_main_positions_with_fallback,
-    get_opponent_main_positions_with_fallback,
+    get_my_main_positions,
+    get_opponent_main_positions,
 )
 
 MoveDict = Dict[str, object]
@@ -547,12 +547,12 @@ class ProbabilisticV3Strategy(Strategy):
     def _collect_opponent_positions(
         self, game_context: Dict, current_color: str
     ) -> List[int]:
-        return get_opponent_main_positions_with_fallback(game_context, current_color)
+        return get_opponent_main_positions(game_context, current_color)
 
     def _collect_own_positions(
         self, game_context: Dict, current_color: str
     ) -> List[int]:
-        return get_my_main_positions_with_fallback(game_context, current_color)
+        return get_my_main_positions(game_context, current_color)
 
     def _collect_opponent_token_progress(self, game_context: Dict) -> Dict[str, float]:
         # Placeholder: opponents list may not include per-token progress; fallback mid.

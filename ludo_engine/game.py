@@ -401,6 +401,7 @@ class LudoGame:
                 tokens_finished=p.get_finished_tokens_count(),
                 tokens_active=sum(1 for t in p.tokens if t.is_active()),
                 threat_level=self._calculate_threat_level(p),
+                positions_occupied=p.player_positions(),
             )
             for p in self.players
             if p != current_player

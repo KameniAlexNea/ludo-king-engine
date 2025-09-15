@@ -7,6 +7,7 @@ threat computation to eliminate duplication across strategies.
 from typing import Dict, List, Set, Tuple
 
 from ludo_engine.constants import BoardConstants, GameConstants
+from ludo_engine.model import AIDecisionContext, PlayerState, ValidMove
 
 # Sentinel constants derived from board geometry (avoid magic numbers)
 NO_THREAT_DISTANCE: int = GameConstants.HOME_COLUMN_START - 1
@@ -40,36 +41,29 @@ def backward_distance(start: int, end: int) -> int:
     return forward_distance(end, start)
 
 
-def get_my_main_positions(ctx: Dict) -> Set[int]:
+def get_my_main_positions(ctx: AIDecisionContext) -> Set[int]:
     """Own token positions on main board (exclude home column and off-board)."""
-    color = ctx.get("current_situation", {}).get("player_color")
-    positions: Set[int] = set()
-    for p in ctx.get("players", []):
-        if p.get("color") != color:
-            continue
-        for t in p.get("tokens", []):
-            pos = t.get("position", -1)
-            if pos >= 0 and not BoardConstants.is_home_column_position(pos):
-                positions.add(pos)
-    return positions
+    return [
+        i
+        for i in ctx.player_state.positions_occupied
+        if i >= 0 and not BoardConstants.is_home_column_position(i)
+    ]
 
 
-def get_opponent_main_positions(ctx: Dict) -> List[int]:
+def get_opponent_main_positions(ctx: AIDecisionContext) -> List[int]:
     """Opponent token positions on main board (0..51)."""
-    color = ctx.get("current_situation", {}).get("player_color")
-    out: List[int] = []
-    for p in ctx.get("players", []):
-        if p.get("color") == color:
-            continue
-        for t in p.get("tokens", []):
-            pos = t.get("position", -1)
-            if pos >= 0 and not BoardConstants.is_home_column_position(pos):
-                out.append(pos)
-    return out
+    color = ctx.player_state.color
+    return [
+        j
+        for i in ctx.opponents
+        if i.color != color
+        for j in i.positions_occupied
+        if j >= 0 and not BoardConstants.is_home_column_position(j)
+    ]
 
 
 def compute_threats_for_moves(
-    moves: List[Dict], ctx: Dict, my_positions: Set[int] | None = None
+    moves: List[ValidMove], ctx: AIDecisionContext, my_positions: Set[int] | None = None
 ) -> Dict[int, Tuple[int, int]]:
     """Compute incoming threat for each move's landing square.
 
@@ -86,16 +80,16 @@ def compute_threats_for_moves(
         my_positions = get_my_main_positions(ctx)
     res: Dict[int, Tuple[int, int]] = {}
     for mv in moves:
-        landing = mv.get("target_position")
+        landing = mv.target_position
         if not isinstance(landing, int):
             # Treat non-integer or invalid as immune (e.g., None)
-            res[mv["token_id"]] = (0, NO_THREAT_DISTANCE)
+            res[mv.token_id] = (0, NO_THREAT_DISTANCE)
             continue
         if is_safe_or_home(landing):
-            res[mv["token_id"]] = (0, NO_THREAT_DISTANCE)
+            res[mv.token_id] = (0, NO_THREAT_DISTANCE)
             continue
         if landing in my_positions:
-            res[mv["token_id"]] = (0, NO_THREAT_DISTANCE)
+            res[mv.token_id] = (0, NO_THREAT_DISTANCE)
             continue
         count = 0
         mind = NO_THREAT_DISTANCE
@@ -105,51 +99,5 @@ def compute_threats_for_moves(
                 count += 1
                 if dist < mind:
                     mind = dist
-        res[mv["token_id"]] = (count, mind)
+        res[mv.token_id] = (count, mind)
     return res
-
-
-def get_opponent_main_positions_with_fallback(
-    game_context: Dict, current_color: str
-) -> List[int]:
-    """Get opponent positions with fallback to board_state if utils fails."""
-    res = get_opponent_main_positions(game_context)
-    if res:
-        return res
-    board_state = game_context.get("board", {})
-    bp = board_state.get("board_positions", {})
-    fallback: List[int] = []
-    for k, tokens in bp.items():
-        try:
-            pos = int(k)
-        except Exception:
-            continue
-        if pos < 0 or pos >= GameConstants.MAIN_BOARD_SIZE:
-            continue
-        for t in tokens:
-            if t.get("player_color") != current_color:
-                fallback.append(pos)
-    return fallback
-
-
-def get_my_main_positions_with_fallback(
-    game_context: Dict, current_color: str
-) -> List[int]:
-    """Get own positions with fallback to board_state if utils fails."""
-    mine = list(get_my_main_positions(game_context))
-    if mine:
-        return mine
-    board_state = game_context.get("board", {})
-    bp = board_state.get("board_positions", {})
-    fallback: List[int] = []
-    for k, tokens in bp.items():
-        try:
-            pos = int(k)
-        except Exception:
-            continue
-        if pos < 0 or pos >= GameConstants.MAIN_BOARD_SIZE:
-            continue
-        for t in tokens:
-            if t.get("player_color") == current_color:
-                fallback.append(pos)
-    return fallback

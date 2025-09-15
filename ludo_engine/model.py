@@ -89,6 +89,7 @@ class PlayerState:
     tokens_in_home_column: int
     finished_tokens: int
     has_won: bool
+    positions_occupied: List[int]
 
 
 @dataclass
@@ -99,6 +100,7 @@ class OpponentInfo:
     tokens_finished: int
     tokens_active: int
     threat_level: float
+    positions_occupied: List[int]
 
 
 @dataclass

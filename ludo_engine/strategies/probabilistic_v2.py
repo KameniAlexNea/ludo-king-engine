@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 from ludo_engine.constants import BoardConstants, GameConstants
 from ludo_engine.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
-from ludo_engine.strategies.utils import get_opponent_main_positions_with_fallback
+from ludo_engine.strategies.utils import get_opponent_main_positions
 
 # Utility type hint for a move dict
 MoveDict = Dict[str, object]
@@ -134,7 +134,7 @@ class ProbabilisticV2Strategy(Strategy):
         self, game_context: AIDecisionContext, current_color: str
     ) -> List[int]:
         """Return list of opponent token positions on main loop 0..51."""
-        return get_opponent_main_positions_with_fallback(game_context, current_color)
+        return get_opponent_main_positions(game_context, current_color)
 
     def _collect_opponent_token_progress(
         self, game_context: AIDecisionContext

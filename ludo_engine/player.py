@@ -53,6 +53,10 @@ class Player:
         # Starting positions for each color on the board
         self.start_positions = BoardConstants.START_POSITIONS
         self.start_position = self.start_positions[color.value]
+    
+    def player_positions(self) -> List[int]:
+        """Get current positions of all tokens for this player."""
+        return [token.position for token in self.tokens]
 
     def get_movable_tokens(self, dice_value: int) -> List[Token]:
         """
@@ -140,6 +144,7 @@ class Player:
             ),
             finished_tokens=self.get_finished_tokens_count(),
             has_won=self.has_won(),
+            positions_occupied=self.player_positions()
         )
 
     def get_possible_moves(self, dice_value: int) -> List[ValidMove]:

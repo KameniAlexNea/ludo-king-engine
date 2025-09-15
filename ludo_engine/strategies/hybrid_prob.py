@@ -25,7 +25,7 @@ from typing import Dict, List, Optional, Sequence
 from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
 from ludo_engine.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
-from ludo_engine.strategies.utils import get_opponent_main_positions_with_fallback
+from ludo_engine.strategies.utils import get_opponent_main_positions
 
 MoveDict = Dict[str, object]
 
@@ -409,12 +409,12 @@ class HybridProbStrategy(Strategy):
 
     # ---- Generic helpers ----
     def _collect_opponent_positions(
-        self, game_context: Dict, current_color: str
+        self, game_context: AIDecisionContext, current_color: str
     ) -> List[int]:
-        res = get_opponent_main_positions_with_fallback(game_context, current_color)
+        res = get_opponent_main_positions(game_context, current_color)
         return res
 
-    def _collect_opponent_token_progress(self, game_context: Dict) -> Dict[str, float]:
+    def _collect_opponent_token_progress(self, game_context: AIDecisionContext) -> Dict[str, float]:
         result: Dict[str, float] = {}
         for opp in game_context.get("opponents", []):
             for t in opp.get("tokens", []):

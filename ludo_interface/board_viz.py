@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 from PIL import Image, ImageDraw, ImageFont
 
 from ludo_engine.constants import BoardConstants, Colors, GameConstants
-from ludo_engine.token import TokenState
+from ludo_engine.token import Token, TokenState
 
 # Styling
 COLOR_MAP = {
@@ -158,7 +158,7 @@ HOME_COLUMN_COORDS = {
 }
 
 
-def draw_board(tokens: Dict[str, List[Dict]], show_ids: bool = True) -> Image.Image:
+def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.Image:
     img = Image.new("RGB", (BOARD_SIZE, BOARD_SIZE), BG_COLOR)
     d = ImageDraw.Draw(img)
 
@@ -231,9 +231,9 @@ def draw_board(tokens: Dict[str, List[Dict]], show_ids: bool = True) -> Image.Im
     for color, tlist in tokens.items():
         base_color = COLOR_MAP[color]
         for tk in tlist:
-            state = tk["state"]
-            pos = tk["position"]
-            tid = tk["token_id"]
+            state = tk.state.value
+            pos = tk.position
+            tid = tk.token_id
             if state == TokenState.HOME.value:
                 c, r = _token_home_grid_position(color, tid)
             elif (

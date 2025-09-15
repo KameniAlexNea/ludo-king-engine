@@ -14,9 +14,11 @@ import json
 import gradio as gr
 
 from ludo_engine.game import LudoGame
+from ludo_engine.token import Token
 from ludo_engine.player import PlayerColor
 from ludo_engine.strategy import StrategyFactory
 from ludo_interface.board_viz import draw_board
+from ludo_engine.model import MoveResult
 
 AI_STRATEGIES = StrategyFactory.get_available_strategies()
 DEFAULT_PLAYERS = [
@@ -54,26 +56,26 @@ def _init_game(strategies: List[str]):
     return game
 
 
-def _game_state_tokens(game: LudoGame) -> Dict[str, List[Dict]]:
+def _game_state_tokens(game: LudoGame) -> Dict[str, List[Token]]:
     token_map: Dict[str, List[Dict]] = {c.value: [] for c in PlayerColor}
     for p in game.players:
         for t in p.tokens:
-            token_map[p.color.value].append(t.to_dict())
+            token_map[p.color.value].append(t)
     return token_map
 
 
-def _serialize_move(move_result: Dict) -> str:
-    if not move_result or not move_result.get("success"):
+def _serialize_move(move_result: MoveResult) -> str:
+    if not move_result or not move_result.success:
         return "No move"
     parts = [
-        f"{move_result['player_color']} token {move_result['token_id']} -> {move_result['new_position']}"
+        f"{move_result.player_color} token {move_result.token_id} -> {move_result.new_position}"
     ]
-    if move_result.get("captured_tokens"):
-        cap = move_result["captured_tokens"]
+    if move_result.captured_tokens:
+        cap = move_result.captured_tokens
         parts.append(f"captured {len(cap)}")
-    if move_result.get("token_finished"):
+    if move_result.token_finished:
         parts.append("finished")
-    if move_result.get("extra_turn"):
+    if move_result.extra_turn:
         parts.append("extra turn")
     return ", ".join(parts)
 
@@ -107,14 +109,14 @@ def _play_step(game: LudoGame):
     token_choice = current_player.make_strategic_decision(ctx)
     # find move with that token_id
     for mv in valid:
-        if mv["token_id"] == token_choice:
+        if mv.token_id == token_choice:
             chosen = mv
             break
     if chosen is None:
         chosen = valid[0]
-    move_res = game.execute_move(current_player, chosen["token_id"], dice)
+    move_res = game.execute_move(current_player, chosen.token_id, dice)
     desc = f"{current_player.color.value} rolled {dice}: {_serialize_move(move_res)}"
-    if move_res.get("extra_turn") and not game.game_over:
+    if move_res.extra_turn and not game.game_over:
         # do not advance turn
         pass
     else:
