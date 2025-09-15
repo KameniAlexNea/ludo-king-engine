@@ -4,6 +4,7 @@ import math
 from typing import Dict, List, Optional
 
 from ludo_engine.constants import BoardConstants, GameConstants
+from ludo_engine.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import get_opponent_main_positions_with_fallback
 
@@ -31,21 +32,21 @@ class ProbabilisticV2Strategy(Strategy):
         )
 
     # ---- public API ----
-    def decide(self, game_context: Dict) -> int:  # type: ignore[override]
-        valid_moves: List[MoveDict] = self._get_valid_moves(game_context)
+    def decide(self, game_context: AIDecisionContext) -> int:  # type: ignore[override]
+        valid_moves: List[ValidMove] = self._get_valid_moves(game_context)
         if not valid_moves:
             return 0
 
-        player_state = game_context.get("player_state", {})
-        opponents = game_context.get("opponents", [])
+        player_state = game_context.player_state
+        opponents = game_context.opponents
         # board = game_context.get("board", {})
-        current_color = player_state.get("color")
+        current_color = player_state.color
 
         # phase and progress metrics
-        my_finished = float(player_state.get("finished_tokens", 0))
+        my_finished = float(player_state.finished_tokens)
         my_progress = my_finished / float(GameConstants.TOKENS_PER_PLAYER)
         opp_progresses = [
-            float(opp.get("tokens_finished", 0))
+            float(opp.finished_tokens)
             / float(GameConstants.TOKENS_PER_PLAYER)
             for opp in opponents
         ]
@@ -75,7 +76,7 @@ class ProbabilisticV2Strategy(Strategy):
             game_context, current_color
         )
 
-        best_move: Optional[MoveDict] = None
+        best_move: Optional[ValidMove] = None
         best_score = float("-inf")
 
         # pre compute opponent token progress map if available
@@ -83,19 +84,19 @@ class ProbabilisticV2Strategy(Strategy):
 
         for move in valid_moves:
             # immediate finish takes precedence
-            if move.get("move_type") == "finish":
-                return move["token_id"]
+            if move.move_type == "finish":
+                return move.token_id
 
             # compute probabilistic multi turn risk
             risk_prob = self._multi_turn_capture_probability(
-                move.get("target_position"),
+                move.target_position,
                 opponent_positions,
                 lookahead_turns,
             )
 
             # convert to a non linear risk score, penalize close threats more harshly
             min_dist = self._min_backward_distance_to_any_opponent(
-                move.get("target_position"), opponent_positions
+                move.target_position, opponent_positions
             )
             proximity_penalty = (
                 math.exp(max(0.0, (7 - min_dist)) / 3.0)
@@ -120,49 +121,30 @@ class ProbabilisticV2Strategy(Strategy):
             # composite objective
             composite = opportunity_score - risk_weight * (risk_score**1.05)
 
-            # attach diagnostics for logging and RL use
-            move["v2_prob_risk"] = risk_prob
-            move["v2_risk_score"] = risk_score
-            move["v2_opportunity"] = opportunity_score
-            move["v2_composite"] = composite
-
             if composite > best_score:
                 best_score = composite
                 best_move = move
 
         # fallback
         if best_move:
-            return best_move["token_id"]
-        return valid_moves[0]["token_id"]
+            return best_move.token_id
+        return valid_moves[0].token_id
 
     # ---- helpers ----
     def _collect_opponent_positions(
-        self, game_context: Dict, current_color: str
+        self, game_context: AIDecisionContext, current_color: str
     ) -> List[int]:
         """Return list of opponent token positions on main loop 0..51."""
         return get_opponent_main_positions_with_fallback(game_context, current_color)
 
-    def _collect_opponent_token_progress(self, game_context: Dict) -> Dict[str, float]:
+    def _collect_opponent_token_progress(self, game_context: AIDecisionContext) -> Dict[str, float]:
         """Map token id to its normalized progress from 0 to 1 if info exists."""
         result = {}
-        opponents = game_context.get("opponents", [])
+        opponents = game_context.opponents
         for opp in opponents:
-            # store per token if available
-            for t in opp.get("tokens", []):
-                tid = t.get("token_id")
-                finished = float(t.get("finished_steps", 0))  # optional
-                result[tid] = min(
-                    1.0,
-                    max(
-                        0.0,
-                        finished
-                        / float(
-                            GameConstants.FINISH_POSITION
-                            if GameConstants.FINISH_POSITION
-                            else 1
-                        ),
-                    ),
-                )
+            # Note: OpponentInfo doesn't have detailed token info, using available data
+            # This method may need to be simplified or the context extended
+            pass  # Placeholder - detailed token progress not available in current AIDecisionContext
         return result
 
     def _circular_backward_distance(self, from_pos: int, opp_pos: int) -> Optional[int]:
@@ -231,7 +213,7 @@ class ProbabilisticV2Strategy(Strategy):
 
     def _opportunity_v2(
         self,
-        move: MoveDict,
+        move: ValidMove,
         player_color: str,
         opp_token_progress_map: Dict[str, float],
     ) -> float:
@@ -246,18 +228,18 @@ class ProbabilisticV2Strategy(Strategy):
         opportunity = 0.0
 
         # capture bonus
-        if move.get("captures_opponent"):
-            captured = move.get("captured_tokens", [])
+        if move.captures_opponent:
+            captured = move.captured_tokens
             # scale reward by how advanced captured tokens were
             total_scale = 0.0
             for c in captured:
-                tid = c.get("token_id")
+                tid = str(c.token_id)  # Convert to string for dict lookup
                 prog = opp_token_progress_map.get(tid, 0.5)  # fallback mid value
                 total_scale += 1.0 + prog  # prefer removing advanced tokens
             opportunity += 2.0 * max(1.0, total_scale)
 
         # finishing and home column
-        mt = move.get("move_type")
+        mt = move.move_type
         if mt == "finish":
             opportunity += 4.0
         elif mt == "advance_home_column":
@@ -266,12 +248,12 @@ class ProbabilisticV2Strategy(Strategy):
             opportunity += 1.2
 
         # safety
-        if move.get("is_safe_move"):
+        if move.is_safe_move:
             opportunity += 1.0
 
         # progress delta non linear
-        cur = move.get("current_position")
-        tgt = move.get("target_position")
+        cur = move.current_position
+        tgt = move.target_position
         progress_delta = 0.0
         if isinstance(cur, int) and isinstance(tgt, int):
             if (

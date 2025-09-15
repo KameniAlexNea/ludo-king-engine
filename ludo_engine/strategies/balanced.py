@@ -9,6 +9,7 @@ relative progress and late-game pressure.
 from typing import Dict, List, Set, Tuple
 
 from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
+from ludo_engine.model import AIDecisionContext
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     LARGE_THREAT_COUNT,
@@ -28,13 +29,13 @@ class BalancedStrategy(Strategy):
         )
 
     # --- Public API ---
-    def decide(self, game_context: Dict) -> int:
+    def decide(self, game_context: AIDecisionContext) -> int:
         moves = self._get_valid_moves(game_context)
         if not moves:
             return 0
 
-        player_state = game_context.get("player_state", {})
-        active = player_state.get("active_tokens", 0)
+        player_state = game_context.player_state
+        active = player_state.active_tokens
 
         # Use true progress including home column depth for me and opponents
         my_ratio = self._true_progress_ratio(game_context)

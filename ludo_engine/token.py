@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from ludo_engine.constants import BoardConstants, GameConstants
+from ludo_engine.model import TokenInfo
 
 
 class TokenState(Enum):
@@ -204,18 +205,18 @@ class Token:
             if target_position == GameConstants.FINISH_POSITION:
                 self.state = TokenState.FINISHED
 
-    def to_dict(self) -> dict:
-        """Convert token to dictionary for AI consumption."""
-        return {
-            "token_id": self.token_id,
-            "player_color": self.player_color,
-            "state": self.state.value,
-            "position": self.position,
-            "is_in_home": self.is_in_home(),
-            "is_active": self.is_active(),
-            "is_in_home_column": self.is_in_home_column(),
-            "is_finished": self.is_finished(),
-        }
+    def to_dict(self) -> TokenInfo:
+        """Convert token to TokenInfo dataclass for AI consumption."""
+        return TokenInfo(
+            token_id=self.token_id,
+            player_color=self.player_color,
+            state=self.state.value,
+            position=self.position,
+            is_in_home=self.is_in_home(),
+            is_active=self.is_active(),
+            is_in_home_column=self.is_in_home_column(),
+            is_finished=self.is_finished()
+        )
 
     def __str__(self) -> str:
         """String representation of the token."""

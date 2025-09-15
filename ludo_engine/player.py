@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Dict, List
 
 from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
+from ludo_engine.model import PlayerState, StrategicComponents, TokenInfo, ValidMove, AIDecisionContext
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.token import Token, TokenState
 
@@ -113,28 +114,30 @@ class Player:
         token = self.tokens[token_id]
         return token.move(dice_value, self.start_position)
 
-    def get_game_state(self) -> Dict:
+    def get_game_state(self) -> PlayerState:
         """
         Get the current game state for this player in a format suitable for AI.
 
         Returns:
-            Dict: Player's current state including all token positions
+            PlayerState: Player's current state including all token positions
         """
-        return {
-            "player_id": self.player_id,
-            "color": self.color.value,
-            "start_position": self.start_position,
-            "tokens": [token.to_dict() for token in self.tokens],
-            "tokens_in_home": sum(1 for token in self.tokens if token.is_in_home()),
-            "active_tokens": sum(1 for token in self.tokens if token.is_active()),
-            "tokens_in_home_column": sum(
+        tokens_info = [token.to_dict() for token in self.tokens]
+
+        return PlayerState(
+            player_id=self.player_id,
+            color=self.color.value,
+            start_position=self.start_position,
+            tokens=tokens_info,
+            tokens_in_home=sum(1 for token in self.tokens if token.is_in_home()),
+            active_tokens=sum(1 for token in self.tokens if token.is_active()),
+            tokens_in_home_column=sum(
                 1 for token in self.tokens if token.is_in_home_column()
             ),
-            "finished_tokens": self.get_finished_tokens_count(),
-            "has_won": self.has_won(),
-        }
+            finished_tokens=self.get_finished_tokens_count(),
+            has_won=self.has_won()
+        )
 
-    def get_possible_moves(self, dice_value: int) -> List[Dict]:
+    def get_possible_moves(self, dice_value: int) -> List[ValidMove]:
         """
         Get all possible moves for this player with the given dice value.
         This is particularly useful for AI decision making.
@@ -143,7 +146,7 @@ class Player:
             dice_value: The value rolled on the dice (1-6)
 
         Returns:
-            List[Dict]: List of possible moves with details
+            List[ValidMove]: List of possible moves with details
         """
         possible_moves = []
 
@@ -153,21 +156,30 @@ class Player:
                     dice_value, self.start_position
                 )
 
-                strategic_value, _components = self._calculate_strategic_value(
+                strategic_value, strategic_components = self._calculate_strategic_value(
                     token, dice_value, target_position
                 )
 
-                move_info = {
-                    "token_id": token.token_id,
-                    "current_position": token.position,
-                    "current_state": token.state.value,
-                    "target_position": target_position,
-                    "move_type": self._get_move_type(token, dice_value),
-                    "is_safe_move": self._is_safe_move(token, target_position),
-                    "captures_opponent": False,  # Will be calculated by board
-                    "strategic_value": strategic_value,
-                    "strategic_components": _components,
-                }
+                move_info = ValidMove(
+                    token_id=token.token_id,
+                    current_position=token.position,
+                    current_state=token.state.value,
+                    target_position=target_position,
+                    move_type=self._get_move_type(token, dice_value),
+                    is_safe_move=self._is_safe_move(token, target_position),
+                    captures_opponent=False,  # Will be calculated by board
+                    captured_tokens=[],  # Will be calculated by board
+                    strategic_value=strategic_value,
+                    strategic_components={
+                        "exit_home": strategic_components.exit_home,
+                        "finish": strategic_components.finish,
+                        "home_column_depth": strategic_components.home_column_depth,
+                        "forward_progress": strategic_components.forward_progress,
+                        "acceleration": strategic_components.acceleration,
+                        "safety": strategic_components.safety,
+                        "vulnerability_penalty": strategic_components.vulnerability_penalty,
+                    }
+                )
 
                 possible_moves.append(move_info)
 
@@ -190,7 +202,7 @@ class Player:
 
     def _calculate_strategic_value(
         self, token: Token, dice_value: int, target_position: int | None = None
-    ) -> tuple[float, Dict[str, float]]:
+    ) -> tuple[float, StrategicComponents]:
         """Enhanced heuristic with component breakdown.
 
         Components implemented per requested improvements:
@@ -207,34 +219,34 @@ class Player:
         if target_position is None:
             target_position = token.get_target_position(dice_value, self.start_position)
 
-        components: Dict[str, float] = {
-            "exit_home": 0.0,
-            "finish": 0.0,
-            "home_column_depth": 0.0,
-            "forward_progress": 0.0,
-            "acceleration": 0.0,
-            "safety": 0.0,
-            "vulnerability_penalty": 0.0,
-        }
+        components = StrategicComponents(
+            exit_home=0.0,
+            finish=0.0,
+            home_column_depth=0.0,
+            forward_progress=0.0,
+            acceleration=0.0,
+            safety=0.0,
+            vulnerability_penalty=0.0
+        )
 
         # 1 & 2: Home column / finish logic
         if token.is_in_home_column():
             if target_position == GameConstants.FINISH_POSITION:
-                components["finish"] = StrategyConstants.FINISH_TOKEN_VALUE
+                components.finish = StrategyConstants.FINISH_TOKEN_VALUE
             else:
                 depth = target_position - GameConstants.HOME_COLUMN_START  # 0..5
                 max_depth = GameConstants.HOME_COLUMN_SIZE - 1
                 depth_ratio = depth / max_depth if max_depth > 0 else 0
                 base = StrategyConstants.HOME_COLUMN_ADVANCE_VALUE
-                components["home_column_depth"] = base * (
+                components.home_column_depth = base * (
                     1 + depth_ratio * StrategyConstants.HOME_COLUMN_DEPTH_MULTIPLIER
                 )
         elif token.is_in_home() and dice_value == GameConstants.EXIT_HOME_ROLL:
             # 1: Exit home
-            components["exit_home"] = StrategyConstants.EXIT_HOME_VALUE
+            components.exit_home = StrategyConstants.EXIT_HOME_VALUE
         elif token.is_active():
             # 3: Forward progress
-            components["forward_progress"] = (
+            components.forward_progress = (
                 dice_value * StrategyConstants.FORWARD_PROGRESS_WEIGHT
             )
             # 4: Acceleration (closer to finish yields more)
@@ -242,13 +254,13 @@ class Player:
             # Heuristic: fewer remaining steps => larger bonus
             # Convert to pseudo remaining advantage (higher when closer)
             advantage = max(0, 60 - steps_remaining)  # 60 is rough total path+home
-            components["acceleration"] = (
+            components.acceleration = (
                 advantage * StrategyConstants.ACCELERATION_WEIGHT
             )
 
         # 5: Safety bonus for landing square
         if BoardConstants.is_safe_position(target_position, self.color.value):
-            components["safety"] = StrategyConstants.SAFETY_BONUS
+            components.safety = StrategyConstants.SAFETY_BONUS
 
         # 6: Vulnerability penalty (simple placeholder): if not safe and token is active
         # and not entering home column and not finishing, apply penalty.
@@ -257,11 +269,17 @@ class Player:
             and not BoardConstants.is_home_column_position(target_position)
             and token.is_active()
         ):
-            components[
-                "vulnerability_penalty"
-            ] = -StrategyConstants.VULNERABILITY_PENALTY_WEIGHT
+            components.vulnerability_penalty = -StrategyConstants.VULNERABILITY_PENALTY_WEIGHT
 
-        total = sum(components.values())
+        total = (
+            components.exit_home +
+            components.finish +
+            components.home_column_depth +
+            components.forward_progress +
+            components.acceleration +
+            components.safety +
+            components.vulnerability_penalty
+        )
         return total, components
 
     def _estimate_steps_to_finish(self, position: int) -> int:
@@ -292,7 +310,7 @@ class Player:
         """
         self.strategy = strategy
 
-    def make_strategic_decision(self, game_context: Dict) -> int:
+    def make_strategic_decision(self, game_context: AIDecisionContext) -> int:
         """
         Make a strategic decision using the assigned strategy.
 
@@ -308,32 +326,32 @@ class Player:
 
         return self.strategy.decide(game_context)
 
-    def _make_simple_decision(self, game_context: Dict) -> int:
+    def _make_simple_decision(self, game_context: AIDecisionContext) -> int:
         """
         Simple fallback decision making without strategy.
         Uses basic priority system.
         """
-        valid_moves = game_context.get("valid_moves", [])
+        valid_moves = game_context.valid_moves
 
         if not valid_moves:
             return 0
 
         # Simple priority: finish > capture > exit > highest value
         for move in valid_moves:
-            if move["move_type"] == "finish":
-                return move["token_id"]
+            if move.move_type == "finish":
+                return move.token_id
 
         for move in valid_moves:
-            if move["captures_opponent"]:
-                return move["token_id"]
+            if move.captures_opponent:
+                return move.token_id
 
         for move in valid_moves:
-            if move["move_type"] == "exit_home":
-                return move["token_id"]
+            if move.move_type == "exit_home":
+                return move.token_id
 
         # Choose highest strategic value
-        best_move = max(valid_moves, key=lambda m: m["strategic_value"])
-        return best_move["token_id"]
+        best_move = max(valid_moves, key=lambda m: m.strategic_value)
+        return best_move.token_id
 
     def get_strategy_name(self) -> str:
         """Get the name of the current strategy."""

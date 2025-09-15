@@ -6,6 +6,7 @@ import os
 import re
 from typing import Dict, Optional
 
+from ludo_engine.model import AIDecisionContext
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.llm.prompt import create_prompt
 from ludo_engine.strategies.random_strategy import RandomStrategy
@@ -60,7 +61,7 @@ class LLMStrategy(Strategy):
                 groq_api_key=api_key, model_name=self.model, temperature=0.1
             )
 
-    def decide(self, game_context: Dict) -> int:
+    def decide(self, game_context: AIDecisionContext) -> int:
         """Make a decision using the LLM."""
         if not self.llm:
             return self.fallback_strategy.decide(game_context)

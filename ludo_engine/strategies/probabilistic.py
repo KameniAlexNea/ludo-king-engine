@@ -29,6 +29,7 @@ from __future__ import annotations
 from typing import Dict, List
 
 from ludo_engine.constants import BoardConstants, GameConstants
+from ludo_engine.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import get_opponent_main_positions_with_fallback
 
@@ -43,19 +44,19 @@ class ProbabilisticStrategy(Strategy):
         )
 
     # ---- Public API ----
-    def decide(self, game_context: Dict) -> int:  # type: ignore[override]
+    def decide(self, game_context: AIDecisionContext) -> int:  # type: ignore[override]
         valid_moves = self._get_valid_moves(game_context)
         if not valid_moves:
             return 0
 
-        player_state = game_context.get("player_state", {})
-        opponents = game_context.get("opponents", [])
-        current_color = player_state.get("color")
+        player_state = game_context.player_state
+        opponents = game_context.opponents
+        current_color = player_state.color
 
         # Relative progress assessment
-        my_progress = player_state.get("finished_tokens", 0) / 4.0
+        my_progress = player_state.finished_tokens / 4.0
         opponent_max_progress = (
-            max([opp.get("tokens_finished", 0) for opp in opponents], default=0) / 4.0
+            max([opp.finished_tokens for opp in opponents], default=0) / 4.0
         )
         behind = my_progress < opponent_max_progress - 0.25
         ahead = my_progress > opponent_max_progress + 0.25
@@ -79,24 +80,19 @@ class ProbabilisticStrategy(Strategy):
             opportunity = self._estimate_opportunity(move, current_color)
             composite = opportunity - risk_weight * risk
 
-            # Attach diagnostics (non-breaking; strategies can ignore)
-            move["prob_risk"] = risk
-            move["prob_opportunity"] = opportunity
-            move["prob_composite_score"] = composite
-
             # Hard priority: always finish immediately
-            if move.get("move_type") == "finish":
-                return move["token_id"]
+            if move.move_type == "finish":
+                return move.token_id
 
             if composite > best_score:
                 best_score = composite
                 best_move = move
 
-        return best_move["token_id"] if best_move else valid_moves[0]["token_id"]
+        return best_move.token_id if best_move else valid_moves[0].token_id
 
     # ---- Internal helpers ----
     def _collect_opponent_positions(
-        self, game_context: Dict, current_color: str
+        self, game_context: AIDecisionContext, current_color: str
     ) -> List[int]:
         """Extract opponent positions on main path with utils; fallback to board map."""
         return get_opponent_main_positions_with_fallback(game_context, current_color)
@@ -117,13 +113,13 @@ class ProbabilisticStrategy(Strategy):
         return GameConstants.MAIN_BOARD_SIZE - (opp_pos - from_pos)
 
     def _estimate_risk(
-        self, move: Dict, opponent_positions: List[int], player_color: str
+        self, move: ValidMove, opponent_positions: List[int], player_color: str
     ) -> float:
-        target = move.get("target_position")
-        move_type = move.get("move_type")
+        target = move.target_position
+        move_type = move.move_type
         # Safe contexts eliminate immediate capture risk
         if (
-            move.get("is_safe_move")
+            move.is_safe_move
             or move_type == "finish"
             or (isinstance(target, int) and target >= BoardConstants.HOME_COLUMN_START)
         ):
@@ -141,14 +137,14 @@ class ProbabilisticStrategy(Strategy):
         # Probability at least one gets exact roll (independent approx)
         return 1 - (5 / 6) ** threatening
 
-    def _estimate_opportunity(self, move: Dict, player_color: str) -> float:
-        target = move.get("target_position")
-        move_type = move.get("move_type")
+    def _estimate_opportunity(self, move: ValidMove, player_color: str) -> float:
+        target = move.target_position
+        move_type = move.move_type
         opportunity = 0.0
 
         # Capture bonus (already flagged by engine)
-        if move.get("captures_opponent"):
-            captured = move.get("captured_tokens", [])
+        if move.captures_opponent:
+            captured = move.captured_tokens
             opportunity += 2.0 * max(1, len(captured))
 
         # Finishing / home column progression
@@ -160,11 +156,11 @@ class ProbabilisticStrategy(Strategy):
             opportunity += 1.2
 
         # Safe landing
-        if move.get("is_safe_move"):
+        if move.is_safe_move:
             opportunity += 1.0
 
         # Progress component (normalized); crude but monotonic
-        current_pos = move.get("current_position")
+        current_pos = move.current_position
         if isinstance(target, int) and isinstance(current_pos, int):
             progress_delta = 0.0
             if (

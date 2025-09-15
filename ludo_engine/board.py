@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Set, Tuple
 
 from ludo_engine.constants import BoardConstants
+from ludo_engine.model import BoardPositionInfo, BoardState, PositionInfo, TokenInfo
 from ludo_engine.player import Player, PlayerColor
 from ludo_engine.token import Token, TokenState
 
@@ -250,7 +251,7 @@ class Board:
 
         return captured_tokens
 
-    def get_board_state_for_ai(self, current_player: Player) -> Dict:
+    def get_board_state_for_ai(self, current_player: Player) -> BoardState:
         """
         Get the current board state in a format suitable for AI analysis.
 
@@ -258,70 +259,77 @@ class Board:
             current_player: The player whose turn it is
 
         Returns:
-            Dict: Complete board state information
+            BoardState: Complete board state information
         """
-        board_state = {
-            "current_player": current_player.color.value,
-            "board_positions": {},
-            "safe_positions": [],
-            "star_positions": [],
-            "player_start_positions": self.start_positions,
-            "home_column_entries": self.home_entries,
-        }
+        board_positions = {}
+        safe_positions = []
+        star_positions = []
 
         # Map all token positions
         for position, tokens in self.token_positions.items():
             if tokens:  # Only include positions with tokens
-                board_state["board_positions"][position] = [
-                    {
-                        "player_color": token.player_color,
-                        "token_id": token.token_id,
-                        "state": token.state.value,
-                    }
+                board_positions[position] = [
+                    BoardPositionInfo(
+                        player_color=token.player_color,
+                        token_id=token.token_id,
+                        state=token.state.value
+                    )
                     for token in tokens
                 ]
 
         # Add safe and star positions
         for pos_idx, position in self.positions.items():
             if position.is_safe:
-                board_state["safe_positions"].append(pos_idx)
+                safe_positions.append(pos_idx)
             if position.is_star:
-                board_state["star_positions"].append(pos_idx)
+                star_positions.append(pos_idx)
 
-        return board_state
+        return BoardState(
+            current_player=current_player.color.value,
+            board_positions=board_positions,
+            safe_positions=safe_positions,
+            star_positions=star_positions,
+            player_start_positions=self.start_positions,
+            home_column_entries=self.home_entries
+        )
 
-    def get_position_info(self, position: int) -> Dict:
+    def get_position_info(self, position: int) -> PositionInfo:
         """Get detailed information about a specific position."""
         if position == -1:
-            return {"type": "home", "is_safe": True, "tokens": []}
+            return PositionInfo(
+                type="home",
+                position=position,
+                is_safe=True,
+                tokens=[]
+            )
         elif 100 <= position <= 105:
-            return {
-                "type": "home_column",
-                "position": position,
-                "is_safe": True,
-                "tokens": [
+            return PositionInfo(
+                type="home_column",
+                position=position,
+                is_safe=True,
+                tokens=[
                     token.to_dict() for token in self.get_tokens_at_position(position)
-                ],
-            }
+                ]
+            )
         elif 0 <= position < self.main_path_size:
             board_pos = self.positions.get(position, Position(position))
-            return {
-                "type": "main_board",
-                "position": position,
-                "is_safe": board_pos.is_safe,
-                "is_star": board_pos.is_star,
-                "color": board_pos.color,
-                "tokens": [
+            return PositionInfo(
+                type="main_board",
+                position=position,
+                is_safe=board_pos.is_safe,
+                is_star=board_pos.is_star,
+                color=board_pos.color,
+                tokens=[
                     token.to_dict() for token in self.get_tokens_at_position(position)
-                ],
-            }
+                ]
+            )
         else:
-            return {
-                "type": "unknown",
-                "position": position,
-                "is_safe": False,
-                "tokens": [],
-            }
+            return PositionInfo(
+                type="unknown",
+                position=position,
+                is_safe=False,
+                tokens=[]
+            )
 
     def update_token_position(self, token: Token, old_position: int, new_position: int):
         """Update token position tracking on the board."""

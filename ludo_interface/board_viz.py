@@ -31,7 +31,6 @@ GRID = 15
 BOARD_SIZE = GRID * CELL
 
 # Derived constants
-MAIN_SIZE = BoardConstants.STAR_SQUARES.__class__  # just to silence linter if unused
 HOME_COLUMN_START = GameConstants.HOME_COLUMN_START
 HOME_COLUMN_END = GameConstants.FINISH_POSITION
 HOME_COLUMN_SIZE = GameConstants.HOME_COLUMN_SIZE

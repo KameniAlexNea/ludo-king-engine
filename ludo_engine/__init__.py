@@ -6,6 +6,23 @@ A structured implementation for AI to play Ludo King.
 from ludo_engine.board import Board, Position
 from ludo_engine.constants import BoardConstants, Colors, GameConstants, StrategyConstants
 from ludo_engine.game import LudoGame
+from ludo_engine.model import (
+    AIDecisionContext,
+    BoardPositionInfo,
+    BoardState,
+    CapturedToken,
+    CurrentSituation,
+    MoveResult,
+    OpponentInfo,
+    PlayerConfiguration,
+    PlayerState,
+    PositionInfo,
+    StrategicAnalysis,
+    StrategicComponents,
+    TokenInfo,
+    TurnResult,
+    ValidMove,
+)
 from ludo_engine.player import Player, PlayerColor
 from ludo_engine.strategies import (
     STRATEGIES,

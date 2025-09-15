@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
+from ludo_engine.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     forward_distance,
@@ -79,7 +80,7 @@ class KillerStrategy(Strategy):
         )
 
     # --- Public API ---
-    def decide(self, game_context: Dict) -> int:
+    def decide(self, game_context: AIDecisionContext) -> int:
         """Choose a token to move.
 
         Revised priority:
@@ -95,10 +96,10 @@ class KillerStrategy(Strategy):
             return 0
 
         # 1. Immediate finish (always take finishing over routine captures)
-        finish_moves = [m for m in moves if m["move_type"] == "finish"]
+        finish_moves = [m for m in moves if m.move_type == "finish"]
         if finish_moves:
-            best_finish = max(finish_moves, key=lambda m: m["strategic_value"])
-            return best_finish["token_id"]
+            best_finish = max(finish_moves, key=lambda m: m.strategic_value)
+            return best_finish.token_id
 
         # 2. Capture (scored with integrated positional + tactical factors)
         capture_choice = self._choose_capture(moves, game_context)
@@ -113,7 +114,7 @@ class KillerStrategy(Strategy):
         # 4. Exit home to increase board presence
         exit_move = self._get_move_by_type(moves, "exit_home")
         if exit_move:
-            return exit_move["token_id"]
+            return exit_move.token_id
 
         # 5. Risky aggressive advancement (prefer the best risky move if it beats best safe by margin)
         risky_moves = self._get_risky_moves(moves)
@@ -122,21 +123,21 @@ class KillerStrategy(Strategy):
         best_safe = self._get_highest_value_move(safe_moves) if safe_moves else None
         if best_risky and (
             not best_safe
-            or best_risky["strategic_value"] > best_safe["strategic_value"] + 5
+            or best_risky.strategic_value > best_safe.strategic_value + 5
         ):
-            return best_risky["token_id"]
+            return best_risky.token_id
 
         # 6. Fallback highest overall value
         best_move = self._get_highest_value_move(moves)
-        return best_move["token_id"] if best_move else 0
+        return best_move.token_id if best_move else 0
 
     # --- Capture scoring ---
-    def _choose_capture(self, moves: List[Dict], ctx: Dict) -> int | None:
+    def _choose_capture(self, moves: List[ValidMove], ctx: AIDecisionContext) -> int | None:
         capture_moves = self._get_capture_moves(moves)
         if not capture_moves:
             return None
 
-        current_color = ctx["current_situation"]["player_color"]
+        current_color = ctx.current_situation.player_color
         opponent_positions = get_opponent_main_positions(ctx)
         finished_map, max_finished = self._opponent_finished_map(ctx, current_color)
         entries = BoardConstants.HOME_COLUMN_ENTRIES
@@ -146,12 +147,11 @@ class KillerStrategy(Strategy):
             score, details = self._score_capture_move(
                 mv, opponent_positions, finished_map, max_finished, entries
             )
-            mv["killer_score"] = score
-            mv["killer_details"] = details
+            # Note: We can't add attributes to dataclass, so we'll just use the score for now
             scored.append(_CaptureScore(mv, score, details))
 
         best = max(scored, key=lambda cs: cs.score)
-        return best.move["token_id"]
+        return best.move.token_id
 
     def _score_capture_move(
         self,

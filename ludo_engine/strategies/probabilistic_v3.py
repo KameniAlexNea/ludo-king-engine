@@ -42,6 +42,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence
 
 from ludo_engine.constants import BoardConstants, GameConstants
+from ludo_engine.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     get_my_main_positions_with_fallback,
@@ -113,20 +114,20 @@ class ProbabilisticV3Strategy(Strategy):
         self.cfg = config or V3Config()
 
     # ---- public API ----
-    def decide(self, game_context: Dict) -> int:  # type: ignore[override]
-        moves: List[MoveDict] = self._get_valid_moves(game_context)
+    def decide(self, game_context: AIDecisionContext) -> int:  # type: ignore[override]
+        moves: List[ValidMove] = self._get_valid_moves(game_context)
         if not moves:
             return 0
 
-        player_state = game_context.get("player_state", {})
-        current_color = player_state.get("color")
-        opponents = game_context.get("opponents", [])
+        player_state = game_context.player_state
+        current_color = player_state.color
+        opponents = game_context.opponents
 
-        my_progress = player_state.get("finished_tokens", 0) / float(
+        my_progress = player_state.finished_tokens / float(
             GameConstants.TOKENS_PER_PLAYER
         )
         opp_progresses = [
-            opp.get("tokens_finished", 0) / float(GameConstants.TOKENS_PER_PLAYER)
+            opp.finished_tokens / float(GameConstants.TOKENS_PER_PLAYER)
             for opp in opponents
         ]
         opp_mean = (
