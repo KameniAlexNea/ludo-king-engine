@@ -2,45 +2,49 @@ from typing import Dict, List, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
-from ludo_engine.core.constants import Colors, LudoConstants
-from ludo_engine.core.token import TokenState, Token
+from ludo_engine.constants import BoardConstants, Colors, GameConstants
+from ludo_engine.token import TokenState
 
-# Styling - matching matplotlib colors
+# Styling
 COLOR_MAP = {
-    "red": "#e74c3c",
-    "green": "#2ecc71",
-    "blue": "#2e86c1",
-    "lightblue": "#a9d0f5",
-    "yellow": "#f1c40f",
-    "white": "#ffffff",
-    "black": "#000000",
-    "gray": "#808080",
+    Colors.RED: (230, 60, 60),
+    Colors.GREEN: (60, 170, 90),
+    Colors.YELLOW: (245, 205, 55),
+    Colors.BLUE: (65, 100, 210),
 }
-
-# Convert hex colors to RGB tuples for PIL
-def hex_to_rgb(hex_color):
-    hex_color = hex_color.lstrip('#')
-    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-
-# PIL-compatible color map
-PIL_COLOR_MAP = {k: hex_to_rgb(v) for k, v in COLOR_MAP.items()}
+BG_COLOR = (245, 245, 245)
+GRID_LINE = (210, 210, 210)
+PATH_COLOR = (255, 255, 255)
+STAR_COLOR = (190, 190, 190)  # safe/star
+HOME_SHADE = (235, 235, 235)
+CENTER_COLOR = (255, 255, 255)
 
 FONT = None
-try:
+try:  # optional font
     FONT = ImageFont.truetype("DejaVuSans.ttf", 14)
 except Exception:
     pass
 
-# Basic geometric layout (15x15 grid)
+# Basic geometric layout (15x15 grid for classic style)
 CELL = 32
 GRID = 15
 BOARD_SIZE = GRID * CELL
 
+# Derived constants
+MAIN_SIZE = BoardConstants.STAR_SQUARES.__class__  # just to silence linter if unused
+HOME_COLUMN_START = GameConstants.HOME_COLUMN_START
+HOME_COLUMN_END = GameConstants.FINISH_POSITION
+HOME_COLUMN_SIZE = GameConstants.HOME_COLUMN_SIZE
 
-# Canonical 52-cell outer path builder aligned to our 15x15 layout
-def _build_path_52() -> List[Tuple[int, int]]:
-    seq: List[Tuple[int, int]] = []
-    # Up column (6,0)->(6,5)
+# We derive path coordinates procedurally using a canonical 52-step outer path.
+# Layout: Imagine a cross with a 3-wide corridor. We'll build a ring path list of (col,row).
+
+
+def _build_path_grid() -> List[Tuple[int, int]]:
+    # Manual procedural trace of standard 52 cells referencing a 15x15 layout.
+    # Start from (6,0) and move clockwise replicating earlier static mapping but generated.
+    seq = []
+    # Up column from (6,0)->(6,5)
     for r in range(0, 6):
         seq.append((6, r))
     # Left row (5,6)->(0,6)
@@ -59,7 +63,7 @@ def _build_path_52() -> List[Tuple[int, int]]:
     for c in range(7, 9):
         seq.append((c, 14))
     # Up column (8,13)->(8,9)
-    for r in range(13, 9, -1):
+    for r in range(13, 8, -1):
         seq.append((8, r))
     # Right row (9,8)->(14,8)
     for c in range(9, 15):
@@ -68,346 +72,207 @@ def _build_path_52() -> List[Tuple[int, int]]:
     for r in range(7, 5, -1):
         seq.append((14, r))
     # Left row (13,6)->(9,6)
-    for c in range(13, 9, -1):
+    for c in range(13, 8, -1):
         seq.append((c, 6))
     # Up column (8,5)->(8,0)
     for r in range(5, -1, -1):
         seq.append((8, r))
-    # Left row end (7,0)
+    # Left row (7,0)
     seq.append((7, 0))
+    # Ensure length 52
     return seq
 
 
-# Start cells (colored squares on the outer track)
-START_CELLS = {
-    Colors.RED: (1, 8),
-    Colors.GREEN: (8, 13),
-    Colors.YELLOW: (13, 6),
-    Colors.BLUE: (6, 1),
+PATH_LIST = _build_path_grid()
+PATH_INDEX_TO_COORD = {i: coord for i, coord in enumerate(PATH_LIST)}
+
+# Home quadrants bounding boxes (col range inclusive)
+HOME_QUADRANTS = {
+    # Reordered to follow counter-clockwise Red -> Green -> Yellow -> Blue
+    Colors.RED: ((0, 5), (0, 5)),  # top-left
+    Colors.GREEN: ((0, 5), (9, 14)),  # bottom-left
+    Colors.YELLOW: ((9, 14), (9, 14)),  # bottom-right
+    Colors.BLUE: ((9, 14), (0, 5)),  # top-right
 }
 
 
-def _rotate_path_to_start(path: List[Tuple[int, int]], start_coord: Tuple[int, int]) -> List[Tuple[int, int]]:
-    if start_coord not in path:
-        return path
-    idx = path.index(start_coord)
-    return path[idx:] + path[:idx]
-
-
-# Build the path once and rotate so RED start is index 0
-_PATH52_RAW = _build_path_52()
-PATH_LIST: List[Tuple[int, int]] = _rotate_path_to_start(_PATH52_RAW, START_CELLS[Colors.RED])
-PATH_LEN = len(PATH_LIST)
-
-# Compute per-color start indices based on their start cells' positions in PATH_LIST
-COLOR_START_INDEX = {color: PATH_LIST.index(coord) for color, coord in START_CELLS.items()}
-
-
-def _cell_bbox(x: int, y: int):
-    """Get bounding box for a cell (PIL coordinates)."""
-    x0 = x * CELL
-    y0 = y * CELL
+def _cell_bbox(col: int, row: int):
+    x0 = col * CELL
+    y0 = row * CELL
     return (x0, y0, x0 + CELL, y0 + CELL)
 
 
-def _draw_base_cells(d: ImageDraw.ImageDraw):
-    """Draw the base 15x15 grid with home quadrants."""
-    for x in range(GRID):
-        for y in range(GRID):
-            color = PIL_COLOR_MAP["white"]
-            # four 6 by 6 home squares
-            if x < 6 and y >= 9:
-                color = PIL_COLOR_MAP["red"]
-            elif x >= 9 and y >= 9:
-                color = PIL_COLOR_MAP["green"]
-            elif x < 6 and y < 6:
-                color = PIL_COLOR_MAP["lightblue"]
-            elif x >= 9 and y < 6:
-                color = PIL_COLOR_MAP["yellow"]
-
-            bbox = _cell_bbox(x, y)
-            d.rectangle(bbox, fill=color, outline=PIL_COLOR_MAP["black"], width=1)
-
-
-def _draw_central_triangles(d: ImageDraw.ImageDraw):
-    """Draw central triangles inside 3 by 3 center block (cells 6,7,8)."""
-    center = (7.5 * CELL, 7.5 * CELL)
-
-    # Bottom triangle (blue) - note: PIL y-coordinates are from top
-    tri_bottom = [
-        (6 * CELL, 6 * CELL),
-        (9 * CELL, 6 * CELL),
-        center
-    ]
-    d.polygon(tri_bottom, fill=PIL_COLOR_MAP["blue"], outline=PIL_COLOR_MAP["black"], width=2)
-
-    # Top triangle (green)
-    tri_top = [
-        (6 * CELL, 9 * CELL),
-        (9 * CELL, 9 * CELL),
-        center
-    ]
-    d.polygon(tri_top, fill=PIL_COLOR_MAP["green"], outline=PIL_COLOR_MAP["black"], width=2)
-
-    # Left triangle (red)
-    tri_left = [
-        (6 * CELL, 6 * CELL),
-        (6 * CELL, 9 * CELL),
-        center
-    ]
-    d.polygon(tri_left, fill=PIL_COLOR_MAP["red"], outline=PIL_COLOR_MAP["black"], width=2)
-
-    # Right triangle (yellow)
-    tri_right = [
-        (9 * CELL, 6 * CELL),
-        (9 * CELL, 9 * CELL),
-        center
-    ]
-    d.polygon(tri_right, fill=PIL_COLOR_MAP["yellow"], outline=PIL_COLOR_MAP["black"], width=2)
+def _draw_home_quadrants(d: ImageDraw.ImageDraw):
+    """Draw only a colored border for each player's home quadrant."""
+    border_width = 6
+    for color, ((c0, c1), (r0, r1)) in HOME_QUADRANTS.items():
+        box = (c0 * CELL, r0 * CELL, (c1 + 1) * CELL, (r1 + 1) * CELL)
+        # Draw base (background) to ensure any prior drawings are covered
+        d.rectangle(box, fill=BG_COLOR)
+        # Pillow's rectangle outline draws centered on the edge; for a thicker
+        # appearance we can draw multiple inset rectangles.
+        for w in range(border_width):
+            inset_box = (
+                box[0] + w,
+                box[1] + w,
+                box[2] - w,
+                box[3] - w,
+            )
+            d.rectangle(inset_box, outline=COLOR_MAP[color])
 
 
-def _draw_home_columns(d: ImageDraw.ImageDraw):
-    """Draw home columns final lanes."""
-    # Red home column
-    for x in range(1, 6):
-        y = 7
-        bbox = _cell_bbox(x, y)
-        d.rectangle(bbox, fill=PIL_COLOR_MAP["red"], outline=PIL_COLOR_MAP["black"], width=1)
-
-    # Yellow home column
-    for x in range(9, 14):
-        y = 7
-        bbox = _cell_bbox(x, y)
-        d.rectangle(bbox, fill=PIL_COLOR_MAP["yellow"], outline=PIL_COLOR_MAP["black"], width=1)
-
-    # Blue home column
-    for y in range(1, 6):
-        x = 7
-        bbox = _cell_bbox(x, y)
-        d.rectangle(bbox, fill=PIL_COLOR_MAP["blue"], outline=PIL_COLOR_MAP["black"], width=1)
-
-    # Green home column
-    for y in range(9, 14):
-        x = 7
-        bbox = _cell_bbox(x, y)
-        d.rectangle(bbox, fill=PIL_COLOR_MAP["green"], outline=PIL_COLOR_MAP["black"], width=1)
+def _token_home_grid_position(color: str, token_id: int) -> Tuple[int, int]:
+    (c0, c1), (r0, r1) = HOME_QUADRANTS[color]
+    cols = [c0 + 1, c0 + 3]
+    rows = [r0 + 1, r0 + 3]
+    col = cols[token_id % 2]
+    row = rows[token_id // 2]
+    return col, row
 
 
-def _draw_starting_nests(d: ImageDraw.ImageDraw):
-    """Draw the four starting nests inside each corner home block as 2 by 2 token spots."""
-    nest_offsets = [(1, 1), (4, 1), (1, 4), (4, 4)]  # offsets inside 6 by 6 block
+def _home_column_positions_for_color(color: str) -> Dict[int, Tuple[int, int]]:
+    """
+    Map home column indices (100..104) to board coordinates; 105 is final finish.
 
-    # Top left red block origin (0,9)
-    for ox, oy in nest_offsets:
-        cx = (0 + ox + 0.5) * CELL
-        cy = (9 + oy + 0.5) * CELL
-        radius = int(0.35 * CELL)
-        d.ellipse([cx - radius, cy - radius, cx + radius, cy + radius],
-                 fill=PIL_COLOR_MAP["red"], outline=PIL_COLOR_MAP["black"], width=2)
-
-    # Top right green block origin (9,9)
-    for ox, oy in nest_offsets:
-        cx = (9 + ox + 0.5) * CELL
-        cy = (9 + oy + 0.5) * CELL
-        radius = int(0.35 * CELL)
-        d.ellipse([cx - radius, cy - radius, cx + radius, cy + radius],
-                 fill=PIL_COLOR_MAP["green"], outline=PIL_COLOR_MAP["black"], width=2)
-
-    # Bottom left blue block origin (0,0)
-    for ox, oy in nest_offsets:
-        cx = (0 + ox + 0.5) * CELL
-        cy = (0 + oy + 0.5) * CELL
-        radius = int(0.35 * CELL)
-        d.ellipse([cx - radius, cy - radius, cx + radius, cy + radius],
-                 fill=PIL_COLOR_MAP["blue"], outline=PIL_COLOR_MAP["black"], width=2)
-
-    # Bottom right yellow block origin (9,0)
-    for ox, oy in nest_offsets:
-        cx = (9 + ox + 0.5) * CELL
-        cy = (0 + oy + 0.5) * CELL
-        radius = int(0.35 * CELL)
-        d.ellipse([cx - radius, cy - radius, cx + radius, cy + radius],
-                 fill=PIL_COLOR_MAP["yellow"], outline=PIL_COLOR_MAP["black"], width=2)
+    GameConstants.HOME_COLUMN_SIZE = 6 covers 100..105 inclusive, but per spec 105 is
+    not a drawable lane square—tokens reaching 105 are considered finished and moved
+    to the center aggregation. We therefore only allocate 5 visual squares (100-104).
+    """
+    mapping: Dict[int, Tuple[int, int]] = {}
+    center = (7, 7)
+    entry_index = BoardConstants.HOME_COLUMN_ENTRIES[color]
+    entry_coord = PATH_INDEX_TO_COORD[entry_index]
+    ex, ey = entry_coord
+    dx = 0 if ex == center[0] else (1 if center[0] > ex else -1)
+    dy = 0 if ey == center[1] else (1 if center[1] > ey else -1)
+    cx, cy = ex + dx, ey + dy
+    # Only create squares for 100..104 (size - 1)
+    for offset in range(GameConstants.HOME_COLUMN_SIZE - 1):  # exclude final 105
+        mapping[HOME_COLUMN_START + offset] = (cx, cy)
+        cx += dx
+        cy += dy
+    return mapping
 
 
-def _draw_arrow_cell(d: ImageDraw.ImageDraw, cell_x: int, cell_y: int, direction: str):
-    """Draw entry arrows in white."""
-    x = cell_x * CELL
-    y = cell_y * CELL
-
-    if direction == "left":
-        pts = [(x + 0.75*CELL, y + 0.2*CELL),
-               (x + 0.75*CELL, y + 0.8*CELL),
-               (x + 0.25*CELL, y + 0.5*CELL)]
-    elif direction == "right":
-        pts = [(x + 0.25*CELL, y + 0.2*CELL),
-               (x + 0.25*CELL, y + 0.8*CELL),
-               (x + 0.75*CELL, y + 0.5*CELL)]
-    elif direction == "up":
-        pts = [(x + 0.2*CELL, y + 0.25*CELL),
-               (x + 0.8*CELL, y + 0.25*CELL),
-               (x + 0.5*CELL, y + 0.75*CELL)]
-    else:  # down
-        pts = [(x + 0.2*CELL, y + 0.75*CELL),
-               (x + 0.8*CELL, y + 0.75*CELL),
-               (x + 0.5*CELL, y + 0.25*CELL)]
-
-    d.polygon(pts, fill=PIL_COLOR_MAP["white"], outline=PIL_COLOR_MAP["black"], width=2)
+HOME_COLUMN_COORDS = {
+    color: _home_column_positions_for_color(color) for color in Colors.ALL_COLORS
+}
 
 
-def _draw_special_squares(d: ImageDraw.ImageDraw):
-    """Draw special squares: stars and starting positions."""
-    # Mark starting squares on the outer track for each color
-    stars = [(6, 11), (11, 8), (8, 3), (3, 6)]
-    for sx, sy in stars:
-        bbox = _cell_bbox(sx, sy)
-        d.rectangle(bbox, fill=PIL_COLOR_MAP["gray"], outline=PIL_COLOR_MAP["black"], width=2)
-
-    # Starting home squares
-    start_home = {
-        "red": (1, 8),
-        "green": (8, 13),
-        "yellow": (13, 6),
-        "blue": (6, 1),
-    }
-    for col, (sx, sy) in start_home.items():
-        bbox = _cell_bbox(sx, sy)
-        d.rectangle(bbox, fill=PIL_COLOR_MAP[col], outline=PIL_COLOR_MAP["black"], width=3)
-
-    # Stars on special safe cells
-    star_cells = [(1, 7), (7, 13), (13, 7), (7, 1)]
-    for sx, sy in star_cells:
-        cx = (sx + 0.5) * CELL
-        cy = (sy + 0.5) * CELL
-        # Draw a star symbol (simplified as text)
-        if FONT:
-            d.text((cx - 8, cy - 10), "★", fill=PIL_COLOR_MAP["black"], font=FONT)
-
-
-def _get_token_position(token: Token) -> Tuple[float, float]:
-    """Get the visual position for a token based on the matplotlib implementation."""
-    pos = token.position
-    tid = token.token_id
-    color = token.color
-    steps = token.steps_taken
-
-    if token.is_at_home():
-        # Token in home nest - use the nest positions from matplotlib
-        nest_offsets = [(1, 1), (4, 1), (1, 4), (4, 4)]
-        if color == Colors.RED:
-            ox, oy = nest_offsets[tid]
-            return 0 + ox + 0.5, 9 + oy + 0.5
-        elif color == Colors.GREEN:
-            ox, oy = nest_offsets[tid]
-            return 9 + ox + 0.5, 9 + oy + 0.5
-        elif color == Colors.BLUE:
-            ox, oy = nest_offsets[tid]
-            return 0 + ox + 0.5, 0 + oy + 0.5
-        elif color == Colors.YELLOW:
-            ox, oy = nest_offsets[tid]
-            return 9 + ox + 0.5, 0 + oy + 0.5
-
-    elif token.is_active():
-        if steps > LudoConstants.BOARD_SIZE:
-            # In home column - position based on progress in home column
-            home_steps = steps - LudoConstants.BOARD_SIZE
-            if color == Colors.RED:
-                # Red home column: x positions 1-5, y=7
-                x_pos = 1 + home_steps  # 1, 2, 3, 4, 5
-                return x_pos + 0.5, 7.5
-            elif color == Colors.GREEN:
-                # Green home column: x=7, y positions 13-9
-                y_pos = 13 - home_steps  # 13, 12, 11, 10, 9
-                return 7.5, y_pos + 0.5
-            elif color == Colors.YELLOW:
-                # Yellow home column: x positions 13-9, y=7
-                x_pos = 13 - home_steps  # 13, 12, 11, 10, 9
-                return x_pos + 0.5, 7.5
-            elif color == Colors.BLUE:
-                # Blue home column: x=7, y positions 1-5
-                y_pos = 1 + home_steps  # 1, 2, 3, 4, 5
-                return 7.5, y_pos + 0.5
-        else:
-            # Compute path index from steps and color, aligned to PATH_LIST and START_CELLS
-            steps_taken = token.steps_taken
-            if steps_taken <= 0:
-                # Fallback to position if steps not provided
-                base_idx = COLOR_START_INDEX.get(color, 0)
-                rel = (pos or 0)
-                path_idx = (base_idx + rel) % PATH_LEN
-            else:
-                base_idx = COLOR_START_INDEX.get(color, 0)
-                path_idx = (base_idx + (steps_taken - 1)) % PATH_LEN
-
-            cx, cy = PATH_LIST[path_idx]
-            return cx + 0.5, cy + 0.5
-
-    elif token.is_finished():
-        # Token finished - place in center triangles
-        if color == Colors.RED:
-            return 6.5, 7.5  # left triangle
-        elif color == Colors.GREEN:
-            return 7.5, 8.5  # top triangle
-        elif color == Colors.YELLOW:
-            return 8.5, 7.5  # right triangle
-        elif color == Colors.BLUE:
-            return 7.5, 6.5  # bottom triangle
-
-    # Default fallback
-    return 7.5, 7.5
-
-
-def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.Image:
-    """Draw the Ludo board with tokens - exact replica of matplotlib version."""
-    img = Image.new("RGB", (BOARD_SIZE, BOARD_SIZE), PIL_COLOR_MAP["white"])
+def draw_board(tokens: Dict[str, List[Dict]], show_ids: bool = True) -> Image.Image:
+    img = Image.new("RGB", (BOARD_SIZE, BOARD_SIZE), BG_COLOR)
     d = ImageDraw.Draw(img)
 
-    # Draw base cells
-    _draw_base_cells(d)
+    # Quadrants
+    _draw_home_quadrants(d)
 
-    # Draw central triangles
-    _draw_central_triangles(d)
+    # Precompute special colored squares: start positions & home entry positions
+    start_positions = BoardConstants.START_POSITIONS  # color -> index
+    home_entries = BoardConstants.HOME_COLUMN_ENTRIES  # color -> index
+    start_index_to_color = {idx: clr for clr, idx in start_positions.items()}
+    entry_index_to_color = {idx: clr for clr, idx in home_entries.items()}
 
-    # Draw home columns
-    _draw_home_columns(d)
+    # Main path cells with coloring rules
+    for idx, (c, r) in PATH_INDEX_TO_COORD.items():
+        bbox = _cell_bbox(c, r)
+        outline = GRID_LINE
+        if idx in start_index_to_color:  # starting squares (safe)
+            fill = COLOR_MAP[start_index_to_color[idx]]
+        elif (
+            idx in entry_index_to_color
+        ):  # home entry squares (NOT safe) keep path color, colored outline
+            fill = PATH_COLOR
+            outline = COLOR_MAP[entry_index_to_color[idx]]
+        elif idx in BoardConstants.STAR_SQUARES:  # global safe/star
+            fill = STAR_COLOR
+        else:
+            fill = PATH_COLOR
+        d.rectangle(bbox, fill=fill, outline=outline)
 
-    # Draw grid lines on top
-    for i in range(GRID + 1):
-        d.line((0, i * CELL, BOARD_SIZE, i * CELL), fill=PIL_COLOR_MAP["black"], width=1)
-        d.line((i * CELL, 0, i * CELL, BOARD_SIZE), fill=PIL_COLOR_MAP["black"], width=1)
+    # Home columns (tinted player color)
+    for color, pos_map in HOME_COLUMN_COORDS.items():
+        col_rgb = COLOR_MAP[color]
+        tint = tuple(min(255, int(v * 1.15)) for v in col_rgb)  # light tint
+        for pos, (c, r) in pos_map.items():
+            bbox = _cell_bbox(c, r)
+            d.rectangle(bbox, fill=tint, outline=col_rgb)
 
-    # Draw starting nests
-    _draw_starting_nests(d)
+    # Center finish region (position 105) draw four color triangles
+    cx0, cy0, cx1, cy1 = _cell_bbox(7, 7)
+    midx = (cx0 + cx1) // 2
+    midy = (cy0 + cy1) // 2
+    d.rectangle((cx0, cy0, cx1, cy1), fill=CENTER_COLOR, outline=(80, 80, 80), width=3)
+    # Triangles: top(red), right(green), bottom(yellow), left(blue) typical clockwise
+    d.polygon([(cx0, cy0), (cx1, cy0), (midx, midy)], fill=COLOR_MAP[Colors.RED])  # top
+    d.polygon(
+        [(cx1, cy0), (cx1, cy1), (midx, midy)], fill=COLOR_MAP[Colors.BLUE]
+    )  # right (swapped: was GREEN)
+    d.polygon(
+        [(cx0, cy1), (cx1, cy1), (midx, midy)], fill=COLOR_MAP[Colors.YELLOW]
+    )  # bottom
+    d.polygon(
+        [(cx0, cy0), (cx0, cy1), (midx, midy)], fill=COLOR_MAP[Colors.GREEN]
+    )  # left (swapped: was BLUE)
 
-    # Draw special squares
-    _draw_special_squares(d)
-
-    # Draw arrows adjacent to each home column
-    arrow_positions = {
-        "red": (6, 7, "left"),
-        "green": (7, 8, "up"),
-        "yellow": (8, 7, "right"),
-        "blue": (7, 6, "down"),
+    # Finish anchors per color inside their triangle (stack tokens exactly here)
+    finish_anchor = {
+        Colors.RED: (midx, cy0 + (midy - cy0) // 2),
+        # Swapped BLUE and GREEN to align with triangle color swap
+        Colors.BLUE: (cx1 - (cx1 - midx) // 2, midy),  # right side now BLUE
+        Colors.YELLOW: (midx, cy1 - (cy1 - midy) // 2),
+        Colors.GREEN: (cx0 + (midx - cx0) // 2, midy),  # left side now GREEN
     }
-    for _, (ax_x, ax_y, direction) in arrow_positions.items():
-        _draw_arrow_cell(d, ax_x, ax_y, direction)
 
-    # Draw tokens
-    for color_name, token_list in tokens.items():
-        for token in token_list:
-            x, y = _get_token_position(token)
-            cx = x * CELL
-            cy = y * CELL
-            radius = int(0.35 * CELL)
+    # Grid overlay (subtle)
+    for i in range(GRID + 1):
+        d.line((0, i * CELL, BOARD_SIZE, i * CELL), fill=(230, 230, 230))
+        d.line((i * CELL, 0, i * CELL, BOARD_SIZE), fill=(230, 230, 230))
 
-            # Draw token circle
-            d.ellipse([cx - radius, cy - radius, cx + radius, cy + radius],
-                     fill=PIL_COLOR_MAP.get(color_name, PIL_COLOR_MAP["black"]),
-                     outline=PIL_COLOR_MAP["black"], width=2)
-
-            # Draw token ID
+    # Tokens
+    for color, tlist in tokens.items():
+        base_color = COLOR_MAP[color]
+        for tk in tlist:
+            state = tk["state"]
+            pos = tk["position"]
+            tid = tk["token_id"]
+            if state == TokenState.HOME.value:
+                c, r = _token_home_grid_position(color, tid)
+            elif (
+                state == TokenState.HOME_COLUMN.value
+                and HOME_COLUMN_START <= pos <= HOME_COLUMN_END
+            ):
+                coord_map = HOME_COLUMN_COORDS[color]
+                if pos not in coord_map:
+                    continue
+                c, r = coord_map[pos]
+            elif state == TokenState.FINISHED.value:
+                ax, ay = finish_anchor[color]
+                # Draw stacked (superposed) circle; tokens overlap fully
+                r_pix = CELL // 2 - 4
+                x0 = ax - r_pix
+                y0 = ay - r_pix
+                x1 = ax + r_pix
+                y1 = ay + r_pix
+                d.ellipse((x0, y0, x1, y1), fill=base_color, outline=(0, 0, 0))
+                if show_ids and FONT:
+                    d.text((ax - 5, ay - 8), str(tid), fill=(0, 0, 0), font=FONT)
+                continue
+            else:  # active on main path
+                if 0 <= pos < len(PATH_INDEX_TO_COORD):
+                    c, r = PATH_INDEX_TO_COORD[pos]
+                else:
+                    continue
+            bbox = _cell_bbox(c, r)
+            x0, y0, x1, y1 = bbox
+            inset = 4
+            token_box = (x0 + inset, y0 + inset, x1 - inset, y1 - inset)
+            d.ellipse(token_box, fill=base_color, outline=(0, 0, 0))
             if show_ids and FONT:
-                tid = token.token_id
-                d.text((cx - 5, cy - 8), str(tid), fill=PIL_COLOR_MAP["black"], font=FONT)
+                d.text(
+                    (x0 + CELL // 2 - 5, y0 + CELL // 2 - 8),
+                    str(tid),
+                    fill=(0, 0, 0),
+                    font=FONT,
+                )
 
     return img

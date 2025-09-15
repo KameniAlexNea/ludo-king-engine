@@ -1,26 +1,46 @@
 """
-Ludo Core Engine - A pure Python implementation of Ludo game.
-
-This package provides a deterministic Ludo game engine designed for
-reinforcement learning and strategy testing. It cleanly separates
-game mechanics from strategies and requires no external libraries.
+Ludo King AI Environment
+A structured implementation for AI to play Ludo King.
 """
 
-from . import utils
-from .core.board import Board
-from .core.game import LudoGame
-from .core.player import Player
-from .core.token import Token
-from .strategies.factory import StrategyFactory
+from ludo_engine.board import Board, Position
+from ludo_engine.constants import BoardConstants, Colors, GameConstants, StrategyConstants
+from ludo_engine.game import LudoGame
+from ludo_engine.player import Player, PlayerColor
+from ludo_engine.strategies import (
+    STRATEGIES,
+    BalancedStrategy,
+    CautiousStrategy,
+    DefensiveStrategy,
+    KillerStrategy,
+    OptimistStrategy,
+    RandomStrategy,
+    Strategy,
+    WinnerStrategy,
+)
+from ludo_engine.strategy import StrategyFactory
+from ludo_engine.token import Token, TokenState
 
-__version__ = "0.1.0"
-__author__ = "KameniAlexNea"
-
-__all__ = ["LudoGame", "Board", "Token", "Player", "StrategyFactory", "utils"]
-
-
-def main():
-    """Main entry point for the ludo-demo command."""
-    print("Welcome to Ludo King Engine!")
-    print("For a complete demo, run: python examples/tournament_demo.py")
-    print("For Gradio interface, run: ludo-gradio")
+__all__ = [
+    "LudoGame",
+    "Player",
+    "PlayerColor",
+    "Board",
+    "Position",
+    "Token",
+    "TokenState",
+    "Strategy",
+    "StrategyFactory",
+    "KillerStrategy",
+    "WinnerStrategy",
+    "OptimistStrategy",
+    "DefensiveStrategy",
+    "BalancedStrategy",
+    "RandomStrategy",
+    "CautiousStrategy",
+    "STRATEGIES",
+    "GameConstants",
+    "BoardConstants",
+    "StrategyConstants",
+    "Colors",
+]
