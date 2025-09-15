@@ -18,6 +18,7 @@ class TokenState(Enum):
     ACTIVE = "active"  # Token is on the main board path
     SAFE = "safe"  # Token is in a safe zone
     FINISHED = "finished"  # Token has reached the end zone
+    HOME_COLUMN = "home_column"  # Token is in the home column (last stretch)
 
 
 @dataclass
@@ -46,6 +47,10 @@ class Token:
     def is_finished(self) -> bool:
         """Check if token has reached the finish."""
         return self.state == TokenState.FINISHED
+    
+    def is_in_home_column(self) -> bool:
+        """Check if token is in the home column (last stretch)."""
+        return self.state == TokenState.HOME_COLUMN
 
     def is_safe(self) -> bool:
         """Check if token is in a safe position."""

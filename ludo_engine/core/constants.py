@@ -24,8 +24,12 @@ class Colors:
 class LudoConstants:
     """Constants for the Ludo game board and gameplay."""
 
+    BOARD_STEPS_SIZE = 52
+
+    HOME_STRETCH_STEPS_SIZE = 6
+
     # Standard Ludo board has 56 positions in the main track
-    BOARD_SIZE = 56
+    BOARD_SIZE = BOARD_STEPS_SIZE + HOME_STRETCH_STEPS_SIZE
 
     # Total steps needed to finish (1 to exit home + 56 around board)
     TOTAL_STEPS_TO_FINISH = BOARD_SIZE + 1
