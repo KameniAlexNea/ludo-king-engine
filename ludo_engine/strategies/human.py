@@ -14,7 +14,7 @@ class HumanStrategy(Strategy):
     def __init__(self):
         super().__init__(
             name="human",
-            description="Human player - makes decisions through the interface"
+            description="Human player - makes decisions through the interface",
         )
         self.pending_decision = None
         self.waiting_for_input = False
@@ -28,7 +28,7 @@ class HumanStrategy(Strategy):
         self.game_context = game_context
         self.waiting_for_input = True
         self.pending_decision = None
-        
+
         # Return the first valid move as default - this will be overridden
         # by the interface when the human makes a choice
         valid_moves = self._get_valid_moves(game_context)
