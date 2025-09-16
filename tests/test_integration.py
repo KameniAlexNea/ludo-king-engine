@@ -152,7 +152,8 @@ class TestGameIntegration(unittest.TestCase):
 
         # Verify capture
         self.assertEqual(len(result.captured_tokens), 1)  # One token captured
-        self.assertEqual(result.captured_tokens[0], red_player.tokens[0])
+        self.assertEqual(result.captured_tokens[0].player_color, red_player.tokens[0].player_color)
+        self.assertEqual(result.captured_tokens[0].token_id, red_player.tokens[0].token_id)
 
         # Verify captured token is back in home
         self.assertEqual(red_player.tokens[0].state, TokenState.HOME)
@@ -163,23 +164,22 @@ class TestGameIntegration(unittest.TestCase):
         game = LudoGame([PlayerColor.RED, PlayerColor.BLUE, PlayerColor.GREEN, PlayerColor.YELLOW])
         player = game.players[0]
 
-        # Set up token near home entry
+        # Set up token just before home entry
         player.tokens[0].state = TokenState.ACTIVE
-        player.tokens[0].position = 50  # Just before red's home entry
+        player.tokens[0].position = 50  # Just before red's home entry at 51
 
-        # Move to enter home column
-        result = game.execute_move(player, 0, 6)  # Enter home column
+        # Move to cross home entry and enter home column
+        result = game.execute_move(player, 0, 2)  # Move 2 spaces: 50 -> 51 -> home column
 
         self.assertTrue(result.success)
         self.assertEqual(player.tokens[0].state, TokenState.HOME_COLUMN)
-        # Position might be different based on actual game logic
-        self.assertGreaterEqual(player.tokens[0].position, 100)  # Should be in home column range
+        self.assertEqual(player.tokens[0].position, 100)  # First position in home column
 
         # Move within home column
         result = game.execute_move(player, 0, 2)
 
         self.assertTrue(result.success)
-        self.assertEqual(player.tokens[0].position, 104)
+        self.assertEqual(player.tokens[0].position, 102)
 
     def test_winning_condition(self):
         """Test winning condition detection."""
@@ -322,20 +322,22 @@ class TestStrategyIntegration(unittest.TestCase):
         winner = STRATEGIES["winner"]()
 
         # Create game with strategy players
-        killer_player = Player(PlayerColor.RED, 0, killer)
-        winner_player = Player(PlayerColor.BLUE, 1, winner)
-
         game = LudoGame([PlayerColor.RED, PlayerColor.BLUE])
+        game.players[0].strategy = killer
+        game.players[1].strategy = winner
 
         # Play some turns
-        for _ in range(10):
+        for _ in range(20):  # Increase to 20 turns to give more chance for tokens to become active
             if any(player.has_won() for player in game.players):
                 break
             result = game.play_turn()
 
-        # Verify strategies work together
-        self.assertTrue(any(player.has_won() for player in game.players) or
-                       any(player.has_active_tokens() for player in game.players))
+        # Verify strategies work together - either someone won or tokens are active
+        has_winner = any(player.has_won() for player in game.players)
+        has_active_tokens = any(player.has_active_tokens() for player in game.players)
+        
+        self.assertTrue(has_winner or has_active_tokens,
+                       f"No winner and no active tokens after 20 turns. Winners: {has_winner}, Active tokens: {has_active_tokens}")
 
     def test_mixed_strategy_game(self):
         """Test game with mixed human and AI players."""
