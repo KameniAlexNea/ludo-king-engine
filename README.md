@@ -1,18 +1,21 @@
-# Ludo Core Engine
+# Ludo King Engine
 
 [![CI](https://github.com/KameniAlexNea/ludo-king-engine/actions/workflows/test-ci.yml/badge.svg)](https://github.com/KameniAlexNea/ludo-king-engine/actions/workflows/test-ci.yml)
 [![Coverage](https://codecov.io/gh/KameniAlexNea/ludo-king-engine/branch/main/graph/badge.svg)](https://codecov.io/gh/KameniAlexNea/ludo-king-engine)
 
-A pure Python implementation of the Ludo game, built for reinforcement learning and strategy testing. The engine defines deterministic rules, cleanly separates game mechanics from strategies, and requires no external libraries.
+A complete Python implementation of the Ludo board game with AI strategies and web-based visualization. Features a pure Python engine built for reinforcement learning, strategy testing, and interactive gameplay. Includes multiple built-in AI strategies and a modern web interface for visualization and strategy comparison.
 
 ## Features
 
-- **Pure Python Implementation**: No external dependencies required
+- **Pure Python Implementation**: No external dependencies required for core engine
+- **Web-Based Interface**: Interactive Gradio-based visualizer for gameplay and analysis
 - **Deterministic Gameplay**: Reproducible games with seed support
-- **Strategy Framework**: Extensible strategy system with multiple built-in strategies
+- **Strategy Framework**: Extensible strategy system with 10+ built-in AI strategies
 - **Clean Architecture**: Separated game mechanics from AI strategies
 - **Comprehensive Analysis**: Detailed game state tracking and statistics
-- **Tournament Support**: Multi-game competition framework
+- **Tournament Support**: Multi-game competition framework with league tables
+- **Real-time Visualization**: Step-by-step game playback with token movement
+- **Strategy Comparison**: Built-in tools for comparing AI performance
 
 ## Core Components
 
@@ -30,6 +33,22 @@ A pure Python implementation of the Ludo game, built for reinforcement learning 
 
 ## Quick Start
 
+### Launch Web Interface
+```bash
+# Install dependencies
+pip install gradio pillow
+
+# Run the web interface
+python main.py
+```
+
+The web interface will open at http://localhost:7860 with:
+- **Interactive Gameplay**: Step-by-step game visualization
+- **Strategy Selection**: Choose AI strategies for each player
+- **Tournament Mode**: Run multiple games and compare performance
+- **Real-time Analysis**: View game statistics and move history
+
+### Programmatic Usage
 ```python
 from ludo_engine import LudoGame, StrategyFactory
 
@@ -58,6 +77,26 @@ print(f"Turns played: {results['turns_played']}")
 | **Optimist** | Aggressive, takes calculated risks |
 | **Winner** | Focuses on getting tokens to finish quickly |
 | **Probabilistic** | Uses probability calculations for decisions |
+| **ProbabilisticV2/V3** | Advanced probabilistic strategies |
+| **WeightedRandom** | Stochastic sampling with strategic heuristics |
+| **HybridProb** | Combines multiple evaluation methods |
+
+## Web Interface Features
+
+The built-in web interface provides:
+
+- **🎮 Interactive Gameplay**: Step-by-step game visualization with animated token movement
+- **🤖 Strategy Selection**: Choose from 10+ AI strategies for each player
+- **🏆 Tournament Mode**: Run multiple games automatically and view league tables
+- **📊 Real-time Statistics**: Track wins, game length, and performance metrics
+- **🔄 Game Export**: Save and load game states for analysis
+- **📈 Move History**: Review complete game history with detailed move descriptions
+- **🎲 Auto-Play**: Run games automatically with configurable speed
+- **📱 Responsive Design**: Works on desktop and mobile browsers
+
+### Interface Screenshots
+
+*Launch the interface with `python main.py` to see the interactive features in action.*
 
 ## Tournament Performance Results
 
@@ -215,25 +254,49 @@ final_results = game.get_game_results()
 ## Architecture
 
 ```
-ludo_engine/
-├── core/
-│   ├── board.py      # Game board logic
-│   ├── token.py      # Token mechanics
-│   ├── player.py     # Player management
-│   └── game.py       # Main game engine
-├── strategies/
-│   ├── base_strategy.py    # Strategy interface
-│   ├── heuristic.py        # Basic strategies
-│   ├── advanced.py         # Advanced strategies
-│   └── factory.py          # Strategy factory
-└── utils/
-    └── # Utility functions (future expansion)
+ludo_engine/           # Core game engine (pure Python)
+├── board.py           # Game board logic and position management
+├── token.py           # Token mechanics and state management
+├── player.py          # Player management and statistics
+├── game.py            # Main game engine and turn management
+├── model.py           # Data models and type definitions
+├── constants.py       # Game constants and configuration
+├── strategy.py        # Strategy factory and base classes
+└── strategies/        # AI strategy implementations
+    ├── base.py        # Base strategy class
+    ├── utils.py       # Strategy utility functions
+    ├── random_strategy.py
+    ├── balanced.py
+    ├── cautious.py
+    ├── defensive.py
+    ├── killer.py
+    ├── optimist.py
+    ├── winner.py
+    ├── probabilistic*.py
+    ├── weighted_random.py
+    └── llm/           # LLM-powered strategies
+        ├── prompt.py
+        └── strategy.py
+
+ludo_interface/        # Web interface (optional)
+├── app.py             # Main Gradio application
+└── board_viz.py       # Board visualization utilities
+
+tests/                 # Comprehensive test suite
+├── test_*.py          # Unit tests for all components
+└── ...
+
+examples/              # Usage examples and demos
+└── ...
+
+main.py                # Entry point for web interface
 ```
 
 ## Requirements
 
 - Python 3.7+
-- No external dependencies (pure Python)
+- Core engine: No external dependencies (pure Python)
+- Web interface: `gradio`, `pillow` (optional)
 
 ## Installation
 
@@ -243,13 +306,22 @@ git clone https://github.com/KameniAlexNea/ludo-king-engine.git
 cd ludo-king-engine
 ```
 
-2. Run tests:
+2. Install dependencies (optional, for web interface):
 ```bash
-python tests/test_basic.py
-python tests/test_completion.py
+pip install gradio pillow
 ```
 
-3. Try the examples:
+3. Run tests:
+```bash
+python -m unittest discover -s tests
+```
+
+4. Launch the web interface:
+```bash
+python main.py
+```
+
+5. Try the examples:
 ```bash
 python examples/comprehensive_demo.py
 ```
@@ -268,9 +340,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Roadmap
 
+- [x] Web-based game visualization
 - [ ] LLM-powered strategies integration
-- [ ] Web-based game visualization
 - [ ] Multi-threading for tournament simulations
 - [ ] Advanced statistical analysis tools
 - [ ] Export/import game replay functionality
 - [ ] Custom board layouts and rule variations
+- [ ] Mobile-responsive web interface
+- [ ] Strategy training mode for reinforcement learning
