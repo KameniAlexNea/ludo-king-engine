@@ -110,19 +110,6 @@ def _serialize_move(move_result: MoveResult) -> str:
     if move_result.extra_turn:
         parts.append("extra turn")
     return ", ".join(parts)
-    if not move_result or not move_result.success:
-        return "No move"
-    parts = [
-        f"{move_result.player_color} token {move_result.token_id} -> {move_result.new_position}"
-    ]
-    if move_result.captured_tokens:
-        cap = move_result.captured_tokens
-        parts.append(f"captured {len(cap)}")
-    if move_result.finished_token:
-        parts.append("finished")
-    if move_result.extra_turn:
-        parts.append("extra turn")
-    return ", ".join(parts)
 
 
 def _play_step(game: LudoGame, human_move_choice: Optional[int] = None):
@@ -398,25 +385,26 @@ def launch_app():
                 if len(history) > 50:
                     history = history[-50:]
                 
+                # Update board visualization immediately after each step
+                pil_img = draw_board(_game_state_tokens(game), show_ids=show)
+                html = _img_to_data_uri(pil_img)
+                
+                # Update current player display
+                if not game.game_over:
+                    current_player = game.get_current_player()
+                    player_html = f"<h3 style='color: {current_player.color.value};'>🎯 Current Player: {current_player.color.value.title()}</h3>"
+                else:
+                    player_html = f"<h3>🏆 Winner: {game.winner.color.value.title()}!</h3>"
+                
+                waiting = _is_human_turn(game) and not game.game_over
+                
+                # Yield updated state BEFORE sleep so interface updates immediately
+                yield game, html, desc, history, waiting, player_html, ""
+                
                 if game.game_over:
                     break
                 if delay and delay > 0:
                     time.sleep(float(delay))
-            
-            pil_img = draw_board(_game_state_tokens(game), show_ids=show)
-            html = _img_to_data_uri(pil_img)
-            
-            # Update current player display
-            if not game.game_over:
-                current_player = game.get_current_player()
-                player_html = f"<h3 style='color: {current_player.color.value};'>🎯 Current Player: {current_player.color.value.title()}</h3>"
-            else:
-                player_html = f"<h3>🏆 Winner: {game.winner.color.value.title()}!</h3>"
-            
-            waiting = _is_human_turn(game) and not game.game_over
-            controls_visible = waiting
-            
-            return game, html, desc, history, waiting, player_html, ""
 
         def _make_human_move(token_id, game, history, show, move_opts):
             """Handle human player move selection."""
