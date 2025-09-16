@@ -4,6 +4,8 @@ Tests cover unique decision logic for each strategy type.
 """
 
 import unittest
+import unittest.mock
+import os
 
 from ludo_engine.model import (
     AIDecisionContext,
@@ -22,6 +24,7 @@ from ludo_engine.strategies.optimist import OptimistStrategy
 from ludo_engine.strategies.probabilistic import ProbabilisticStrategy
 from ludo_engine.strategies.probabilistic_v2 import ProbabilisticV2Strategy
 from ludo_engine.strategies.probabilistic_v3 import ProbabilisticV3Strategy
+from ludo_engine.strategies.weighted_random import WeightedRandomStrategy
 from ludo_engine.strategies.winner import WinnerStrategy
 
 
@@ -143,6 +146,104 @@ class TestBalancedStrategy(unittest.TestCase):
         # Should choose highest strategic value move
         self.assertEqual(decision, 2)
 
+    def test_decide_finish_priority(self):
+        """Test that finish moves have highest priority."""
+        context = create_test_decision_context(
+            valid_moves=[
+                ValidMove(
+                    token_id=0,
+                    current_position=104,
+                    current_state="home_column",
+                    target_position=105,
+                    move_type="finish",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=10.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=5,
+                    current_state="active",
+                    target_position=10,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=True,
+                    captured_tokens=[],
+                    strategic_value=50.0,  # Higher strategic value
+                    strategic_components={},
+                ),
+            ],
+        )
+        decision = self.strategy.decide(context)
+        self.assertEqual(decision, 0)  # Should choose finish move
+
+    def test_decide_home_column_priority(self):
+        """Test home column advancement priority."""
+        context = create_test_decision_context(
+            valid_moves=[
+                ValidMove(
+                    token_id=0,
+                    current_position=100,
+                    current_state="home_column",
+                    target_position=102,
+                    move_type="advance_home_column",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=10.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=5,
+                    current_state="active",
+                    target_position=10,
+                    move_type="advance_main_board",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=15.0,
+                    strategic_components={},
+                ),
+            ],
+        )
+        decision = self.strategy.decide(context)
+        self.assertEqual(decision, 0)  # Should choose home column move
+
+    def test_decide_capture_when_behind(self):
+        """Test capture priority when behind."""
+        # Create context where player is behind
+        context = create_test_decision_context(
+            valid_moves=[
+                ValidMove(
+                    token_id=0,
+                    current_position=5,
+                    current_state="active",
+                    target_position=10,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=True,
+                    captured_tokens=[],
+                    strategic_value=15.0,
+                    strategic_components={},
+                ),
+            ],
+        )
+        # Set player as behind by adjusting opponent progress
+        context.opponents[0].finished_tokens = 3  # Opponent has 3 finished
+        context.player_state.finished_tokens = 0  # Player has 0 finished
+        
+        decision = self.strategy.decide(context)
+        self.assertEqual(decision, 0)
+
+    def test_decide_no_moves(self):
+        """Test decide with no valid moves."""
+        context = create_test_decision_context(valid_moves=[])
+        decision = self.strategy.decide(context)
+        self.assertEqual(decision, 0)
+
 
 class TestCautiousStrategy(unittest.TestCase):
     """Test cases for CautiousStrategy."""
@@ -191,6 +292,53 @@ class TestCautiousStrategy(unittest.TestCase):
         decision = self.strategy.decide(context)
         # Should choose safe move over risky one
         self.assertEqual(decision, 0)
+
+    def test_decide_late_game_urgency(self):
+        """Test cautious strategy in late game when behind."""
+        context = create_test_decision_context(
+            valid_moves=[
+                ValidMove(
+                    token_id=0,
+                    current_position=5,
+                    current_state="active",
+                    target_position=10,
+                    move_type="advance_main_board",
+                    is_safe_move=False,  # Risky but necessary
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=15.0,
+                    strategic_components={},
+                ),
+            ],
+        )
+        # Set up late game scenario where player is behind
+        context.opponents[0].finished_tokens = 3
+        context.player_state.finished_tokens = 0
+        
+        decision = self.strategy.decide(context)
+        self.assertEqual(decision, 0)
+
+    def test_decide_no_safe_moves(self):
+        """Test cautious strategy when no safe moves available."""
+        context = create_test_decision_context(
+            valid_moves=[
+                ValidMove(
+                    token_id=0,
+                    current_position=5,
+                    current_state="active",
+                    target_position=10,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=10.0,
+                    strategic_components={},
+                ),
+            ],
+        )
+        
+        decision = self.strategy.decide(context)
+        self.assertEqual(decision, 0)  # Should still choose the only move
 
 
 class TestDefensiveStrategy(unittest.TestCase):
@@ -602,6 +750,76 @@ class TestWinnerStrategyAdvanced(unittest.TestCase):
         # Should choose finish move
         self.assertEqual(decision, 0)
 
+    def test_prioritize_home_column_depth(self):
+        """Test that winner strategy prioritizes deeper home column moves."""
+        context = create_test_decision_context(
+            valid_moves=[
+                ValidMove(
+                    token_id=0,
+                    current_position=100,
+                    current_state="home_column",
+                    target_position=102,
+                    move_type="advance_home_column",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=10.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=102,
+                    current_state="home_column",
+                    target_position=104,
+                    move_type="advance_home_column",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=12.0,
+                    strategic_components={},
+                ),
+            ],
+        )
+        
+        decision = self.strategy.decide(context)
+        # Should choose the deeper home column move (token 1)
+        self.assertEqual(decision, 1)
+
+    def test_safe_capture_priority(self):
+        """Test safe capture selection."""
+        context = create_test_decision_context(
+            valid_moves=[
+                ValidMove(
+                    token_id=0,
+                    current_position=5,
+                    current_state="active",
+                    target_position=10,
+                    move_type="advance_main_board",
+                    is_safe_move=True,
+                    captures_opponent=True,
+                    captured_tokens=[],
+                    strategic_value=18.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=5,
+                    current_state="active",
+                    target_position=10,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=True,
+                    captured_tokens=[],
+                    strategic_value=20.0,
+                    strategic_components={},
+                ),
+            ],
+        )
+        
+        decision = self.strategy.decide(context)
+        # Should choose safe capture over risky one
+        self.assertEqual(decision, 0)
+
 
 class TestStrategyComparison(unittest.TestCase):
     """Test cases comparing different strategies."""
@@ -666,6 +884,161 @@ class TestStrategyComparison(unittest.TestCase):
                 self.assertGreater(len(strategy.name), 0)
                 self.assertIsInstance(strategy.description, str)
                 self.assertGreater(len(strategy.description), 0)
+
+
+class TestWeightedRandomStrategy(unittest.TestCase):
+    """Test cases for WeightedRandomStrategy."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.strategy = WeightedRandomStrategy()
+
+    def test_initialization(self):
+        """Test weighted random strategy initialization."""
+        self.assertIn("weighted", self.strategy.name.lower())
+        self.assertIn("stochastic", self.strategy.description.lower())
+        self.assertEqual(self.strategy.recent_moves_memory, [])
+
+    def test_decide_no_moves(self):
+        """Test decide with no valid moves."""
+        context = create_test_decision_context(valid_moves=[])
+        decision = self.strategy.decide(context)
+        self.assertEqual(decision, 0)
+
+    def test_decide_finish_moves(self):
+        """Test that finish moves are chosen immediately."""
+        finish_move = ValidMove(
+            token_id=1,
+            current_position=50,
+            current_state="active",
+            target_position=56,  # Assuming finish position
+            move_type="finish",
+            is_safe_move=True,
+            captures_opponent=False,
+            captured_tokens=[],
+            strategic_value=10.0,
+            strategic_components={},
+        )
+        context = create_test_decision_context(valid_moves=[finish_move])
+        
+        # Mock random.choice to return the finish move
+        with unittest.mock.patch('random.choice', return_value=finish_move):
+            decision = self.strategy.decide(context)
+            self.assertEqual(decision, 1)
+
+    def test_decide_early_phase(self):
+        """Test decision making in early game phase."""
+        context = create_test_decision_context()
+        # Set player state for early phase (0 finished tokens)
+        context.player_state.finished_tokens = 0
+        
+        decision = self.strategy.decide(context)
+        self.assertIsInstance(decision, int)
+        self.assertIn(decision, [0])  # Only one move in test context
+
+    def test_decide_late_phase(self):
+        """Test decision making in late game phase."""
+        context = create_test_decision_context()
+        # Set player state for late phase (3 finished tokens)
+        context.player_state.finished_tokens = 3
+        
+        decision = self.strategy.decide(context)
+        self.assertIsInstance(decision, int)
+
+    def test_decide_with_capture_bonus(self):
+        """Test decision with capture bonus."""
+        capture_move = ValidMove(
+            token_id=0,
+            current_position=5,
+            current_state="active",
+            target_position=10,
+            move_type="advance_main_board",
+            is_safe_move=False,
+            captures_opponent=True,
+            captured_tokens=[1],  # Captures one token
+            strategic_value=8.0,
+            strategic_components={},
+        )
+        context = create_test_decision_context(valid_moves=[capture_move])
+        
+        decision = self.strategy.decide(context)
+        self.assertEqual(decision, 0)
+
+    def test_decide_safe_move_bonus(self):
+        """Test decision with safe move bonus."""
+        safe_move = ValidMove(
+            token_id=0,
+            current_position=5,
+            current_state="active",
+            target_position=10,
+            move_type="advance_main_board",
+            is_safe_move=True,
+            captures_opponent=False,
+            captured_tokens=[],
+            strategic_value=5.0,
+            strategic_components={},
+        )
+        context = create_test_decision_context(valid_moves=[safe_move])
+        
+        decision = self.strategy.decide(context)
+        self.assertEqual(decision, 0)
+
+    def test_decide_home_column_advance(self):
+        """Test decision with home column advancement bonus."""
+        home_move = ValidMove(
+            token_id=0,
+            current_position=50,
+            current_state="active",
+            target_position=52,
+            move_type="advance_home_column",
+            is_safe_move=True,
+            captures_opponent=False,
+            captured_tokens=[],
+            strategic_value=5.0,
+            strategic_components={},
+        )
+        context = create_test_decision_context(valid_moves=[home_move])
+        
+        decision = self.strategy.decide(context)
+        self.assertEqual(decision, 0)
+
+    def test_diversity_penalty(self):
+        """Test diversity penalty for repeated token moves."""
+        # Set up recent moves memory
+        self.strategy.recent_moves_memory = [0, 0, 0]  # Token 0 moved recently
+        
+        context = create_test_decision_context()
+        decision = self.strategy.decide(context)
+        self.assertIsInstance(decision, int)
+
+    def test_epsilon_exploration(self):
+        """Test epsilon uniform exploration."""
+        context = create_test_decision_context()
+        
+        # Mock random.random to trigger epsilon exploration
+        with unittest.mock.patch('random.random', return_value=0.01):  # Less than epsilon
+            with unittest.mock.patch('random.choice', return_value=0):
+                decision = self.strategy.decide(context)
+                self.assertEqual(decision, 0)
+
+    def test_threat_penalty(self):
+        """Test threat penalty for risky moves."""
+        # Create context with opponent positions that threaten the target
+        context = create_test_decision_context()
+        # Add opponent at threatening position
+        context.opponents[0].positions_occupied = [11]  # Close to target position 9
+        
+        decision = self.strategy.decide(context)
+        self.assertIsInstance(decision, int)
+
+    def test_memory_management(self):
+        """Test recent moves memory management."""
+        # Fill memory beyond limit
+        for i in range(30):  # More than DIVERSITY_MEMORY (25)
+            self.strategy.save_and_return(i % 4)
+        
+        # Memory should be truncated to 25
+        self.assertEqual(len(self.strategy.recent_moves_memory), 25)
 
 
 if __name__ == "__main__":
