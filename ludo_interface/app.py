@@ -19,7 +19,7 @@ from ludo_engine.token import Token
 from ludo_engine.player import PlayerColor
 from ludo_engine.strategy import StrategyFactory
 from ludo_engine.strategies.human import HumanStrategy
-from ludo_interface.board_viz import draw_board
+from ludo_interface.board_viz import draw_board, preload_board_template
 from ludo_engine.model import MoveResult
 
 AI_STRATEGIES = StrategyFactory.get_available_strategies()
@@ -203,18 +203,12 @@ def _play_step(game: LudoGame, human_move_choice: Optional[int] = None):
 
 
 def launch_app():
+    # Preload board template for optimal performance
+    print("🚀 Initializing Enhanced Ludo Game...")
+    preload_board_template()
+    
     with gr.Blocks(title="🎲 Enhanced Ludo AI Visualizer", theme=gr.themes.Soft()) as demo:
-        gr.Markdown("""
-        # 🎲 Enhanced Ludo AI Visualizer
         
-        Experience Ludo with beautiful graphics, multiple AI strategies, and human player support!
-        
-        ## Features:
-        - 🤖 **Multiple AI Strategies**: Choose from various AI personalities
-        - 👤 **Human Players**: Select "human" strategy to play yourself
-        - 🎨 **Enhanced Graphics**: Beautiful board with token stacking visualization
-        - 📊 **Game Statistics**: Track wins and performance
-        """)
         
         with gr.Tabs():
             with gr.TabItem("🎮 Play Game"):
@@ -231,19 +225,17 @@ def launch_app():
                                     info="Choose 'human' to play yourself!"
                                 )
                             )
-                    
-                    with gr.Column(scale=1):
-                        gr.Markdown("### 🎮 Game Controls")
-                        init_btn = gr.Button("🆕 Start New Game", variant="primary", size="sm")
-                        random_btn = gr.Button("🎲 Random Strategies", size="sm")
-                        step_btn = gr.Button("▶️ Play Step", size="sm")
-                        
-                with gr.Row():
                     with gr.Column(scale=1):
                         gr.Markdown("### ⚙️ Auto Play Settings")
                         auto_steps_n = gr.Number(value=1, label="Steps", minimum=1, maximum=100)
                         auto_delay = gr.Number(value=0.5, label="Delay (s)", minimum=0, maximum=5, step=0.1)
                         run_auto_btn = gr.Button("🔄 Run Auto Steps", size="sm")
+                with gr.Row():
+                    with gr.Column(scale=1):
+                        gr.Markdown("### 🎮 Game Controls")
+                        init_btn = gr.Button("🆕 Start New Game", variant="primary", size="sm")
+                        random_btn = gr.Button("🎲 Random Strategies", size="sm")
+                        step_btn = gr.Button("▶️ Play Step", size="sm")
                     
                     with gr.Column(scale=1):
                         gr.Markdown("### 🎛️ Display Options")
@@ -294,6 +286,17 @@ def launch_app():
         
         # Hidden state components
         export_box = gr.Textbox(label="Game State JSON", lines=6, visible=False)
+        gr.Markdown("""
+        # 🎲 Enhanced Ludo AI Visualizer
+        
+        Experience Ludo with beautiful graphics, multiple AI strategies, and human player support!
+        
+        ## Features:
+        - 🤖 **Multiple AI Strategies**: Choose from various AI personalities
+        - 👤 **Human Players**: Select "human" strategy to play yourself
+        - 🎨 **Enhanced Graphics**: Beautiful board with token stacking visualization
+        - 📊 **Game Statistics**: Track wins and performance
+        """)
         game_state = gr.State()
         move_history = gr.State([])
         stats_state = gr.State(

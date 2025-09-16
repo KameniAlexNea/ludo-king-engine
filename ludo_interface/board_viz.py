@@ -53,6 +53,9 @@ HOME_COLUMN_START = GameConstants.HOME_COLUMN_START
 HOME_COLUMN_END = GameConstants.FINISH_POSITION
 HOME_COLUMN_SIZE = GameConstants.HOME_COLUMN_SIZE
 
+# Global board template cache
+_BOARD_TEMPLATE = None
+
 # We derive path coordinates procedurally using a canonical 52-step outer path.
 # Layout: Imagine a cross with a 3-wide corridor. We'll build a ring path list of (col,row).
 
@@ -269,12 +272,6 @@ def _token_home_grid_position(color: str, token_id: int) -> Tuple[int, int]:
     col = cols[token_id % 2]
     row = rows[token_id // 2]
     return col, row
-    (c0, c1), (r0, r1) = HOME_QUADRANTS[color]
-    cols = [c0 + 1, c0 + 3]
-    rows = [r0 + 1, r0 + 3]
-    col = cols[token_id % 2]
-    row = rows[token_id // 2]
-    return col, row
 
 
 def _home_column_positions_for_color(color: str) -> Dict[int, Tuple[int, int]]:
@@ -306,7 +303,11 @@ HOME_COLUMN_COORDS = {
 }
 
 
-def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.Image:
+def _generate_board_template() -> Image.Image:
+    """
+    Generate the static board template (without tokens) that can be reused.
+    This is cached and only generated once for performance optimization.
+    """
     img = Image.new("RGB", (BOARD_SIZE, BOARD_SIZE), BG_COLOR)
     d = ImageDraw.Draw(img)
 
@@ -390,20 +391,46 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
     for i, (color, coords) in enumerate(zip(colors_order, triangle_coords)):
         d.polygon(coords, fill=COLOR_MAP[color], outline=COLOR_DARK[color])
 
-    # Finish anchors per color inside their triangle
-    finish_anchor = {
-        Colors.RED: (midx, cy0 + (midy - cy0) // 2),
-        Colors.BLUE: (cx1 - (cx1 - midx) // 2, midy),
-        Colors.YELLOW: (midx, cy1 - (cy1 - midy) // 2),
-        Colors.GREEN: (cx0 + (midx - cx0) // 2, midy),
-    }
-
     # Enhanced grid overlay
     for i in range(GRID + 1):
         alpha = 100 if i % 3 == 0 else 50  # Stronger lines every 3 cells
         grid_color = (200, 200, 200, alpha)
         d.line((0, i * CELL, BOARD_SIZE, i * CELL), fill=grid_color)
         d.line((i * CELL, 0, i * CELL, BOARD_SIZE), fill=grid_color)
+
+    return img
+
+
+def get_board_template() -> Image.Image:
+    """
+    Get the cached board template, generating it if necessary.
+    Returns a copy to prevent modifications to the template.
+    """
+    global _BOARD_TEMPLATE
+    if _BOARD_TEMPLATE is None:
+        _BOARD_TEMPLATE = _generate_board_template()
+    return _BOARD_TEMPLATE.copy()
+
+
+def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.Image:
+    """
+    Optimized board drawing that uses a cached template and only draws tokens.
+    This significantly improves performance by avoiding regenerating the board layout.
+    """
+    # Start with the cached board template
+    img = get_board_template()
+    d = ImageDraw.Draw(img)
+    
+    # Calculate finish anchors (same as in template generation)
+    cx0, cy0, cx1, cy1 = _cell_bbox(7, 7)
+    midx = (cx0 + cx1) // 2
+    midy = (cy0 + cy1) // 2
+    finish_anchor = {
+        Colors.RED: (midx, cy0 + (midy - cy0) // 2),
+        Colors.BLUE: (cx1 - (cx1 - midx) // 2, midy),
+        Colors.YELLOW: (midx, cy1 - (cy1 - midy) // 2),
+        Colors.GREEN: (cx0 + (midx - cx0) // 2, midy),
+    }
 
     # Enhanced token rendering with proper stacking
     # First, collect all tokens by position and state for stacking
@@ -471,3 +498,21 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
             _draw_stacked_tokens(d, token_group, cx, cy, CELL // 2 - 4, show_ids)
 
     return img
+
+
+def clear_board_cache():
+    """
+    Clear the board template cache. 
+    Useful if you want to regenerate the template (e.g., after changing styling).
+    """
+    global _BOARD_TEMPLATE
+    _BOARD_TEMPLATE = None
+
+
+def preload_board_template():
+    """
+    Preload the board template to ensure the first draw is fast.
+    Useful to call this during application startup.
+    """
+    get_board_template()
+    print("🎯 Board template preloaded and cached for optimal performance!")
