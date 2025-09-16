@@ -390,11 +390,11 @@ class HybridProbStrategy(Strategy):
         )
 
     def _risk_suppression_bonus(
-        self, move: MoveEvaluation, opponent_positions: List[int]
+        self, move: ValidMove, opponent_positions: List[int]
     ) -> float:
-        if not move.move.captures_opponent:
+        if not move.captures_opponent:
             return 0.0
-        tgt = move.move.target_position
+        tgt = move.target_position
         if not isinstance(tgt, int):
             return 0.0
         removed = 0
@@ -406,16 +406,16 @@ class HybridProbStrategy(Strategy):
             return 0.0
         return removed * StrategyConstants.HYBRID_RISK_SUPPRESSION_COEFF
 
-    def _spread_bonus(self, move: MoveEvaluation, baseline_active: int) -> float:
+    def _spread_bonus(self, move: ValidMove, baseline_active: int) -> float:
         if (
-            move.move.move_type == "exit_home"
+            move.move_type == "exit_home"
             and baseline_active < StrategyConstants.HYBRID_SPREAD_ACTIVE_TARGET
         ):
             return StrategyConstants.HYBRID_SPREAD_BONUS
         return 0.0
 
-    def _future_safety_potential(self, move: MoveEvaluation) -> float:
-        tgt = move.move.target_position
+    def _future_safety_potential(self, move: ValidMove) -> float:
+        tgt = move.target_position
         if not isinstance(tgt, int) or tgt >= BoardConstants.HOME_COLUMN_START:
             return 0.0
         safe_set = BoardConstants.get_all_safe_squares()

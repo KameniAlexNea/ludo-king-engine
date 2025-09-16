@@ -8,10 +8,60 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from ludo_engine.constants import GameConstants
-from ludo_engine.model import AIDecisionContext, ValidMove
+from ludo_engine.model import AIDecisionContext, ValidMove, CurrentSituation, PlayerState, OpponentInfo, StrategicAnalysis
 from ludo_engine.player import Player, PlayerColor
 from ludo_engine.strategies.random_strategy import RandomStrategy
 from ludo_engine.token import Token, TokenState
+
+
+def create_test_decision_context(dice_value=4, valid_moves=None):
+    """Create a test AIDecisionContext for strategy testing."""
+    if valid_moves is None:
+        valid_moves = [
+            ValidMove(token_id=0, current_position=5, current_state="active",
+                     target_position=9, move_type="advance_main_board", is_safe_move=False,
+                     captures_opponent=False, captured_tokens=[], strategic_value=5.0,
+                     strategic_components={}),
+        ]
+    
+    return AIDecisionContext(
+        current_situation=CurrentSituation(
+            player_color="red",
+            dice_value=dice_value,
+            consecutive_sixes=0,
+            turn_count=1,
+        ),
+        player_state=PlayerState(
+            player_id=0,
+            color="red",
+            start_position=0,
+            tokens=[],
+            tokens_in_home=4,
+            active_tokens=0,
+            tokens_in_home_column=0,
+            finished_tokens=0,
+            has_won=False,
+            positions_occupied=[],
+        ),
+        opponents=[
+            OpponentInfo(
+                color="blue",
+                finished_tokens=0,
+                tokens_active=1,
+                threat_level=0.2,
+                positions_occupied=[10],
+            ),
+        ],
+        valid_moves=valid_moves,
+        strategic_analysis=StrategicAnalysis(
+            can_capture=False,
+            can_finish_token=False,
+            can_exit_home=True,
+            safe_moves=[],
+            risky_moves=[],
+            best_strategic_move=None,
+        ),
+    )
 
 
 class TestPlayer(unittest.TestCase):
@@ -248,11 +298,9 @@ class TestPlayer(unittest.TestCase):
         strategy = RandomStrategy()
         self.player.set_strategy(strategy)
 
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=6,
-            current_player_id=0,
-            valid_moves=[],
-            game_state={}
+            valid_moves=[]
         )
 
         with patch.object(strategy, 'decide', return_value=2):
@@ -263,16 +311,14 @@ class TestPlayer(unittest.TestCase):
         """Test making strategic decision without assigned strategy."""
         self.player.strategy = None
 
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=6,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=-1, current_state="home",
                          target_position=0, move_type="exit_home", is_safe_move=True,
                          captures_opponent=False, captured_tokens=[], strategic_value=10.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         decision = self.player.make_strategic_decision(context)

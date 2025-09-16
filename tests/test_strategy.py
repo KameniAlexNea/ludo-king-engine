@@ -6,12 +6,62 @@ Tests cover strategy creation, available strategies, and basic decision making.
 import unittest
 from unittest.mock import MagicMock, patch
 
-from ludo_engine.model import AIDecisionContext, ValidMove
+from ludo_engine.model import AIDecisionContext, ValidMove, CurrentSituation, PlayerState, OpponentInfo, StrategicAnalysis
 from ludo_engine.strategy import StrategyFactory
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.random_strategy import RandomStrategy
 from ludo_engine.strategies.killer import KillerStrategy
 from ludo_engine.strategies.winner import WinnerStrategy
+
+
+def create_test_decision_context(dice_value=4, valid_moves=None):
+    """Create a test AIDecisionContext for strategy testing."""
+    if valid_moves is None:
+        valid_moves = [
+            ValidMove(token_id=0, current_position=5, current_state="active",
+                     target_position=9, move_type="advance_main_board", is_safe_move=False,
+                     captures_opponent=False, captured_tokens=[], strategic_value=5.0,
+                     strategic_components={}),
+        ]
+    
+    return AIDecisionContext(
+        current_situation=CurrentSituation(
+            player_color="red",
+            dice_value=dice_value,
+            consecutive_sixes=0,
+            turn_count=1,
+        ),
+        player_state=PlayerState(
+            player_id=0,
+            color="red",
+            start_position=0,
+            tokens=[],
+            tokens_in_home=4,
+            active_tokens=0,
+            tokens_in_home_column=0,
+            finished_tokens=0,
+            has_won=False,
+            positions_occupied=[],
+        ),
+        opponents=[
+            OpponentInfo(
+                color="blue",
+                finished_tokens=0,
+                tokens_active=1,
+                threat_level=0.2,
+                positions_occupied=[10],
+            ),
+        ],
+        valid_moves=valid_moves,
+        strategic_analysis=StrategicAnalysis(
+            can_capture=False,
+            can_finish_token=False,
+            can_exit_home=True,
+            safe_moves=[],
+            risky_moves=[],
+            best_strategic_move=None,
+        ),
+    )
 
 
 class TestStrategyBase(unittest.TestCase):
@@ -28,9 +78,8 @@ class TestStrategyBase(unittest.TestCase):
 
     def test_get_valid_moves(self):
         """Test getting valid moves from context."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=6,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=-1, current_state="home",
                          target_position=0, move_type="exit_home", is_safe_move=True,
@@ -40,8 +89,7 @@ class TestStrategyBase(unittest.TestCase):
                          target_position=0, move_type="exit_home", is_safe_move=True,
                          captures_opponent=False, captured_tokens=[], strategic_value=3.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         valid_moves = self.strategy._get_valid_moves(context)
@@ -255,9 +303,8 @@ class TestRandomStrategy(unittest.TestCase):
 
     def test_decide_with_moves(self):
         """Test random strategy decision making."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=6,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=-1, current_state="home",
                          target_position=0, move_type="exit_home", is_safe_move=True,
@@ -267,8 +314,7 @@ class TestRandomStrategy(unittest.TestCase):
                          target_position=0, move_type="exit_home", is_safe_move=True,
                          captures_opponent=False, captured_tokens=[], strategic_value=3.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         # Mock random choice to return predictable result
@@ -278,11 +324,9 @@ class TestRandomStrategy(unittest.TestCase):
 
     def test_decide_no_moves(self):
         """Test random strategy with no valid moves."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=3,
-            current_player_id=0,
-            valid_moves=[],
-            game_state={}
+            valid_moves=[]
         )
 
         decision = self.strategy.decide(context)
@@ -303,9 +347,8 @@ class TestKillerStrategy(unittest.TestCase):
 
     def test_decide_prioritizes_captures(self):
         """Test that killer strategy prioritizes captures."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=4,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=5, current_state="active",
                          target_position=10, move_type="advance_main_board", is_safe_move=False,
@@ -315,8 +358,7 @@ class TestKillerStrategy(unittest.TestCase):
                          target_position=15, move_type="advance_main_board", is_safe_move=False,
                          captures_opponent=False, captured_tokens=[], strategic_value=10.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         decision = self.strategy.decide(context)
@@ -337,9 +379,8 @@ class TestWinnerStrategy(unittest.TestCase):
 
     def test_decide_prioritizes_finishing(self):
         """Test that winner strategy prioritizes finishing."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=1,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=104, current_state="home_column",
                          target_position=105, move_type="finish", is_safe_move=True,
@@ -349,8 +390,7 @@ class TestWinnerStrategy(unittest.TestCase):
                          target_position=10, move_type="advance_main_board", is_safe_move=False,
                          captures_opponent=True, captured_tokens=[], strategic_value=12.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         decision = self.strategy.decide(context)
