@@ -131,7 +131,7 @@ class ProbabilisticV2Strategy(Strategy):
         self, game_context: AIDecisionContext, current_color: str
     ) -> List[int]:
         """Return list of opponent token positions on main loop 0..51."""
-        return get_opponent_main_positions(game_context, current_color)
+        return get_opponent_main_positions(game_context)
 
     def _collect_opponent_token_progress(
         self, game_context: AIDecisionContext

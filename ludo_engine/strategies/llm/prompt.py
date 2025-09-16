@@ -78,7 +78,7 @@ def create_prompt(game_context: dict, valid_moves: list[dict]) -> str:
     my_active_tokens = max(0, 4 - my_home_tokens - my_progress)
 
     # Extract opponent data (already validated)
-    opponent_progress = [opp.get("tokens_finished", 0) for opp in opponents]
+    opponent_progress = [opp.get("finished_tokens", 0) for opp in opponents]
     max_opponent_progress = max(opponent_progress, default=0)
 
     # # Determine game phase

@@ -266,7 +266,7 @@ class KillerStrategy(Strategy):
         for opp in ctx.opponents:
             if opp.color == exclude_color:
                 continue
-            finished_map[opp.color] = opp.tokens_finished
-            if opp.tokens_finished > max_finished:
-                max_finished = opp.tokens_finished
+            finished_map[opp.color] = opp.finished_tokens
+            if opp.finished_tokens > max_finished:
+                max_finished = opp.finished_tokens
         return finished_map, max_finished

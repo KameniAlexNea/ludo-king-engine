@@ -78,7 +78,7 @@ class HybridProbStrategy(Strategy):
         finished = float(player_state.finished_tokens)
         my_progress = finished / float(GameConstants.TOKENS_PER_PLAYER)
         opp_progresses = [
-            o.tokens_finished / float(GameConstants.TOKENS_PER_PLAYER)
+            o.finished_tokens / float(GameConstants.TOKENS_PER_PLAYER)
             for o in opponents
         ]
         opp_mean = (
@@ -431,7 +431,7 @@ class HybridProbStrategy(Strategy):
     def _collect_opponent_positions(
         self, game_context: AIDecisionContext, current_color: str
     ) -> List[int]:
-        res = get_opponent_main_positions(game_context, current_color)
+        res = get_opponent_main_positions(game_context)
         return res
 
     def _collect_opponent_token_progress(
@@ -439,7 +439,7 @@ class HybridProbStrategy(Strategy):
     ) -> Dict[str, float]:
         result: Dict[str, float] = {}
         for opp in game_context.opponents:
-            finished = opp.tokens_finished
+            finished = opp.finished_tokens
             prog = 0
             start = BoardConstants.START_POSITIONS[opp.color]
             for t in opp.positions_occupied:

@@ -41,7 +41,7 @@ def backward_distance(start: int, end: int) -> int:
     return forward_distance(end, start)
 
 
-def get_my_main_positions(ctx: AIDecisionContext) -> Set[int]:
+def get_my_main_positions(ctx: AIDecisionContext, *args) -> Set[int]:
     """Own token positions on main board (exclude home column and off-board)."""
     return [
         i
@@ -50,7 +50,7 @@ def get_my_main_positions(ctx: AIDecisionContext) -> Set[int]:
     ]
 
 
-def get_opponent_main_positions(ctx: AIDecisionContext) -> List[int]:
+def get_opponent_main_positions(ctx: AIDecisionContext, *args) -> List[int]:
     """Opponent token positions on main board (0..51)."""
     color = ctx.player_state.color
     return [

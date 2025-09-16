@@ -40,7 +40,7 @@ class MoveResult:
     old_position: int
     new_position: int
     captured_tokens: List[CapturedToken]
-    token_finished: bool
+    finished_token: bool
     extra_turn: bool
     error: Optional[str] = None
     game_won: Optional[bool] = None
@@ -97,7 +97,7 @@ class OpponentInfo:
     """Information about an opponent player."""
 
     color: str
-    tokens_finished: int
+    finished_tokens: int
     tokens_active: int
     threat_level: float
     positions_occupied: List[int]
@@ -145,7 +145,7 @@ class PlayerConfiguration:
     strategy_name: str
     strategy_description: str
     has_strategy: bool
-    tokens_finished: int
+    finished_tokens: int
     tokens_active: int
     tokens_in_home: int
 

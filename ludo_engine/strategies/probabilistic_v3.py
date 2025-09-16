@@ -569,7 +569,7 @@ class ProbabilisticV3Strategy(Strategy):
     def _collect_opponent_positions(
         self, game_context: AIDecisionContext, current_color: str
     ) -> List[int]:
-        return get_opponent_main_positions(game_context, current_color)
+        return get_opponent_main_positions(game_context)
 
     def _collect_own_positions(
         self, game_context: AIDecisionContext, current_color: str
@@ -579,7 +579,7 @@ class ProbabilisticV3Strategy(Strategy):
     def _collect_opponent_token_progress(self, game_context: AIDecisionContext) -> Dict[str, float]:
         result: Dict[str, float] = {}
         for opp in game_context.opponents:
-            finished = opp.tokens_finished
+            finished = opp.finished_tokens
             prog = 0
             start = BoardConstants.START_POSITIONS[opp.color]
             for t in opp.positions_occupied:

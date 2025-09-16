@@ -39,7 +39,7 @@ class CautiousStrategy(Strategy):
 
         opponents = game_context.opponents
         leading_opponent_finished = max(
-            (o.tokens_finished for o in opponents), default=0
+            (o.finished_tokens for o in opponents), default=0
         )
 
         # Backward compatibility: retain original late_game flag
@@ -157,7 +157,7 @@ class CautiousStrategy(Strategy):
         player_state = ctx.player_state
         my_finished = player_state.finished_tokens
         opponents = ctx.opponents
-        max_opp_finished = max((o.tokens_finished for o in opponents), default=0)
+        max_opp_finished = max((o.finished_tokens for o in opponents), default=0)
         deficit = max_opp_finished - my_finished
 
         if max_opp_finished >= 3 and my_finished <= 1:

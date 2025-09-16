@@ -296,7 +296,7 @@ class BalancedStrategy(Strategy):
     def _max_opponent_progress_ratio(self, ctx: AIDecisionContext) -> float:
         finished = 0
         for op_info in ctx.opponents:
-            finished += op_info.tokens_finished
+            finished += op_info.finished_tokens
         opp_positions = get_opponent_main_positions(ctx)
         for pos in opp_positions:
             if BoardConstants.is_home_column_position(pos):

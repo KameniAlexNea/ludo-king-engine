@@ -168,7 +168,7 @@ class LudoGame:
                 old_position=-1,
                 new_position=-1,
                 captured_tokens=[],
-                token_finished=False,
+                finished_token=False,
                 extra_turn=False,
                 error="Invalid token ID",
             )
@@ -185,7 +185,7 @@ class LudoGame:
                 old_position=token.position,
                 new_position=token.position,
                 captured_tokens=[],
-                token_finished=False,
+                finished_token=False,
                 extra_turn=False,
                 error="Token cannot move with this dice value",
             )
@@ -202,7 +202,7 @@ class LudoGame:
                 old_position=old_position,
                 new_position=old_position,
                 captured_tokens=[],
-                token_finished=False,
+                finished_token=False,
                 extra_turn=False,
                 error="Invalid target position",
             )
@@ -220,7 +220,7 @@ class LudoGame:
                 old_position=old_position,
                 new_position=old_position,
                 captured_tokens=[],
-                token_finished=False,
+                finished_token=False,
                 extra_turn=False,
                 error="Invalid move - position blocked",
             )
@@ -264,7 +264,7 @@ class LudoGame:
             old_position=old_position,
             new_position=token.position,
             captured_tokens=captured_token_objects,
-            token_finished=token.is_finished(),
+            finished_token=token.is_finished(),
             extra_turn=extra_turn,
         )
 
@@ -398,7 +398,7 @@ class LudoGame:
         opponents = [
             OpponentInfo(
                 color=p.color.value,
-                tokens_finished=p.get_finished_tokens_count(),
+                finished_tokens=p.get_finished_tokens_count(),
                 tokens_active=sum(1 for t in p.tokens if t.is_active()),
                 threat_level=self._calculate_threat_level(p),
                 positions_occupied=p.player_positions(),
@@ -467,7 +467,7 @@ class LudoGame:
                 strategy_name=player.get_strategy_name(),
                 strategy_description=player.get_strategy_description(),
                 has_strategy=player.strategy is not None,
-                tokens_finished=player.get_finished_tokens_count(),
+                finished_tokens=player.get_finished_tokens_count(),
                 tokens_active=sum(1 for t in player.tokens if t.is_active()),
                 tokens_in_home=sum(1 for t in player.tokens if t.is_in_home()),
             )

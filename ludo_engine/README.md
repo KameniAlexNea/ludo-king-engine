@@ -60,7 +60,7 @@ Positions:
 	'old_position': -1,
 	'new_position': 0,
 	'captured_tokens': [{'player_color': 'blue', 'token_id': 1}],
-	'token_finished': False,
+	'finished_token': False,
 	'extra_turn': True,
 	'game_won': False
 }

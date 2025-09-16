@@ -47,7 +47,7 @@ class DefensiveStrategy(Strategy):
         active = player_state.active_tokens
         opponents = game_context.opponents
 
-        leading_finished = max((o.tokens_finished for o in opponents), default=0)
+        leading_finished = max((o.finished_tokens for o in opponents), default=0)
         pressure = (
             leading_finished >= StrategyConstants.DEFENSIVE_EXIT_PRESSURE_THRESHOLD
         )

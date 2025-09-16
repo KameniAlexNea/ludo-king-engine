@@ -73,7 +73,7 @@ def _serialize_move(move_result: MoveResult) -> str:
     if move_result.captured_tokens:
         cap = move_result.captured_tokens
         parts.append(f"captured {len(cap)}")
-    if move_result.token_finished:
+    if move_result.finished_token:
         parts.append("finished")
     if move_result.extra_turn:
         parts.append("extra turn")
@@ -144,6 +144,7 @@ def launch_app():
                         )
                 with gr.Row():
                     init_btn = gr.Button("Start New Game")
+                    random_btn = gr.Button("🎲 Random Strategies")
                     step_btn = gr.Button("Play Step")
                     auto_steps_n = gr.Number(value=1, label="Steps")
                     auto_delay = gr.Number(value=0.2, label="Delay (s)")
@@ -196,6 +197,11 @@ def launch_app():
                 [],
                 {"games": 0, "wins": {c.value: 0 for c in DEFAULT_PLAYERS}},
             )
+
+        def _random_strategies():
+            """Return random strategies for all 4 players."""
+            import random
+            return [random.choice(AI_STRATEGIES) for _ in range(4)]
 
         def _steps(game, history: list[str], show):
             game, desc, tokens = _play_step(game)
@@ -260,6 +266,14 @@ def launch_app():
             return stats
 
         init_btn.click(
+            _init,
+            strategy_inputs,
+            [game_state, board_plot, log, move_history, stats_state],
+        )
+        random_btn.click(
+            _random_strategies,
+            outputs=strategy_inputs,
+        ).then(
             _init,
             strategy_inputs,
             [game_state, board_plot, log, move_history, stats_state],
