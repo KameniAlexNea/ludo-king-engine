@@ -25,13 +25,15 @@ class TestPlayer(unittest.TestCase):
 
     def test_initialization(self):
         """Test player initialization."""
-        self.assertEqual(self.player.color, PlayerColor.RED)
-        self.assertEqual(self.player.player_id, 0)
-        self.assertEqual(len(self.player.tokens), 4)
-        self.assertIsNone(self.player.strategy)
+        # Create a fresh player without setting strategy
+        fresh_player = Player(PlayerColor.RED, 0)
+        self.assertEqual(fresh_player.color, PlayerColor.RED)
+        self.assertEqual(fresh_player.player_id, 0)
+        self.assertEqual(len(fresh_player.tokens), 4)
+        self.assertIsNone(fresh_player.strategy)
 
         # Check tokens are properly initialized
-        for i, token in enumerate(self.player.tokens):
+        for i, token in enumerate(fresh_player.tokens):
             self.assertEqual(token.token_id, i)
             self.assertEqual(token.player_color, PlayerColor.RED.value)
             self.assertEqual(token.state, TokenState.HOME)
@@ -232,12 +234,14 @@ class TestPlayer(unittest.TestCase):
 
     def test_set_strategy(self):
         """Test setting player strategy."""
-        self.assertIsNone(self.player.strategy)
+        # Create a fresh player without strategy
+        fresh_player = Player(PlayerColor.RED, 0)
+        self.assertIsNone(fresh_player.strategy)
 
         strategy = RandomStrategy()
-        self.player.set_strategy(strategy)
+        fresh_player.set_strategy(strategy)
 
-        self.assertEqual(self.player.strategy, strategy)
+        self.assertEqual(fresh_player.strategy, strategy)
 
     def test_make_strategic_decision_with_strategy(self):
         """Test making strategic decision with assigned strategy."""
@@ -276,7 +280,7 @@ class TestPlayer(unittest.TestCase):
 
     def test_get_strategy_name(self):
         """Test getting strategy name."""
-        self.assertEqual(self.player.get_strategy_name(), "Simple")
+        self.assertEqual(self.player.get_strategy_name(), "Random")
 
         strategy = RandomStrategy()
         self.player.set_strategy(strategy)
@@ -284,7 +288,7 @@ class TestPlayer(unittest.TestCase):
 
     def test_get_strategy_description(self):
         """Test getting strategy description."""
-        self.assertEqual(self.player.get_strategy_description(), "Basic priority-based decision making")
+        self.assertEqual(self.player.get_strategy_description(), "Baseline strategy that makes random valid moves")
 
         strategy = RandomStrategy()
         self.player.set_strategy(strategy)
@@ -295,7 +299,7 @@ class TestPlayer(unittest.TestCase):
         str_repr = str(self.player)
         self.assertIn("Player", str_repr)
         self.assertIn("red", str_repr)
-        self.assertIn("Simple", str_repr)
+        self.assertIn("Random", str_repr)
 
     def test_move_type_detection(self):
         """Test move type detection for different scenarios."""

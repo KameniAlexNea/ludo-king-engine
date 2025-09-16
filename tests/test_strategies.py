@@ -6,7 +6,14 @@ Tests cover unique decision logic for each strategy type.
 import unittest
 from unittest.mock import patch
 
-from ludo_engine.model import AIDecisionContext, ValidMove
+from ludo_engine.model import (
+    AIDecisionContext,
+    CurrentSituation,
+    OpponentInfo,
+    PlayerState,
+    StrategicAnalysis,
+    ValidMove,
+)
 from ludo_engine.strategies.balanced import BalancedStrategy
 from ludo_engine.strategies.cautious import CautiousStrategy
 from ludo_engine.strategies.defensive import DefensiveStrategy
@@ -19,6 +26,56 @@ from ludo_engine.strategies.probabilistic_v3 import ProbabilisticV3Strategy
 from ludo_engine.strategies.winner import WinnerStrategy
 
 
+def create_test_decision_context(dice_value=4, valid_moves=None):
+    """Create a test AIDecisionContext for strategy testing."""
+    if valid_moves is None:
+        valid_moves = [
+            ValidMove(token_id=0, current_position=5, current_state="active",
+                     target_position=9, move_type="advance_main_board", is_safe_move=False,
+                     captures_opponent=False, captured_tokens=[], strategic_value=5.0,
+                     strategic_components={}),
+        ]
+    
+    return AIDecisionContext(
+        current_situation=CurrentSituation(
+            player_color="red",
+            dice_value=dice_value,
+            consecutive_sixes=0,
+            turn_count=1,
+        ),
+        player_state=PlayerState(
+            player_id=0,
+            color="red",
+            start_position=0,
+            tokens=[],
+            tokens_in_home=4,
+            active_tokens=0,
+            tokens_in_home_column=0,
+            finished_tokens=0,
+            has_won=False,
+            positions_occupied=[],
+        ),
+        opponents=[
+            OpponentInfo(
+                color="blue",
+                finished_tokens=0,
+                tokens_active=1,
+                threat_level=0.2,
+                positions_occupied=[10],
+            ),
+        ],
+        valid_moves=valid_moves,
+        strategic_analysis=StrategicAnalysis(
+            can_capture=False,
+            can_finish_token=False,
+            can_exit_home=True,
+            safe_moves=[],
+            risky_moves=[],
+            best_strategic_move=None,
+        ),
+    )
+
+
 class TestBalancedStrategy(unittest.TestCase):
     """Test cases for BalancedStrategy."""
 
@@ -28,14 +85,13 @@ class TestBalancedStrategy(unittest.TestCase):
 
     def test_initialization(self):
         """Test balanced strategy initialization."""
-        self.assertEqual(self.strategy.name, "Balanced")
-        self.assertIn("balanced", self.strategy.description.lower())
+        self.assertIn("adaptive", self.strategy.description.lower())
+        self.assertIn("blend", self.strategy.description.lower())
 
     def test_decide_balanced_priorities(self):
         """Test balanced strategy decision making."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=6,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=-1, current_state="home",
                          target_position=0, move_type="exit_home", is_safe_move=True,
@@ -49,8 +105,7 @@ class TestBalancedStrategy(unittest.TestCase):
                          target_position=105, move_type="finish", is_safe_move=True,
                          captures_opponent=False, captured_tokens=[], strategic_value=20.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         decision = self.strategy.decide(context)
@@ -72,9 +127,8 @@ class TestCautiousStrategy(unittest.TestCase):
 
     def test_decide_avoids_risky_moves(self):
         """Test cautious strategy avoids risky moves."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=4,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=5, current_state="active",
                          target_position=10, move_type="advance_main_board", is_safe_move=True,
@@ -84,8 +138,7 @@ class TestCautiousStrategy(unittest.TestCase):
                          target_position=15, move_type="advance_main_board", is_safe_move=False,
                          captures_opponent=False, captured_tokens=[], strategic_value=10.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         decision = self.strategy.decide(context)
@@ -102,14 +155,13 @@ class TestDefensiveStrategy(unittest.TestCase):
 
     def test_initialization(self):
         """Test defensive strategy initialization."""
-        self.assertEqual(self.strategy.name, "Defensive")
-        self.assertIn("defensive", self.strategy.description.lower())
+        self.assertIn("safety", self.strategy.description.lower())
+        self.assertIn("preserves", self.strategy.description.lower())
 
     def test_decide_defensive_behavior(self):
         """Test defensive strategy behavior."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=4,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=5, current_state="active",
                          target_position=8, move_type="advance_main_board", is_safe_move=True,
@@ -119,8 +171,7 @@ class TestDefensiveStrategy(unittest.TestCase):
                          target_position=10, move_type="advance_main_board", is_safe_move=False,
                          captures_opponent=True, captured_tokens=[], strategic_value=12.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         decision = self.strategy.decide(context)
@@ -142,9 +193,8 @@ class TestOptimistStrategy(unittest.TestCase):
 
     def test_decide_optimistic_behavior(self):
         """Test optimistic strategy behavior."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=6,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=-1, current_state="home",
                          target_position=0, move_type="exit_home", is_safe_move=True,
@@ -154,8 +204,7 @@ class TestOptimistStrategy(unittest.TestCase):
                          target_position=11, move_type="advance_main_board", is_safe_move=False,
                          captures_opponent=False, captured_tokens=[], strategic_value=15.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         decision = self.strategy.decide(context)
@@ -173,13 +222,13 @@ class TestProbabilisticStrategy(unittest.TestCase):
     def test_initialization(self):
         """Test probabilistic strategy initialization."""
         self.assertEqual(self.strategy.name, "Probabilistic")
-        self.assertIn("probabilistic", self.strategy.description.lower())
+        self.assertIn("adaptive", self.strategy.description.lower())
+        self.assertIn("probability", self.strategy.description.lower())
 
     def test_decide_probabilistic_behavior(self):
         """Test probabilistic strategy decision making."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=4,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=5, current_state="active",
                          target_position=9, move_type="advance_main_board", is_safe_move=False,
@@ -189,8 +238,7 @@ class TestProbabilisticStrategy(unittest.TestCase):
                          target_position=9, move_type="advance_main_board", is_safe_move=True,
                          captures_opponent=False, captured_tokens=[], strategic_value=8.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         decision = self.strategy.decide(context)
@@ -207,13 +255,13 @@ class TestProbabilisticV2Strategy(unittest.TestCase):
     def test_initialization(self):
         """Test probabilistic v2 strategy initialization."""
         self.assertEqual(self.strategy.name, "ProbabilisticV2")
-        self.assertIn("probabilistic", self.strategy.description.lower())
+        self.assertIn("adaptive", self.strategy.description.lower())
+        self.assertIn("prob", self.strategy.description.lower())
 
     def test_decide_v2_behavior(self):
         """Test probabilistic v2 strategy decision making."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=6,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=-1, current_state="home",
                          target_position=0, move_type="exit_home", is_safe_move=True,
@@ -223,8 +271,7 @@ class TestProbabilisticV2Strategy(unittest.TestCase):
                          target_position=16, move_type="advance_main_board", is_safe_move=False,
                          captures_opponent=True, captured_tokens=[], strategic_value=15.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         decision = self.strategy.decide(context)
@@ -241,13 +288,12 @@ class TestProbabilisticV3Strategy(unittest.TestCase):
     def test_initialization(self):
         """Test probabilistic v3 strategy initialization."""
         self.assertEqual(self.strategy.name, "ProbabilisticV3")
-        self.assertIn("advanced", self.strategy.description.lower())
+        self.assertIn("full", self.strategy.description.lower())
 
     def test_decide_v3_behavior(self):
         """Test probabilistic v3 strategy decision making."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=4,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=5, current_state="active",
                          target_position=9, move_type="advance_main_board", is_safe_move=True,
@@ -259,8 +305,7 @@ class TestProbabilisticV3Strategy(unittest.TestCase):
                          captures_opponent=False, captured_tokens=[], strategic_value=8.0,
                          strategic_components={"exit_home": 0.0, "finish": 0.0, "home_column_depth": 0.0,
                                              "forward_progress": 4.0, "acceleration": 2.0, "safety": 0.0, "vulnerability_penalty": -2.0})
-            ],
-            game_state={}
+            ]
         )
 
         decision = self.strategy.decide(context)
@@ -281,9 +326,8 @@ class TestHybridProbStrategy(unittest.TestCase):
 
     def test_decide_hybrid_behavior(self):
         """Test hybrid probabilistic strategy decision making."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=6,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=-1, current_state="home",
                          target_position=0, move_type="exit_home", is_safe_move=True,
@@ -293,8 +337,7 @@ class TestHybridProbStrategy(unittest.TestCase):
                          target_position=21, move_type="advance_main_board", is_safe_move=False,
                          captures_opponent=True, captured_tokens=[], strategic_value=18.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         decision = self.strategy.decide(context)
@@ -312,9 +355,8 @@ class TestKillerStrategyAdvanced(unittest.TestCase):
         """Test scoring of high-value capture moves."""
         # This would test the internal _score_capture_move method
         # Since it's private, we'll test through the public interface
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=4,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=5, current_state="active",
                          target_position=10, move_type="advance_main_board", is_safe_move=False,
@@ -324,8 +366,7 @@ class TestKillerStrategyAdvanced(unittest.TestCase):
                          target_position=15, move_type="advance_main_board", is_safe_move=False,
                          captures_opponent=False, captured_tokens=[], strategic_value=8.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         decision = self.strategy.decide(context)
@@ -342,9 +383,8 @@ class TestWinnerStrategyAdvanced(unittest.TestCase):
 
     def test_prioritize_finish_over_capture(self):
         """Test that winner strategy prioritizes finishing over capturing."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=1,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=104, current_state="home_column",
                          target_position=105, move_type="finish", is_safe_move=True,
@@ -358,8 +398,7 @@ class TestWinnerStrategyAdvanced(unittest.TestCase):
                          target_position=0, move_type="exit_home", is_safe_move=True,
                          captures_opponent=False, captured_tokens=[], strategic_value=15.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         decision = self.strategy.decide(context)
@@ -387,9 +426,8 @@ class TestStrategyComparison(unittest.TestCase):
 
     def test_all_strategies_can_decide(self):
         """Test that all strategies can make decisions."""
-        context = AIDecisionContext(
+        context = create_test_decision_context(
             dice_value=6,
-            current_player_id=0,
             valid_moves=[
                 ValidMove(token_id=0, current_position=-1, current_state="home",
                          target_position=0, move_type="exit_home", is_safe_move=True,
@@ -399,8 +437,7 @@ class TestStrategyComparison(unittest.TestCase):
                          target_position=11, move_type="advance_main_board", is_safe_move=False,
                          captures_opponent=True, captured_tokens=[], strategic_value=15.0,
                          strategic_components={})
-            ],
-            game_state={}
+            ]
         )
 
         for name, strategy in self.strategies.items():

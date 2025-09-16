@@ -4,7 +4,38 @@ Combines strengths of probabilistic strategies (v1/v2) plus selected modular
 components (subset of planned v3) with a focus on:
   - Immediate + horizon blended risk
   - Adaptive risk weight based on variance-aware lead factor
-  - Proximity & cluster amplification
+  - Proximity &     def _cluster_factor(
+        self, move: ValidMove, opponent_positions: List[int]
+    ) -> float:
+        if n    d    def _risk_suppression_bonus(
+        self, move: ValidMove, opponent_positions: List[int]
+    ) -> float:
+        if not move.captures_opponent:
+            return 0.0
+        tgt = move.target_position
+        if not isinstance(tgt, int):
+            return 0.0_suppression_bonus(
+        self, move: ValidMove, opponent_positions: List[int]
+    ) -> float:
+        if not move.captures_opponent:
+            return 0.0
+        tgt = move.target_positiononent_positions:
+            return 1.0
+        tgt = move.target_position
+        if not isinstance(tgt, int):
+            return 1.0
+        close = 0
+        for opp in opponent_positions:
+            dist = self._backward_distance(tgt, opp)
+            if dist is not None and dist <= 6:
+                close += 1
+        if close <= 1:
+            return 1.0
+        return 1.0 + StrategyConstants.HYBRID_CLUSTER_INCREMENT * (close - 1)
+
+    def _impact_weight(self, move: ValidMove) -> float:
+        cur = move.current_position
+        if not isinstance(cur, int):n
   - Impact weighting (losing advanced token costlier)
   - Capture value scaled by captured token progress
   - Non-linear progress & home depth scoring
@@ -204,14 +235,14 @@ class HybridProbStrategy(Strategy):
 
     # ---- Risk helpers ----
     def _immediate_risk(
-        self, move: MoveEvaluation, opponent_positions: List[int]
+        self, move: ValidMove, opponent_positions: List[int]
     ) -> float:
-        tgt = move.move.target_position
+        tgt = move.target_position
         if not isinstance(tgt, int):
             return 0.0
         if (
-            move.move.is_safe_move
-            or move.move.move_type in {"finish", "advance_home_column"}
+            move.is_safe_move
+            or move.move_type in {"finish", "advance_home_column"}
             or tgt >= BoardConstants.HOME_COLUMN_START
         ):
             return 0.0
@@ -225,14 +256,14 @@ class HybridProbStrategy(Strategy):
         return 1 - (5 / 6) ** threats
 
     def _horizon_risk(
-        self, move: MoveEvaluation, opponent_positions: List[int], turns: int
+        self, move: ValidMove, opponent_positions: List[int], turns: int
     ) -> float:
-        tgt = move.move.target_position
+        tgt = move.target_position
         if not isinstance(tgt, int):
             return 0.0
         if (
-            move.move.is_safe_move
-            or move.move.move_type in {"finish", "advance_home_column"}
+            move.is_safe_move
+            or move.move_type in {"finish", "advance_home_column"}
             or tgt >= BoardConstants.HOME_COLUMN_START
         ):
             return 0.0
@@ -248,11 +279,11 @@ class HybridProbStrategy(Strategy):
         return 1.0 - p_no_capture
 
     def _proximity_factor(
-        self, move: MoveEvaluation, opponent_positions: List[int]
+        self, move: ValidMove, opponent_positions: List[int]
     ) -> float:
         if not opponent_positions:
             return 1.0
-        tgt = move.move.target_position
+        tgt = move.target_position
         if not isinstance(tgt, int):
             return 1.0
         dists = [self._backward_distance(tgt, opp) for opp in opponent_positions]
@@ -264,11 +295,11 @@ class HybridProbStrategy(Strategy):
         return min(StrategyConstants.HYBRID_PROXIMITY_PENALTY_CAP, max(1.0, val))
 
     def _cluster_factor(
-        self, move: MoveEvaluation, opponent_positions: List[int]
+        self, move: ValidMove, opponent_positions: List[int]
     ) -> float:
         if not opponent_positions:
             return 1.0
-        tgt = move.move.target_position
+        tgt = move.target_position
         if not isinstance(tgt, int):
             return 1.0
         close = 0
@@ -280,8 +311,8 @@ class HybridProbStrategy(Strategy):
             return 1.0
         return 1.0 + StrategyConstants.HYBRID_CLUSTER_INCREMENT * (close - 1)
 
-    def _impact_weight(self, move: MoveEvaluation) -> float:
-        cur = move.move.current_position
+    def _impact_weight(self, move: ValidMove) -> float:
+        cur = move.current_position
         if not isinstance(cur, int):
             return 1.0
         if cur < 0:
@@ -296,20 +327,20 @@ class HybridProbStrategy(Strategy):
 
     # ---- Opportunity helpers ----
     def _capture_value(
-        self, move: MoveEvaluation, opp_token_progress_map: Dict[str, float]
+        self, move: ValidMove, opp_token_progress_map: Dict[str, float]
     ) -> float:
-        if not move.move.captures_opponent:
+        if not move.captures_opponent:
             return 0.0
-        captured = move.move.captured_tokens
+        captured = move.captured_tokens
         total_scale = 0.0
         for c in captured:
             prog = opp_token_progress_map.get(c.player_color, 0.5)
             total_scale += 1.0 + prog
         return StrategyConstants.HYBRID_CAPTURE_BASE * max(1.0, total_scale)
 
-    def _progress_value(self, move: MoveEvaluation) -> float:
-        cur = move.move.current_position
-        tgt = move.move.target_position
+    def _progress_value(self, move: ValidMove) -> float:
+        cur = move.current_position
+        tgt = move.target_position
         if not isinstance(cur, int) or not isinstance(tgt, int):
             return 0.0
         delta = 0.0
@@ -331,12 +362,12 @@ class HybridProbStrategy(Strategy):
             delta**StrategyConstants.HYBRID_PROGRESS_POWER
         ) * StrategyConstants.HYBRID_PROGRESS_SCALE
 
-    def _home_column_value(self, move: MoveEvaluation) -> float:
-        mt = move.move.move_type
+    def _home_column_value(self, move: ValidMove) -> float:
+        mt = move.move_type
         if mt == "finish":
             return StrategyConstants.HYBRID_FINISH_BONUS
         if mt == "advance_home_column":
-            pos = move.move.target_position
+            pos = move.target_position
             if isinstance(pos, int):
                 depth = pos - GameConstants.HOME_COLUMN_START
                 return (
@@ -348,8 +379,8 @@ class HybridProbStrategy(Strategy):
             return StrategyConstants.HYBRID_EXIT_HOME_BONUS
         return 0.0
 
-    def _extra_turn_ev(self, move: MoveEvaluation) -> float:
-        capture_turn = 1.0 if move.move.captures_opponent else 0.0
+    def _extra_turn_ev(self, move: ValidMove) -> float:
+        capture_turn = 1.0 if move.captures_opponent else 0.0
         roll_six_prob = 1.0 / 6.0
         expected_additional = capture_turn + roll_six_prob
         return (
