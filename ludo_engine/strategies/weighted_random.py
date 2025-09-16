@@ -21,7 +21,8 @@ from typing import Dict, List
 
 from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
 from ludo_engine.strategies.base import Strategy
-
+from ludo_engine.model import AIDecisionContext, ValidMove
+from ludo_engine.strategies.utils import get_opponent_main_positions
 
 class WeightedRandomStrategy(Strategy):
     def __init__(self):
@@ -29,22 +30,23 @@ class WeightedRandomStrategy(Strategy):
             "WeightedRandom",
             "Stochastic softmax sampling over strategic values with heuristics",
         )
+        self.recent_moves_memory = []
 
-    def decide(self, game_context: Dict) -> int:  # type: ignore[override]
+    def decide(self, game_context: AIDecisionContext) -> int:  # type: ignore[override]
         moves = self._get_valid_moves(game_context)
         if not moves:
             return 0
 
         # 1. Immediate finish shortcut
-        finish_moves = [m for m in moves if m.get("move_type") == "finish"]
+        finish_moves = [m for m in moves if m.move_type == "finish"]
         if finish_moves:
-            return random.choice(finish_moves)["token_id"]
+            return random.choice(finish_moves).token_id
 
         # Game phase for temperature selection
         # turn_index = game_context.get("turn_index", 0)
         # Approximate phase by finished tokens ratio
-        player_state = game_context.get("player_state", {})
-        finished = player_state.get("finished_tokens", 0)
+        player_state = game_context.player_state
+        finished = player_state.finished_tokens
         phase_ratio = finished / float(GameConstants.TOKENS_PER_PLAYER)
         if phase_ratio < StrategyConstants.WEIGHTED_RANDOM_PHASE_EARLY:
             temp = StrategyConstants.WEIGHTED_RANDOM_TEMP_EARLY
@@ -54,7 +56,7 @@ class WeightedRandomStrategy(Strategy):
             temp = StrategyConstants.WEIGHTED_RANDOM_TEMP_MID
 
         # Diversity penalty - expects optional context: recent_token_moves (list of token_ids)
-        recent: List[int] = game_context.get("recent_token_moves", [])
+        recent: List[int] = self.recent_moves_memory
         diversity_counts = {}
         if recent:
             for tid in recent:
@@ -66,33 +68,33 @@ class WeightedRandomStrategy(Strategy):
         # Threat heuristic: approximate opponent threat count (reuse minimal backward distance logic)
         threat_map = self._approx_threats(moves, game_context)
 
-        min_sv = min(m.get("strategic_value", 0.0) for m in moves)
+        min_sv = min(m.strategic_value for m in moves)
 
         for mv in moves:
-            sv = mv.get("strategic_value", 0.0)
+            sv = mv.strategic_value
             base = sv - min_sv  # shift to non-negative
             # Progress shaping: slight non-linear emphasis
             base = base**1.05 if base > 0 else 0.0
 
             # Heuristic boosts
-            if mv.get("move_type") == "advance_home_column":
+            if mv.move_type == "advance_home_column":
                 base += 1.0
-            if mv.get("captures_opponent"):
-                captured = mv.get("captured_tokens", [])
+            if mv.captures_opponent:
+                captured = mv.captured_tokens
                 base += StrategyConstants.WEIGHTED_RANDOM_CAPTURE_BONUS * max(
                     1, len(captured)
                 )
-            if mv.get("is_safe_move"):
+            if mv.is_safe_move:
                 base += StrategyConstants.WEIGHTED_RANDOM_SAFE_BONUS
 
             # Threat penalty
-            threat_count = threat_map.get(mv["token_id"], 0)
+            threat_count = threat_map.get(mv.token_id, 0)
             if threat_count > StrategyConstants.WEIGHTED_RANDOM_RISK_THREAT_CAP:
                 base *= 1.0 - StrategyConstants.WEIGHTED_RANDOM_RISK_PENALTY
 
             # Diversity penalty
             if diversity_counts:
-                occurrences = diversity_counts.get(mv["token_id"], 0)
+                occurrences = diversity_counts.get(mv.token_id, 0)
                 if occurrences > 0:
                     base /= (
                         1.0
@@ -102,48 +104,42 @@ class WeightedRandomStrategy(Strategy):
 
             # Ensure minimum positive weight before softmax
             weights.append(max(base, StrategyConstants.WEIGHTED_RANDOM_MIN_WEIGHT))
-            tokens.append(mv["token_id"])
+            tokens.append(mv.token_id)
 
         # Epsilon uniform exploration
         if random.random() < StrategyConstants.WEIGHTED_RANDOM_EPSILON:
-            return random.choice(tokens)
+            return self.save_and_return(random.choice(tokens))
 
         # Softmax sampling
         max_w = max(weights)
         exp_weights = [math.exp((w - max_w) / max(1e-6, temp)) for w in weights]
         total = sum(exp_weights)
         if total <= 0:
-            return random.choice(tokens)
+            return self.save_and_return(random.choice(tokens))
         r = random.random() * total
         acc = 0.0
         for tid, ew in zip(tokens, exp_weights):
             acc += ew
             if acc >= r:
-                return tid
-        return tokens[-1]
+                return self.save_and_return(tid)
+        return self.save_and_return(tokens[-1])
+
+    def save_and_return(self, tid: int) -> int:
+        self.recent_moves_memory.append(tid)
+        if len(self.recent_moves_memory) > StrategyConstants.WEIGHTED_RANDOM_DIVERSITY_MEMORY:
+            self.recent_moves_memory.pop(0)
+        return tid
 
     # --- threat approximation ---
-    def _approx_threats(self, moves: List[Dict], ctx: Dict) -> Dict[int, int]:
-        color = ctx.get("player_state", {}).get("color")
-        opponent_positions = []
-        for p in ctx.get("players", []):
-            if p.get("color") == color:
-                continue
-            for t in p.get("tokens", []):
-                pos = t.get("position")
-                if (
-                    isinstance(pos, int)
-                    and 0 <= pos < GameConstants.MAIN_BOARD_SIZE
-                    and not BoardConstants.is_home_column_position(pos)
-                ):
-                    opponent_positions.append(pos)
+    def _approx_threats(self, moves: List[ValidMove], ctx: AIDecisionContext) -> Dict[int, int]:
+        opponent_positions = get_opponent_main_positions(ctx)
         threat_map: Dict[int, int] = {}
         for mv in moves:
-            landing = mv.get("target_position")
+            landing = mv.target_position
             if not isinstance(landing, int) or BoardConstants.is_home_column_position(
                 landing
             ):
-                threat_map[mv["token_id"]] = 0
+                threat_map[mv.token_id] = 0
                 continue
             threats = 0
             for opp in opponent_positions:
@@ -153,7 +149,7 @@ class WeightedRandomStrategy(Strategy):
                     dist = (GameConstants.MAIN_BOARD_SIZE - landing) + opp
                 if 1 <= dist <= 6:
                     threats += 1
-            threat_map[mv["token_id"]] = threats
+            threat_map[mv.token_id] = threats
         return threat_map
 
 

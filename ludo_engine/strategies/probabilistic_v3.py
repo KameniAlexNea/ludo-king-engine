@@ -49,7 +49,25 @@ from ludo_engine.strategies.utils import (
     get_opponent_main_positions,
 )
 
-MoveDict = Dict[str, object]
+
+@dataclass
+class V3Components:
+    immediate_risk: float
+    horizon_risk: float
+    proximity_factor: float
+    cluster_factor: float
+    impact_weight: float
+
+
+@dataclass
+class V3MoveEvaluation:
+    move: ValidMove
+    v3_risk_prob: float
+    v3_risk_score: float
+    v3_opportunity: float
+    v3_composite_raw: float
+    v3_composite: float
+    v3_components: V3Components
 
 
 @dataclass
@@ -159,14 +177,14 @@ class ProbabilisticV3Strategy(Strategy):
         own_positions = self._collect_own_positions(game_context, current_color)
         opp_token_progress_map = self._collect_opponent_token_progress(game_context)
 
-        baseline_active_tokens = player_state.get("active_tokens", 0)
+        baseline_active_tokens = player_state.active_tokens
 
-        scored_moves: List[MoveDict] = []
+        scored_moves: List[V3MoveEvaluation] = []
 
         for mv in moves:
-            if mv.get("move_type") == "finish":
+            if mv.move_type == "finish":
                 # Immediate finish trump
-                return mv["token_id"]
+                return mv.token_id
 
             # RISK COMPONENTS ------------------------------------
             immediate_risk = self._single_step_risk(mv, opponent_positions)
@@ -208,7 +226,7 @@ class ProbabilisticV3Strategy(Strategy):
             opportunity += self._capture_value(mv, opp_token_progress_map)
             opportunity += self._progress_value(mv)
             opportunity += self._home_column_value(mv)
-            if mv.get("is_safe_move"):
+            if mv.is_safe_move:
                 opportunity += self.cfg.safe_landing_bonus
             if self.cfg.use_extra_turn_ev:
                 opportunity += self._extra_turn_ev(mv)
@@ -227,18 +245,23 @@ class ProbabilisticV3Strategy(Strategy):
                 risk_score**self.cfg.composite_risk_power
             )
 
-            mv["v3_risk_prob"] = risk_prob
-            mv["v3_risk_score"] = risk_score
-            mv["v3_opportunity"] = opportunity
-            mv["v3_composite_raw"] = composite
-            mv["v3_components"] = {
-                "immediate_risk": immediate_risk,
-                "horizon_risk": horizon_risk,
-                "proximity_factor": proximity_factor,
-                "cluster_factor": cluster_factor,
-                "impact_weight": impact_weight,
-            }
-            scored_moves.append(mv)
+            components = V3Components(
+                immediate_risk=immediate_risk,
+                horizon_risk=horizon_risk,
+                proximity_factor=proximity_factor,
+                cluster_factor=cluster_factor,
+                impact_weight=impact_weight,
+            )
+            eval = V3MoveEvaluation(
+                move=mv,
+                v3_risk_prob=risk_prob,
+                v3_risk_score=risk_score,
+                v3_opportunity=opportunity,
+                v3_composite_raw=composite,
+                v3_composite=composite,  # initially same
+                v3_components=components,
+            )
+            scored_moves.append(eval)
 
         # Selection refinements
         candidates = scored_moves
@@ -249,33 +272,33 @@ class ProbabilisticV3Strategy(Strategy):
             self._normalize_scores(candidates)
         else:
             for mv in candidates:
-                mv["v3_composite"] = mv.get("v3_composite_raw")
+                mv.v3_composite = mv.v3_composite_raw
 
         # Epsilon exploration
         if (
             self.cfg.exploration_epsilon > 0
             and random.random() < self.cfg.exploration_epsilon
         ):
-            return random.choice(candidates)["token_id"]
+            return random.choice(candidates).move.token_id
 
         # Soft top-k exploration
         if self.cfg.use_soft_topk and len(candidates) > 1:
             chosen = self._soft_topk_choice(candidates)
-            return chosen["token_id"]
+            return chosen.move.token_id
 
         # Deterministic best
-        best = max(candidates, key=lambda m: m["v3_composite"])
-        return best["token_id"]
+        best = max(candidates, key=lambda m: m.v3_composite)
+        return best.move.token_id
 
     # ---- RISK helpers ----
-    def _single_step_risk(self, move: MoveDict, opponent_positions: List[int]) -> float:
-        tgt = move.get("target_position")
+    def _single_step_risk(self, move: ValidMove, opponent_positions: List[int]) -> float:
+        tgt = move.target_position
         if not isinstance(tgt, int):
             return 0.0
         if (
-            move.get("move_type") == "finish"
+            move.move_type == "finish"
             or (isinstance(tgt, int) and tgt >= BoardConstants.HOME_COLUMN_START)
-            or move.get("is_safe_move")
+            or move.is_safe_move
         ):
             return 0.0
         threats = 0
@@ -288,14 +311,14 @@ class ProbabilisticV3Strategy(Strategy):
         return 1 - (5 / 6) ** threats
 
     def _horizon_risk(
-        self, move: MoveDict, opponent_positions: List[int], turns: int
+        self, move: ValidMove, opponent_positions: List[int], turns: int
     ) -> float:
-        tgt = move.get("target_position")
+        tgt = move.target_position
         if not isinstance(tgt, int):
             return 0.0
         if (
-            move.get("move_type") == "finish"
-            or move.get("is_safe_move")
+            move.move_type == "finish"
+            or move.is_safe_move
             or (isinstance(tgt, int) and tgt >= BoardConstants.HOME_COLUMN_START)
         ):
             return 0.0
@@ -328,10 +351,10 @@ class ProbabilisticV3Strategy(Strategy):
                 p_no *= p_fail
             return 1.0 - p_no
 
-    def _proximity_factor(self, move: MoveDict, opponent_positions: List[int]) -> float:
+    def _proximity_factor(self, move: ValidMove, opponent_positions: List[int]) -> float:
         if not opponent_positions:
             return 1.0
-        tgt = move.get("target_position")
+        tgt = move.target_position
         if not isinstance(tgt, int):
             return 1.0
         dists = [self._backward_distance(tgt, opp) for opp in opponent_positions]
@@ -342,8 +365,8 @@ class ProbabilisticV3Strategy(Strategy):
         val = math.exp(max(0.0, (self.cfg.proximity_ref - min_d)) / 3.0)
         return min(self.cfg.proximity_penalty_cap, max(1.0, val))
 
-    def _cluster_factor(self, move: MoveDict, opponent_positions: List[int]) -> float:
-        tgt = move.get("target_position")
+    def _cluster_factor(self, move: ValidMove, opponent_positions: List[int]) -> float:
+        tgt = move.target_position
         if not isinstance(tgt, int):
             return 1.0
         close = 0
@@ -355,8 +378,8 @@ class ProbabilisticV3Strategy(Strategy):
             return 1.0
         return 1.0 + self.cfg.cluster_increment * (close - 1)
 
-    def _impact_weight(self, move: MoveDict) -> float:
-        cur = move.get("current_position")
+    def _impact_weight(self, move: ValidMove) -> float:
+        cur = move.current_position
         if not isinstance(cur, int):
             return 1.0
         if cur < 0:
@@ -368,14 +391,14 @@ class ProbabilisticV3Strategy(Strategy):
         return 0.5 + (norm**1.2) * 1.3
 
     def _chase_deterrence(
-        self, move: MoveDict, opponent_positions: List[int], own_positions: List[int]
+        self, move: ValidMove, opponent_positions: List[int], own_positions: List[int]
     ) -> float:
         """Estimate reduction in risk because opponents would expose themselves if they chase.
         Heuristic: count opponents within 1..6 behind whose own backward distance to one
         of our OTHER tokens (not the moved one) is <=6, implying potential counter-capture.
         deterrence = unit * count (clamped 0..0.5)
         """
-        tgt = move.get("target_position")
+        tgt = move.target_position
         if not isinstance(tgt, int) or not own_positions:
             return 0.0
         count = 0
@@ -396,21 +419,20 @@ class ProbabilisticV3Strategy(Strategy):
 
     # ---- OPPORTUNITY helpers ----
     def _capture_value(
-        self, move: MoveDict, opp_token_progress_map: Dict[str, float]
+        self, move: ValidMove, opp_token_progress_map: Dict[str, float]
     ) -> float:
-        if not move.get("captures_opponent"):
+        if not move.captures_opponent:
             return 0.0
-        captured = move.get("captured_tokens", [])
+        captured = move.captured_tokens
         total_scale = 0.0
         for c in captured:
-            tid = c.get("token_id")
-            prog = opp_token_progress_map.get(tid, 0.5)
+            prog = opp_token_progress_map.get(c.player_color, 0.5)
             total_scale += 1.0 + prog if self.cfg.use_capture_progress_scaling else 1.0
         return self.cfg.base_capture_value * max(1.0, total_scale)
 
-    def _progress_value(self, move: MoveDict) -> float:
-        cur = move.get("current_position")
-        tgt = move.get("target_position")
+    def _progress_value(self, move: ValidMove) -> float:
+        cur = move.current_position
+        tgt = move.target_position
         if not isinstance(cur, int) or not isinstance(tgt, int):
             return 0.0
         if (
@@ -433,13 +455,13 @@ class ProbabilisticV3Strategy(Strategy):
             ) * self.cfg.progress_nonlinear_scale
         return delta
 
-    def _home_column_value(self, move: MoveDict) -> float:
-        mt = move.get("move_type")
+    def _home_column_value(self, move: ValidMove) -> float:
+        mt = move.move_type
         if mt == "finish":
             return self.cfg.finish_bonus
         if mt == "advance_home_column":
             if self.cfg.use_home_column_nonlinear:
-                tgt = move.get("target_position")
+                tgt = move.target_position
                 if isinstance(tgt, int) and tgt >= BoardConstants.HOME_COLUMN_START:
                     depth = (tgt - BoardConstants.HOME_COLUMN_START) / 5.0  # 0..1
                     return (
@@ -451,8 +473,8 @@ class ProbabilisticV3Strategy(Strategy):
             return self.cfg.exit_home_bonus
         return 0.0
 
-    def _extra_turn_ev(self, move: MoveDict) -> float:
-        capture_bonus_turn = 1.0 if move.get("captures_opponent") else 0.0
+    def _extra_turn_ev(self, move: ValidMove) -> float:
+        capture_bonus_turn = 1.0 if move.captures_opponent else 0.0
         roll_six_prob = 1.0 / 6.0
         expected_additional = capture_bonus_turn + roll_six_prob
         # value of an extra turn approximated by avg forward progress
@@ -463,11 +485,11 @@ class ProbabilisticV3Strategy(Strategy):
         )
 
     def _risk_suppression_bonus(
-        self, move: MoveDict, opponent_positions: List[int]
+        self, move: ValidMove, opponent_positions: List[int]
     ) -> float:
-        if not move.get("captures_opponent"):
+        if not move.captures_opponent:
             return 0.0
-        tgt = move.get("target_position")
+        tgt = move.target_position
         if not isinstance(tgt, int):
             return 0.0
         removed_threats = 0
@@ -478,14 +500,14 @@ class ProbabilisticV3Strategy(Strategy):
             return 0.0
         return removed_threats * self.cfg.risk_suppression_coeff
 
-    def _spread_bonus(self, move: MoveDict, baseline_active: int) -> float:
+    def _spread_bonus(self, move: ValidMove, baseline_active: int) -> float:
         # If exiting home increases number of active tokens
-        if move.get("move_type") == "exit_home" and baseline_active == 0:
+        if move.move_type == "exit_home" and baseline_active == 0:
             return self.cfg.spread_bonus_value
         return 0.0
 
-    def _future_safety_potential(self, move: MoveDict) -> float:
-        tgt = move.get("target_position")
+    def _future_safety_potential(self, move: ValidMove) -> float:
+        tgt = move.target_position
         if not isinstance(tgt, int) or tgt >= BoardConstants.HOME_COLUMN_START:
             return 0.0
         for d in range(1, 7):
@@ -495,19 +517,19 @@ class ProbabilisticV3Strategy(Strategy):
         return 0.0
 
     # ---- Selection helpers ----
-    def _pareto_filter(self, moves: Sequence[MoveDict]) -> List[MoveDict]:
-        result: List[MoveDict] = []
+    def _pareto_filter(self, moves: Sequence[V3MoveEvaluation]) -> List[V3MoveEvaluation]:
+        result: List[V3MoveEvaluation] = []
         for m in moves:
             dominated = False
             for n in moves:
                 if n is m:
                     continue
                 if (
-                    n.get("v3_risk_score", 0) <= m.get("v3_risk_score", 0)
-                    and n.get("v3_opportunity", 0) >= m.get("v3_opportunity", 0)
+                    n.v3_risk_score <= m.v3_risk_score
+                    and n.v3_opportunity >= m.v3_opportunity
                     and (
-                        n.get("v3_risk_score", 0) < m.get("v3_risk_score", 0)
-                        or n.get("v3_opportunity", 0) > m.get("v3_opportunity", 0)
+                        n.v3_risk_score < m.v3_risk_score
+                        or n.v3_opportunity > m.v3_opportunity
                     )
                 ):
                     dominated = True
@@ -516,22 +538,22 @@ class ProbabilisticV3Strategy(Strategy):
                 result.append(m)
         return result if result else list(moves)
 
-    def _normalize_scores(self, moves: Sequence[MoveDict]):
-        comps = [m.get("v3_composite_raw", 0.0) for m in moves]
+    def _normalize_scores(self, moves: Sequence[V3MoveEvaluation]):
+        comps = [m.v3_composite_raw for m in moves]
         if not comps:
             return
         mean = sum(comps) / len(comps)
         var = sum((c - mean) ** 2 for c in comps) / max(1, len(comps))
         std = math.sqrt(var) or 1.0
         for m in moves:
-            m["v3_composite"] = (m.get("v3_composite_raw", 0.0) - mean) / std
+            m.v3_composite = (m.v3_composite_raw - mean) / std
 
-    def _soft_topk_choice(self, moves: Sequence[MoveDict]) -> MoveDict:
+    def _soft_topk_choice(self, moves: Sequence[V3MoveEvaluation]) -> V3MoveEvaluation:
         k = min(self.cfg.soft_topk_k, len(moves))
-        sorted_moves = sorted(moves, key=lambda m: m["v3_composite"], reverse=True)
+        sorted_moves = sorted(moves, key=lambda m: m.v3_composite, reverse=True)
         top = sorted_moves[:k]
         temp = max(1e-6, self.cfg.softmax_temperature)
-        logits = [m["v3_composite"] / temp for m in top]
+        logits = [m.v3_composite / temp for m in top]
         max_logit = max(logits)
         exps = [math.exp(log - max_logit) for log in logits]
         total = sum(exps) or 1.0
@@ -545,25 +567,28 @@ class ProbabilisticV3Strategy(Strategy):
 
     # ---- Generic helpers ----
     def _collect_opponent_positions(
-        self, game_context: Dict, current_color: str
+        self, game_context: AIDecisionContext, current_color: str
     ) -> List[int]:
         return get_opponent_main_positions(game_context, current_color)
 
     def _collect_own_positions(
-        self, game_context: Dict, current_color: str
+        self, game_context: AIDecisionContext, current_color: str
     ) -> List[int]:
         return get_my_main_positions(game_context, current_color)
 
-    def _collect_opponent_token_progress(self, game_context: Dict) -> Dict[str, float]:
-        # Placeholder: opponents list may not include per-token progress; fallback mid.
+    def _collect_opponent_token_progress(self, game_context: AIDecisionContext) -> Dict[str, float]:
         result: Dict[str, float] = {}
-        # Game context opponents may contain token arrays
-        for opp in game_context.get("opponents", []):
-            for t in opp.get("tokens", []):
-                tid = t.get("token_id")
-                prog = t.get("progress_norm") or 0.5
-                if tid is not None:
-                    result[tid] = max(0.0, min(1.0, float(prog)))
+        for opp in game_context.opponents:
+            finished = opp.tokens_finished
+            prog = 0
+            start = BoardConstants.START_POSITIONS[opp.color]
+            for t in opp.positions_occupied:
+                prog += self._backward_distance(start, t) or 0 / GameConstants.MAIN_BOARD_SIZE
+            result[opp.color] = min(
+                1.0,
+                finished / GameConstants.TOKENS_TO_WIN
+                + prog / len(opp.positions_occupied) if opp.positions_occupied else 0.0,
+            )
         return result
 
     def _backward_distance(self, from_pos: int, opp_pos: int) -> Optional[int]:
@@ -601,4 +626,4 @@ class ProbabilisticV3Strategy(Strategy):
         return f"ProbabilisticV3Strategy(cfg={self.cfg})"
 
 
-__all__ = ["ProbabilisticV3Strategy", "V3Config"]
+__all__ = ["ProbabilisticV3Strategy", "V3Config", "V3MoveEvaluation", "V3Components"]

@@ -259,6 +259,7 @@ class StrategyConstants:
     WEIGHTED_RANDOM_RISK_THREAT_CAP = 3  # damp moves with many potential threats
     WEIGHTED_RANDOM_RISK_PENALTY = 0.5
     WEIGHTED_RANDOM_MIN_WEIGHT = 1e-4
+    WEIGHTED_RANDOM_DIVERSITY_MEMORY = 25  # remember last N moves for diversity penalty
 
 
 class Colors:
