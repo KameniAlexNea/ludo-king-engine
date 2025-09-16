@@ -465,6 +465,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "gradio" },
+    { name = "pillow" },
     { name = "tox" },
 ]
 
@@ -478,6 +479,7 @@ gradio = [
 requires-dist = [
     { name = "gradio", specifier = ">=5.45.0" },
     { name = "gradio", marker = "extra == 'gradio'", specifier = ">=4.0.0" },
+    { name = "pillow", specifier = ">=11.3.0" },
     { name = "pillow", marker = "extra == 'gradio'", specifier = ">=10.0.0" },
     { name = "tox", specifier = ">=4.30.2" },
 ]

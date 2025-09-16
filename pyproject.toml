@@ -22,6 +22,7 @@ classifiers = [
 ]
 dependencies = [
     "gradio>=5.45.0",
+    "pillow>=11.3.0",
     "tox>=4.30.2",
 ]
 

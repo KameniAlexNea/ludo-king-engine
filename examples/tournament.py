@@ -161,7 +161,7 @@ class LudoTournament:
             # Set strategies for players
             for i, strategy_name in enumerate([home_strategy, away_strategy]):
                 strategy = StrategyFactory.create_strategy(strategy_name)
-                game.players[i].strategy = strategy
+                game.players[i].set_strategy(strategy)
 
             turns = list(game.play_game(max_turns=self.max_turns))
             total_turns += len(turns)
