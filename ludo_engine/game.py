@@ -373,6 +373,22 @@ class LudoGame:
 
         return turn_result
 
+    def play_game(self, max_turns: int):
+        """
+        Play the game until max_turns or a player wins.
+
+        Yields the TurnResult for each turn played.
+
+        Args:
+            max_turns: Maximum number of turns to play
+
+        Yields:
+            TurnResult: The result of each turn
+        """
+        while not self.game_over and self.turn_count < max_turns:
+            turn_result = self.play_turn()
+            yield turn_result
+
     def get_ai_decision_context(self, dice_value: int) -> AIDecisionContext:
         """
         Get context specifically designed for AI decision making.
