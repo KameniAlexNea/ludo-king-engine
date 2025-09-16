@@ -6,6 +6,7 @@ from ludo_engine.strategies.balanced import BalancedStrategy
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.cautious import CautiousStrategy
 from ludo_engine.strategies.defensive import DefensiveStrategy
+from ludo_engine.strategies.human import HumanStrategy
 from ludo_engine.strategies.hybrid_prob import HybridConfig, HybridProbStrategy
 from ludo_engine.strategies.killer import KillerStrategy
 from ludo_engine.strategies.llm import LLMStrategy
@@ -19,6 +20,7 @@ from ludo_engine.strategies.winner import WinnerStrategy
 
 # Strategy Mapping - Centralized mapping of strategy names to classes
 STRATEGIES: dict[str, Strategy] = {
+    "human": HumanStrategy,
     "killer": KillerStrategy,
     "winner": WinnerStrategy,
     "optimist": OptimistStrategy,
@@ -36,6 +38,7 @@ STRATEGIES: dict[str, Strategy] = {
 
 __all__ = [
     "Strategy",
+    "HumanStrategy",
     "KillerStrategy",
     "WinnerStrategy",
     "OptimistStrategy",

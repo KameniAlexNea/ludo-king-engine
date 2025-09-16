@@ -1,23 +1,41 @@
 from typing import Dict, List, Tuple
+import math
 
 from PIL import Image, ImageDraw, ImageFont
 
 from ludo_engine.constants import BoardConstants, Colors, GameConstants
 from ludo_engine.token import Token, TokenState
 
-# Styling
+# Enhanced Styling with gradients and better colors
 COLOR_MAP = {
-    Colors.RED: (230, 60, 60),
-    Colors.GREEN: (60, 170, 90),
-    Colors.YELLOW: (245, 205, 55),
-    Colors.BLUE: (65, 100, 210),
+    Colors.RED: (220, 53, 69),
+    Colors.GREEN: (40, 167, 69),
+    Colors.YELLOW: (255, 193, 7),
+    Colors.BLUE: (13, 110, 253),
 }
-BG_COLOR = (245, 245, 245)
-GRID_LINE = (210, 210, 210)
+
+# Additional color variations for better visuals
+COLOR_LIGHT = {
+    Colors.RED: (248, 215, 218),
+    Colors.GREEN: (209, 231, 221),
+    Colors.YELLOW: (255, 243, 205),
+    Colors.BLUE: (204, 229, 255),
+}
+
+COLOR_DARK = {
+    Colors.RED: (176, 42, 55),
+    Colors.GREEN: (32, 134, 55),
+    Colors.YELLOW: (204, 154, 6),
+    Colors.BLUE: (10, 88, 202),
+}
+
+BG_COLOR = (248, 249, 250)
+GRID_LINE = (173, 181, 189)
 PATH_COLOR = (255, 255, 255)
-STAR_COLOR = (190, 190, 190)  # safe/star
-HOME_SHADE = (235, 235, 235)
-CENTER_COLOR = (255, 255, 255)
+STAR_COLOR = (255, 235, 59)  # More attractive star color
+HOME_SHADE = (233, 236, 239)
+CENTER_COLOR = (248, 249, 250)
+SHADOW_COLOR = (0, 0, 0, 50)  # Semi-transparent black for shadows
 
 FONT = None
 try:  # optional font
@@ -101,26 +119,156 @@ def _cell_bbox(col: int, row: int):
     return (x0, y0, x0 + CELL, y0 + CELL)
 
 
+def _draw_gradient_rect(d: ImageDraw.ImageDraw, bbox, color_start, color_end):
+    """Draw a rectangle with vertical gradient."""
+    x0, y0, x1, y1 = bbox
+    height = y1 - y0
+    
+    if height <= 0:
+        return
+    
+    for i in range(height):
+        ratio = i / height
+        r = int(color_start[0] * (1 - ratio) + color_end[0] * ratio)
+        g = int(color_start[1] * (1 - ratio) + color_end[1] * ratio)
+        b = int(color_start[2] * (1 - ratio) + color_end[2] * ratio)
+        color = (r, g, b)
+        d.line([(x0, y0 + i), (x1 - 1, y0 + i)], fill=color)
+
+
+def _draw_shadow(d: ImageDraw.ImageDraw, bbox, offset=2):
+    """Draw a subtle shadow for the given bounding box."""
+    x0, y0, x1, y1 = bbox
+    shadow_bbox = (x0 + offset, y0 + offset, x1 + offset, y1 + offset)
+    d.rectangle(shadow_bbox, fill=(200, 200, 200, 100), outline=None)
+
+
 def _draw_home_quadrants(d: ImageDraw.ImageDraw):
-    """Draw only a colored border for each player's home quadrant."""
-    border_width = 6
+    """Draw enhanced home quadrants with gradients and better styling."""
+    border_width = 8
     for color, ((c0, c1), (r0, r1)) in HOME_QUADRANTS.items():
         box = (c0 * CELL, r0 * CELL, (c1 + 1) * CELL, (r1 + 1) * CELL)
-        # Draw base (background) to ensure any prior drawings are covered
-        d.rectangle(box, fill=BG_COLOR)
-        # Pillow's rectangle outline draws centered on the edge; for a thicker
-        # appearance we can draw multiple inset rectangles.
+        
+        # Draw gradient background
+        light_color = COLOR_LIGHT[color]
+        main_color = COLOR_MAP[color]
+        _draw_gradient_rect(d, box, light_color, main_color + (50,))
+        
+        # Draw enhanced border with inner shadow effect
         for w in range(border_width):
+            alpha = int(255 * (1 - w / border_width) * 0.8)
+            border_color = COLOR_DARK[color] + (alpha,)
             inset_box = (
                 box[0] + w,
                 box[1] + w,
                 box[2] - w,
                 box[3] - w,
             )
-            d.rectangle(inset_box, outline=COLOR_MAP[color])
+            d.rectangle(inset_box, outline=border_color, width=2)
+
+
+def _get_tokens_at_position(tokens: Dict[str, List[Token]], position: int, state: str) -> List[Tuple[str, Token]]:
+    """Get all tokens at a specific position and state."""
+    tokens_at_pos = []
+    for color, token_list in tokens.items():
+        for token in token_list:
+            if token.position == position and token.state.value == state:
+                tokens_at_pos.append((color, token))
+    return tokens_at_pos
+
+
+def _draw_stacked_tokens(d: ImageDraw.ImageDraw, tokens_at_pos: List[Tuple[str, Token]], 
+                        center_x: int, center_y: int, base_radius: int, show_ids: bool = True):
+    """Draw multiple tokens stacked at the same position with offset and shadow effects."""
+    if not tokens_at_pos:
+        return
+    
+    # Calculate stacking offsets
+    num_tokens = len(tokens_at_pos)
+    if num_tokens == 1:
+        offsets = [(0, 0)]
+    elif num_tokens == 2:
+        offsets = [(-6, -6), (6, 6)]
+    elif num_tokens == 3:
+        offsets = [(-8, -8), (0, 0), (8, 8)]
+    else:  # 4 or more tokens
+        offsets = [(-8, -8), (8, -8), (-8, 8), (8, 8)]
+        # If more than 4, stack them on top
+        for i in range(4, num_tokens):
+            offsets.append((0, 0))
+    
+    # Draw tokens with shadows and stacking
+    for i, ((color, token), offset) in enumerate(zip(tokens_at_pos, offsets)):
+        offset_x, offset_y = offset
+        token_x = center_x + offset_x
+        token_y = center_y + offset_y
+        
+        # Draw shadow first
+        shadow_radius = base_radius + 2
+        shadow_x = token_x + 2
+        shadow_y = token_y + 2
+        d.ellipse(
+            (shadow_x - shadow_radius, shadow_y - shadow_radius,
+             shadow_x + shadow_radius, shadow_y + shadow_radius),
+            fill=(0, 0, 0, 80)
+        )
+        
+        # Draw token with gradient effect
+        token_color = COLOR_MAP[color]
+        light_color = COLOR_LIGHT[color]
+        
+        # Outer ring (darker)
+        d.ellipse(
+            (token_x - base_radius, token_y - base_radius,
+             token_x + base_radius, token_y + base_radius),
+            fill=COLOR_DARK[color], outline=(0, 0, 0, 180), width=2
+        )
+        
+        # Inner circle (lighter)
+        inner_radius = base_radius - 3
+        d.ellipse(
+            (token_x - inner_radius, token_y - inner_radius,
+             token_x + inner_radius, token_y + inner_radius),
+            fill=token_color
+        )
+        
+        # Highlight (top-left)
+        highlight_radius = base_radius - 6
+        highlight_x = token_x - 2
+        highlight_y = token_y - 2
+        d.ellipse(
+            (highlight_x - highlight_radius, highlight_y - highlight_radius,
+             highlight_x + highlight_radius, highlight_y + highlight_radius),
+            fill=light_color
+        )
+        
+        # Token ID
+        if show_ids and FONT:
+            text_color = (255, 255, 255) if sum(token_color) < 400 else (0, 0, 0)
+            d.text((token_x - 5, token_y - 8), str(token.token_id), 
+                  fill=text_color, font=FONT)
+        
+        # Stack indicator for multiple tokens
+        if num_tokens > 1:
+            stack_indicator_x = token_x + base_radius - 6
+            stack_indicator_y = token_y - base_radius + 2
+            d.ellipse(
+                (stack_indicator_x - 4, stack_indicator_y - 4,
+                 stack_indicator_x + 4, stack_indicator_y + 4),
+                fill=(255, 255, 255), outline=(0, 0, 0), width=1
+            )
+            if FONT:
+                d.text((stack_indicator_x - 3, stack_indicator_y - 6), str(num_tokens),
+                      fill=(0, 0, 0), font=FONT)
 
 
 def _token_home_grid_position(color: str, token_id: int) -> Tuple[int, int]:
+    (c0, c1), (r0, r1) = HOME_QUADRANTS[color]
+    cols = [c0 + 1, c0 + 3]
+    rows = [r0 + 1, r0 + 3]
+    col = cols[token_id % 2]
+    row = rows[token_id // 2]
+    return col, row
     (c0, c1), (r0, r1) = HOME_QUADRANTS[color]
     cols = [c0 + 1, c0 + 3]
     rows = [r0 + 1, r0 + 3]
@@ -162,7 +310,7 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
     img = Image.new("RGB", (BOARD_SIZE, BOARD_SIZE), BG_COLOR)
     d = ImageDraw.Draw(img)
 
-    # Quadrants
+    # Quadrants with enhanced styling
     _draw_home_quadrants(d)
 
     # Precompute special colored squares: start positions & home entry positions
@@ -171,107 +319,155 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
     start_index_to_color = {idx: clr for clr, idx in start_positions.items()}
     entry_index_to_color = {idx: clr for clr, idx in home_entries.items()}
 
-    # Main path cells with coloring rules
+    # Main path cells with enhanced coloring and shadows
     for idx, (c, r) in PATH_INDEX_TO_COORD.items():
         bbox = _cell_bbox(c, r)
         outline = GRID_LINE
+        
         if idx in start_index_to_color:  # starting squares (safe)
-            fill = COLOR_MAP[start_index_to_color[idx]]
-        elif (
-            idx in entry_index_to_color
-        ):  # home entry squares (NOT safe) keep path color, colored outline
+            color = start_index_to_color[idx]
+            fill = COLOR_MAP[color]
+            # Add subtle shadow for start positions
+            _draw_shadow(d, bbox, offset=1)
+            d.rectangle(bbox, fill=fill, outline=COLOR_DARK[color], width=2)
+            # Add star symbol for start positions
+            cx, cy = (bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2
+            star_size = 8
+            # Simple star shape using lines
+            d.line([(cx, cy - star_size), (cx, cy + star_size)], fill=(255, 255, 255), width=2)
+            d.line([(cx - star_size, cy), (cx + star_size, cy)], fill=(255, 255, 255), width=2)
+            d.line([(cx - star_size//2, cy - star_size//2), (cx + star_size//2, cy + star_size//2)], fill=(255, 255, 255), width=2)
+            d.line([(cx - star_size//2, cy + star_size//2), (cx + star_size//2, cy - star_size//2)], fill=(255, 255, 255), width=2)
+        elif idx in entry_index_to_color:  # home entry squares
+            color = entry_index_to_color[idx]
             fill = PATH_COLOR
-            outline = COLOR_MAP[entry_index_to_color[idx]]
+            outline = COLOR_MAP[color]
+            d.rectangle(bbox, fill=fill, outline=outline, width=3)
         elif idx in BoardConstants.STAR_SQUARES:  # global safe/star
             fill = STAR_COLOR
+            d.rectangle(bbox, fill=fill, outline=outline, width=2)
+            # Add star decoration
+            cx, cy = (bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2
+            star_size = 6
+            d.polygon([
+                (cx, cy - star_size), (cx + 2, cy - 2), (cx + star_size, cy),
+                (cx + 2, cy + 2), (cx, cy + star_size), (cx - 2, cy + 2),
+                (cx - star_size, cy), (cx - 2, cy - 2)
+            ], fill=(255, 165, 0), outline=(0, 0, 0))
         else:
             fill = PATH_COLOR
-        d.rectangle(bbox, fill=fill, outline=outline)
+            d.rectangle(bbox, fill=fill, outline=outline)
 
-    # Home columns (tinted player color)
+    # Home columns with enhanced styling
     for color, pos_map in HOME_COLUMN_COORDS.items():
-        col_rgb = COLOR_MAP[color]
-        tint = tuple(min(255, int(v * 1.15)) for v in col_rgb)  # light tint
+        base_color = COLOR_MAP[color]
+        light_color = COLOR_LIGHT[color]
         for pos, (c, r) in pos_map.items():
             bbox = _cell_bbox(c, r)
-            d.rectangle(bbox, fill=tint, outline=col_rgb)
+            _draw_gradient_rect(d, bbox, light_color, base_color)
+            d.rectangle(bbox, fill=None, outline=COLOR_DARK[color], width=2)
 
-    # Center finish region (position 105) draw four color triangles
+    # Enhanced center finish region
     cx0, cy0, cx1, cy1 = _cell_bbox(7, 7)
     midx = (cx0 + cx1) // 2
     midy = (cy0 + cy1) // 2
-    d.rectangle((cx0, cy0, cx1, cy1), fill=CENTER_COLOR, outline=(80, 80, 80), width=3)
-    # Triangles: top(red), right(green), bottom(yellow), left(blue) typical clockwise
-    d.polygon([(cx0, cy0), (cx1, cy0), (midx, midy)], fill=COLOR_MAP[Colors.RED])  # top
-    d.polygon(
-        [(cx1, cy0), (cx1, cy1), (midx, midy)], fill=COLOR_MAP[Colors.BLUE]
-    )  # right (swapped: was GREEN)
-    d.polygon(
-        [(cx0, cy1), (cx1, cy1), (midx, midy)], fill=COLOR_MAP[Colors.YELLOW]
-    )  # bottom
-    d.polygon(
-        [(cx0, cy0), (cx0, cy1), (midx, midy)], fill=COLOR_MAP[Colors.GREEN]
-    )  # left (swapped: was BLUE)
+    
+    # Shadow for center
+    _draw_shadow(d, (cx0, cy0, cx1, cy1), offset=3)
+    
+    # Center background
+    d.rectangle((cx0, cy0, cx1, cy1), fill=CENTER_COLOR, outline=(60, 60, 60), width=4)
+    
+    # Enhanced triangles with gradients
+    colors_order = [Colors.RED, Colors.BLUE, Colors.YELLOW, Colors.GREEN]
+    triangle_coords = [
+        [(cx0, cy0), (cx1, cy0), (midx, midy)],  # top
+        [(cx1, cy0), (cx1, cy1), (midx, midy)],  # right  
+        [(cx0, cy1), (cx1, cy1), (midx, midy)],  # bottom
+        [(cx0, cy0), (cx0, cy1), (midx, midy)]   # left
+    ]
+    
+    for i, (color, coords) in enumerate(zip(colors_order, triangle_coords)):
+        d.polygon(coords, fill=COLOR_MAP[color], outline=COLOR_DARK[color])
 
-    # Finish anchors per color inside their triangle (stack tokens exactly here)
+    # Finish anchors per color inside their triangle
     finish_anchor = {
         Colors.RED: (midx, cy0 + (midy - cy0) // 2),
-        # Swapped BLUE and GREEN to align with triangle color swap
-        Colors.BLUE: (cx1 - (cx1 - midx) // 2, midy),  # right side now BLUE
+        Colors.BLUE: (cx1 - (cx1 - midx) // 2, midy),
         Colors.YELLOW: (midx, cy1 - (cy1 - midy) // 2),
-        Colors.GREEN: (cx0 + (midx - cx0) // 2, midy),  # left side now GREEN
+        Colors.GREEN: (cx0 + (midx - cx0) // 2, midy),
     }
 
-    # Grid overlay (subtle)
+    # Enhanced grid overlay
     for i in range(GRID + 1):
-        d.line((0, i * CELL, BOARD_SIZE, i * CELL), fill=(230, 230, 230))
-        d.line((i * CELL, 0, i * CELL, BOARD_SIZE), fill=(230, 230, 230))
+        alpha = 100 if i % 3 == 0 else 50  # Stronger lines every 3 cells
+        grid_color = (200, 200, 200, alpha)
+        d.line((0, i * CELL, BOARD_SIZE, i * CELL), fill=grid_color)
+        d.line((i * CELL, 0, i * CELL, BOARD_SIZE), fill=grid_color)
 
-    # Tokens
+    # Enhanced token rendering with proper stacking
+    # First, collect all tokens by position and state for stacking
+    position_groups = {}
+    
     for color, tlist in tokens.items():
-        base_color = COLOR_MAP[color]
         for tk in tlist:
             state = tk.state.value
             pos = tk.position
-            tid = tk.token_id
+            
             if state == TokenState.HOME.value:
-                c, r = _token_home_grid_position(color, tid)
-            elif (
-                state == TokenState.HOME_COLUMN.value
-                and HOME_COLUMN_START <= pos <= HOME_COLUMN_END
-            ):
+                # Home tokens - render individually in their designated spots
+                c, r = _token_home_grid_position(color, tk.token_id)
+                bbox = _cell_bbox(c, r)
+                cx, cy = (bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2
+                _draw_stacked_tokens(d, [(color, tk)], cx, cy, CELL // 2 - 6, show_ids)
+                
+            elif (state == TokenState.HOME_COLUMN.value and 
+                  HOME_COLUMN_START <= pos <= HOME_COLUMN_END):
+                # Home column tokens
                 coord_map = HOME_COLUMN_COORDS[color]
-                if pos not in coord_map:
-                    continue
-                c, r = coord_map[pos]
+                if pos in coord_map:
+                    key = f"home_column_{color}_{pos}"
+                    if key not in position_groups:
+                        position_groups[key] = []
+                    position_groups[key].append((color, tk))
+                    
             elif state == TokenState.FINISHED.value:
-                ax, ay = finish_anchor[color]
-                # Draw stacked (superposed) circle; tokens overlap fully
-                r_pix = CELL // 2 - 4
-                x0 = ax - r_pix
-                y0 = ay - r_pix
-                x1 = ax + r_pix
-                y1 = ay + r_pix
-                d.ellipse((x0, y0, x1, y1), fill=base_color, outline=(0, 0, 0))
-                if show_ids and FONT:
-                    d.text((ax - 5, ay - 8), str(tid), fill=(0, 0, 0), font=FONT)
-                continue
+                # Finished tokens - stack at finish anchor
+                key = f"finished_{color}"
+                if key not in position_groups:
+                    position_groups[key] = []
+                position_groups[key].append((color, tk))
+                
             else:  # active on main path
                 if 0 <= pos < len(PATH_INDEX_TO_COORD):
-                    c, r = PATH_INDEX_TO_COORD[pos]
-                else:
-                    continue
+                    key = f"main_path_{pos}"
+                    if key not in position_groups:
+                        position_groups[key] = []
+                    position_groups[key].append((color, tk))
+
+    # Render grouped tokens with proper stacking
+    for key, token_group in position_groups.items():
+        if key.startswith("home_column_"):
+            parts = key.split("_")
+            color = parts[2]
+            pos = int(parts[3])
+            coord_map = HOME_COLUMN_COORDS[color]
+            if pos in coord_map:
+                c, r = coord_map[pos]
+                bbox = _cell_bbox(c, r)
+                cx, cy = (bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2
+                _draw_stacked_tokens(d, token_group, cx, cy, CELL // 2 - 4, show_ids)
+                
+        elif key.startswith("finished_"):
+            color = key.split("_")[1]
+            ax, ay = finish_anchor[color]
+            _draw_stacked_tokens(d, token_group, ax, ay, CELL // 2 - 4, show_ids)
+            
+        elif key.startswith("main_path_"):
+            pos = int(key.split("_")[2])
+            c, r = PATH_INDEX_TO_COORD[pos]
             bbox = _cell_bbox(c, r)
-            x0, y0, x1, y1 = bbox
-            inset = 4
-            token_box = (x0 + inset, y0 + inset, x1 - inset, y1 - inset)
-            d.ellipse(token_box, fill=base_color, outline=(0, 0, 0))
-            if show_ids and FONT:
-                d.text(
-                    (x0 + CELL // 2 - 5, y0 + CELL // 2 - 8),
-                    str(tid),
-                    fill=(0, 0, 0),
-                    font=FONT,
-                )
+            cx, cy = (bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2
+            _draw_stacked_tokens(d, token_group, cx, cy, CELL // 2 - 4, show_ids)
 
     return img
