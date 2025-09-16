@@ -9,7 +9,7 @@ import unittest
 from ludo_engine.board import Board, Position
 from ludo_engine.constants import BoardConstants
 from ludo_engine.player import Player, PlayerColor
-from ludo_engine.token import Token, TokenState
+from ludo_engine.token import TokenState
 
 
 class TestBoard(unittest.TestCase):
@@ -155,7 +155,9 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(token_red2, 5)
 
         # Should be able to stack
-        can_move, captured = self.board.can_move_to_position(self.player_red.tokens[2], 5)
+        can_move, captured = self.board.can_move_to_position(
+            self.player_red.tokens[2], 5
+        )
         self.assertTrue(can_move)
         self.assertEqual(len(captured), 0)
 
@@ -209,7 +211,9 @@ class TestBoard(unittest.TestCase):
 
         # Should not move
         self.assertEqual(len(captured), 0)
-        self.assertEqual(len(self.board.get_tokens_at_position(1)), 0)  # Token not at old position
+        self.assertEqual(
+            len(self.board.get_tokens_at_position(1)), 0
+        )  # Token not at old position
         # Note: In current implementation, token might be added to invalid position
         # This tests the expected behavior
 
@@ -351,7 +355,7 @@ class TestBoard(unittest.TestCase):
         self.assertFalse(self.board._cache_valid)
 
         # Getting blocking positions should build cache
-        blocking = self.board.get_blocking_positions("red")
+        self.board.get_blocking_positions("red")
         self.assertTrue(self.board._cache_valid)
 
         # Adding token should invalidate cache
@@ -389,7 +393,9 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(self.token_blue, 5)
 
         # Red token tries to move to this position
-        can_move, captured = self.board.can_move_to_position(self.player_red.tokens[2], 5)
+        can_move, captured = self.board.can_move_to_position(
+            self.player_red.tokens[2], 5
+        )
 
         # Should be able to move and capture (can stack with own tokens, can capture unprotected opponent)
         self.assertTrue(can_move)
@@ -413,5 +419,5 @@ class TestBoard(unittest.TestCase):
         self.assertEqual(tokens[0], self.token_red)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

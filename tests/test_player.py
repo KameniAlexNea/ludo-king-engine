@@ -5,25 +5,40 @@ and game state representation.
 """
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from ludo_engine.constants import GameConstants
-from ludo_engine.model import AIDecisionContext, ValidMove, CurrentSituation, PlayerState, OpponentInfo, StrategicAnalysis
+from ludo_engine.model import (
+    AIDecisionContext,
+    CurrentSituation,
+    OpponentInfo,
+    PlayerState,
+    StrategicAnalysis,
+    ValidMove,
+)
 from ludo_engine.player import Player, PlayerColor
 from ludo_engine.strategies.random_strategy import RandomStrategy
-from ludo_engine.token import Token, TokenState
+from ludo_engine.token import TokenState
 
 
 def create_test_decision_context(dice_value=4, valid_moves=None):
     """Create a test AIDecisionContext for strategy testing."""
     if valid_moves is None:
         valid_moves = [
-            ValidMove(token_id=0, current_position=5, current_state="active",
-                     target_position=9, move_type="advance_main_board", is_safe_move=False,
-                     captures_opponent=False, captured_tokens=[], strategic_value=5.0,
-                     strategic_components={}),
+            ValidMove(
+                token_id=0,
+                current_position=5,
+                current_state="active",
+                target_position=9,
+                move_type="advance_main_board",
+                is_safe_move=False,
+                captures_opponent=False,
+                captured_tokens=[],
+                strategic_value=5.0,
+                strategic_components={},
+            ),
         ]
-    
+
     return AIDecisionContext(
         current_situation=CurrentSituation(
             player_color="red",
@@ -164,7 +179,7 @@ class TestPlayer(unittest.TestCase):
     def test_can_move_any_token(self):
         """Test checking if any token can move."""
         self.assertFalse(self.player.can_move_any_token(3))  # Can't exit home
-        self.assertTrue(self.player.can_move_any_token(6))   # Can exit home
+        self.assertTrue(self.player.can_move_any_token(6))  # Can exit home
 
         # Test with active token
         self.player.tokens[0].state = TokenState.ACTIVE
@@ -174,8 +189,8 @@ class TestPlayer(unittest.TestCase):
     def test_move_token_invalid(self):
         """Test moving token with invalid parameters."""
         self.assertFalse(self.player.move_token(-1, 6))  # Invalid token ID
-        self.assertFalse(self.player.move_token(4, 6))   # Invalid token ID
-        self.assertFalse(self.player.move_token(0, 0))   # Invalid dice value
+        self.assertFalse(self.player.move_token(4, 6))  # Invalid token ID
+        self.assertFalse(self.player.move_token(0, 0))  # Invalid dice value
 
     def test_move_token_exit_home(self):
         """Test moving token to exit home."""
@@ -298,12 +313,9 @@ class TestPlayer(unittest.TestCase):
         strategy = RandomStrategy()
         self.player.set_strategy(strategy)
 
-        context = create_test_decision_context(
-            dice_value=6,
-            valid_moves=[]
-        )
+        context = create_test_decision_context(dice_value=6, valid_moves=[])
 
-        with patch.object(strategy, 'decide', return_value=2):
+        with patch.object(strategy, "decide", return_value=2):
             decision = self.player.make_strategic_decision(context)
             self.assertEqual(decision, 2)
 
@@ -314,11 +326,19 @@ class TestPlayer(unittest.TestCase):
         context = create_test_decision_context(
             dice_value=6,
             valid_moves=[
-                ValidMove(token_id=0, current_position=-1, current_state="home",
-                         target_position=0, move_type="exit_home", is_safe_move=True,
-                         captures_opponent=False, captured_tokens=[], strategic_value=10.0,
-                         strategic_components={})
-            ]
+                ValidMove(
+                    token_id=0,
+                    current_position=-1,
+                    current_state="home",
+                    target_position=0,
+                    move_type="exit_home",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=10.0,
+                    strategic_components={},
+                )
+            ],
         )
 
         decision = self.player.make_strategic_decision(context)
@@ -334,7 +354,10 @@ class TestPlayer(unittest.TestCase):
 
     def test_get_strategy_description(self):
         """Test getting strategy description."""
-        self.assertEqual(self.player.get_strategy_description(), "Baseline strategy that makes random valid moves")
+        self.assertEqual(
+            self.player.get_strategy_description(),
+            "Baseline strategy that makes random valid moves",
+        )
 
         strategy = RandomStrategy()
         self.player.set_strategy(strategy)
@@ -379,5 +402,5 @@ class TestPlayer(unittest.TestCase):
         self.assertFalse(is_safe)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

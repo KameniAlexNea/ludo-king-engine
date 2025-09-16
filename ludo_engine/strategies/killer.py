@@ -220,7 +220,9 @@ class KillerStrategy(Strategy):
         return score
 
     # --- Predictive positioning ---
-    def _choose_predictive(self, moves: List[ValidMove], ctx: AIDecisionContext) -> int | None:
+    def _choose_predictive(
+        self, moves: List[ValidMove], ctx: AIDecisionContext
+    ) -> int | None:
         # current_color = ctx.current_situation.player_color
         opponent_positions = get_opponent_main_positions(ctx)
 
@@ -241,9 +243,7 @@ class KillerStrategy(Strategy):
                 if 1 <= dist <= 6:
                     count += 1
             stack_bonus = (
-                0.5
-                if (mv.strategic_value > 10 and not mv.is_safe_move)
-                else 0.0
+                0.5 if (mv.strategic_value > 10 and not mv.is_safe_move) else 0.0
             )
             score = count * StrategyConstants.KILLER_FUTURE_CAPTURE_WEIGHT + stack_bonus
             if score > 0:

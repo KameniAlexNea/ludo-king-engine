@@ -291,7 +291,9 @@ class ProbabilisticV3Strategy(Strategy):
         return best.move.token_id
 
     # ---- RISK helpers ----
-    def _single_step_risk(self, move: ValidMove, opponent_positions: List[int]) -> float:
+    def _single_step_risk(
+        self, move: ValidMove, opponent_positions: List[int]
+    ) -> float:
         tgt = move.target_position
         if not isinstance(tgt, int):
             return 0.0
@@ -351,7 +353,9 @@ class ProbabilisticV3Strategy(Strategy):
                 p_no *= p_fail
             return 1.0 - p_no
 
-    def _proximity_factor(self, move: ValidMove, opponent_positions: List[int]) -> float:
+    def _proximity_factor(
+        self, move: ValidMove, opponent_positions: List[int]
+    ) -> float:
         if not opponent_positions:
             return 1.0
         tgt = move.target_position
@@ -517,7 +521,9 @@ class ProbabilisticV3Strategy(Strategy):
         return 0.0
 
     # ---- Selection helpers ----
-    def _pareto_filter(self, moves: Sequence[V3MoveEvaluation]) -> List[V3MoveEvaluation]:
+    def _pareto_filter(
+        self, moves: Sequence[V3MoveEvaluation]
+    ) -> List[V3MoveEvaluation]:
         result: List[V3MoveEvaluation] = []
         for m in moves:
             dominated = False
@@ -576,18 +582,27 @@ class ProbabilisticV3Strategy(Strategy):
     ) -> List[int]:
         return get_my_main_positions(game_context, current_color)
 
-    def _collect_opponent_token_progress(self, game_context: AIDecisionContext) -> Dict[str, float]:
+    def _collect_opponent_token_progress(
+        self, game_context: AIDecisionContext
+    ) -> Dict[str, float]:
         result: Dict[str, float] = {}
         for opp in game_context.opponents:
             finished = opp.finished_tokens
             prog = 0
             start = BoardConstants.START_POSITIONS[opp.color]
             for t in opp.positions_occupied:
-                prog += self._backward_distance(start, t) or 0 / GameConstants.MAIN_BOARD_SIZE
+                prog += (
+                    self._backward_distance(start, t)
+                    or 0 / GameConstants.MAIN_BOARD_SIZE
+                )
             result[opp.color] = min(
                 1.0,
-                finished / GameConstants.TOKENS_TO_WIN
-                + prog / len(opp.positions_occupied) if opp.positions_occupied else 0.0,
+                (
+                    finished / GameConstants.TOKENS_TO_WIN
+                    + prog / len(opp.positions_occupied)
+                    if opp.positions_occupied
+                    else 0.0
+                ),
             )
         return result
 

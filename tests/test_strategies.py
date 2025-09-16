@@ -4,7 +4,6 @@ Tests cover unique decision logic for each strategy type.
 """
 
 import unittest
-from unittest.mock import patch
 
 from ludo_engine.model import (
     AIDecisionContext,
@@ -30,12 +29,20 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
     """Create a test AIDecisionContext for strategy testing."""
     if valid_moves is None:
         valid_moves = [
-            ValidMove(token_id=0, current_position=5, current_state="active",
-                     target_position=9, move_type="advance_main_board", is_safe_move=False,
-                     captures_opponent=False, captured_tokens=[], strategic_value=5.0,
-                     strategic_components={}),
+            ValidMove(
+                token_id=0,
+                current_position=5,
+                current_state="active",
+                target_position=9,
+                move_type="advance_main_board",
+                is_safe_move=False,
+                captures_opponent=False,
+                captured_tokens=[],
+                strategic_value=5.0,
+                strategic_components={},
+            ),
         ]
-    
+
     return AIDecisionContext(
         current_situation=CurrentSituation(
             player_color="red",
@@ -93,19 +100,43 @@ class TestBalancedStrategy(unittest.TestCase):
         context = create_test_decision_context(
             dice_value=6,
             valid_moves=[
-                ValidMove(token_id=0, current_position=-1, current_state="home",
-                         target_position=0, move_type="exit_home", is_safe_move=True,
-                         captures_opponent=False, captured_tokens=[], strategic_value=10.0,
-                         strategic_components={}),
-                ValidMove(token_id=1, current_position=5, current_state="active",
-                         target_position=10, move_type="advance_main_board", is_safe_move=False,
-                         captures_opponent=True, captured_tokens=[], strategic_value=15.0,
-                         strategic_components={}),
-                ValidMove(token_id=2, current_position=104, current_state="home_column",
-                         target_position=105, move_type="finish", is_safe_move=True,
-                         captures_opponent=False, captured_tokens=[], strategic_value=20.0,
-                         strategic_components={})
-            ]
+                ValidMove(
+                    token_id=0,
+                    current_position=-1,
+                    current_state="home",
+                    target_position=0,
+                    move_type="exit_home",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=10.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=5,
+                    current_state="active",
+                    target_position=10,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=True,
+                    captured_tokens=[],
+                    strategic_value=15.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=2,
+                    current_position=104,
+                    current_state="home_column",
+                    target_position=105,
+                    move_type="finish",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=20.0,
+                    strategic_components={},
+                ),
+            ],
         )
 
         decision = self.strategy.decide(context)
@@ -130,15 +161,31 @@ class TestCautiousStrategy(unittest.TestCase):
         context = create_test_decision_context(
             dice_value=4,
             valid_moves=[
-                ValidMove(token_id=0, current_position=5, current_state="active",
-                         target_position=10, move_type="advance_main_board", is_safe_move=True,
-                         captures_opponent=False, captured_tokens=[], strategic_value=8.0,
-                         strategic_components={}),
-                ValidMove(token_id=1, current_position=5, current_state="active",
-                         target_position=15, move_type="advance_main_board", is_safe_move=False,
-                         captures_opponent=False, captured_tokens=[], strategic_value=10.0,
-                         strategic_components={})
-            ]
+                ValidMove(
+                    token_id=0,
+                    current_position=5,
+                    current_state="active",
+                    target_position=10,
+                    move_type="advance_main_board",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=8.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=5,
+                    current_state="active",
+                    target_position=15,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=10.0,
+                    strategic_components={},
+                ),
+            ],
         )
 
         decision = self.strategy.decide(context)
@@ -163,15 +210,31 @@ class TestDefensiveStrategy(unittest.TestCase):
         context = create_test_decision_context(
             dice_value=4,
             valid_moves=[
-                ValidMove(token_id=0, current_position=5, current_state="active",
-                         target_position=8, move_type="advance_main_board", is_safe_move=True,
-                         captures_opponent=False, captured_tokens=[], strategic_value=8.0,
-                         strategic_components={}),
-                ValidMove(token_id=1, current_position=5, current_state="active",
-                         target_position=10, move_type="advance_main_board", is_safe_move=False,
-                         captures_opponent=True, captured_tokens=[], strategic_value=12.0,
-                         strategic_components={})
-            ]
+                ValidMove(
+                    token_id=0,
+                    current_position=5,
+                    current_state="active",
+                    target_position=8,
+                    move_type="advance_main_board",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=8.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=5,
+                    current_state="active",
+                    target_position=10,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=True,
+                    captured_tokens=[],
+                    strategic_value=12.0,
+                    strategic_components={},
+                ),
+            ],
         )
 
         decision = self.strategy.decide(context)
@@ -196,15 +259,31 @@ class TestOptimistStrategy(unittest.TestCase):
         context = create_test_decision_context(
             dice_value=6,
             valid_moves=[
-                ValidMove(token_id=0, current_position=-1, current_state="home",
-                         target_position=0, move_type="exit_home", is_safe_move=True,
-                         captures_opponent=False, captured_tokens=[], strategic_value=10.0,
-                         strategic_components={}),
-                ValidMove(token_id=1, current_position=5, current_state="active",
-                         target_position=11, move_type="advance_main_board", is_safe_move=False,
-                         captures_opponent=False, captured_tokens=[], strategic_value=15.0,
-                         strategic_components={})
-            ]
+                ValidMove(
+                    token_id=0,
+                    current_position=-1,
+                    current_state="home",
+                    target_position=0,
+                    move_type="exit_home",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=10.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=5,
+                    current_state="active",
+                    target_position=11,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=15.0,
+                    strategic_components={},
+                ),
+            ],
         )
 
         decision = self.strategy.decide(context)
@@ -230,15 +309,31 @@ class TestProbabilisticStrategy(unittest.TestCase):
         context = create_test_decision_context(
             dice_value=4,
             valid_moves=[
-                ValidMove(token_id=0, current_position=5, current_state="active",
-                         target_position=9, move_type="advance_main_board", is_safe_move=False,
-                         captures_opponent=False, captured_tokens=[], strategic_value=5.0,
-                         strategic_components={}),
-                ValidMove(token_id=1, current_position=5, current_state="active",
-                         target_position=9, move_type="advance_main_board", is_safe_move=True,
-                         captures_opponent=False, captured_tokens=[], strategic_value=8.0,
-                         strategic_components={})
-            ]
+                ValidMove(
+                    token_id=0,
+                    current_position=5,
+                    current_state="active",
+                    target_position=9,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=5.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=5,
+                    current_state="active",
+                    target_position=9,
+                    move_type="advance_main_board",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=8.0,
+                    strategic_components={},
+                ),
+            ],
         )
 
         decision = self.strategy.decide(context)
@@ -263,15 +358,31 @@ class TestProbabilisticV2Strategy(unittest.TestCase):
         context = create_test_decision_context(
             dice_value=6,
             valid_moves=[
-                ValidMove(token_id=0, current_position=-1, current_state="home",
-                         target_position=0, move_type="exit_home", is_safe_move=True,
-                         captures_opponent=False, captured_tokens=[], strategic_value=10.0,
-                         strategic_components={}),
-                ValidMove(token_id=1, current_position=10, current_state="active",
-                         target_position=16, move_type="advance_main_board", is_safe_move=False,
-                         captures_opponent=True, captured_tokens=[], strategic_value=15.0,
-                         strategic_components={})
-            ]
+                ValidMove(
+                    token_id=0,
+                    current_position=-1,
+                    current_state="home",
+                    target_position=0,
+                    move_type="exit_home",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=10.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=10,
+                    current_state="active",
+                    target_position=16,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=True,
+                    captured_tokens=[],
+                    strategic_value=15.0,
+                    strategic_components={},
+                ),
+            ],
         )
 
         decision = self.strategy.decide(context)
@@ -295,17 +406,47 @@ class TestProbabilisticV3Strategy(unittest.TestCase):
         context = create_test_decision_context(
             dice_value=4,
             valid_moves=[
-                ValidMove(token_id=0, current_position=5, current_state="active",
-                         target_position=9, move_type="advance_main_board", is_safe_move=True,
-                         captures_opponent=False, captured_tokens=[], strategic_value=12.0,
-                         strategic_components={"exit_home": 0.0, "finish": 0.0, "home_column_depth": 0.0,
-                                             "forward_progress": 4.0, "acceleration": 2.0, "safety": 3.0, "vulnerability_penalty": 0.0}),
-                ValidMove(token_id=1, current_position=5, current_state="active",
-                         target_position=9, move_type="advance_main_board", is_safe_move=False,
-                         captures_opponent=False, captured_tokens=[], strategic_value=8.0,
-                         strategic_components={"exit_home": 0.0, "finish": 0.0, "home_column_depth": 0.0,
-                                             "forward_progress": 4.0, "acceleration": 2.0, "safety": 0.0, "vulnerability_penalty": -2.0})
-            ]
+                ValidMove(
+                    token_id=0,
+                    current_position=5,
+                    current_state="active",
+                    target_position=9,
+                    move_type="advance_main_board",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=12.0,
+                    strategic_components={
+                        "exit_home": 0.0,
+                        "finish": 0.0,
+                        "home_column_depth": 0.0,
+                        "forward_progress": 4.0,
+                        "acceleration": 2.0,
+                        "safety": 3.0,
+                        "vulnerability_penalty": 0.0,
+                    },
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=5,
+                    current_state="active",
+                    target_position=9,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=8.0,
+                    strategic_components={
+                        "exit_home": 0.0,
+                        "finish": 0.0,
+                        "home_column_depth": 0.0,
+                        "forward_progress": 4.0,
+                        "acceleration": 2.0,
+                        "safety": 0.0,
+                        "vulnerability_penalty": -2.0,
+                    },
+                ),
+            ],
         )
 
         decision = self.strategy.decide(context)
@@ -329,15 +470,31 @@ class TestHybridProbStrategy(unittest.TestCase):
         context = create_test_decision_context(
             dice_value=6,
             valid_moves=[
-                ValidMove(token_id=0, current_position=-1, current_state="home",
-                         target_position=0, move_type="exit_home", is_safe_move=True,
-                         captures_opponent=False, captured_tokens=[], strategic_value=10.0,
-                         strategic_components={}),
-                ValidMove(token_id=1, current_position=15, current_state="active",
-                         target_position=21, move_type="advance_main_board", is_safe_move=False,
-                         captures_opponent=True, captured_tokens=[], strategic_value=18.0,
-                         strategic_components={})
-            ]
+                ValidMove(
+                    token_id=0,
+                    current_position=-1,
+                    current_state="home",
+                    target_position=0,
+                    move_type="exit_home",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=10.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=15,
+                    current_state="active",
+                    target_position=21,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=True,
+                    captured_tokens=[],
+                    strategic_value=18.0,
+                    strategic_components={},
+                ),
+            ],
         )
 
         decision = self.strategy.decide(context)
@@ -358,15 +515,31 @@ class TestKillerStrategyAdvanced(unittest.TestCase):
         context = create_test_decision_context(
             dice_value=4,
             valid_moves=[
-                ValidMove(token_id=0, current_position=5, current_state="active",
-                         target_position=10, move_type="advance_main_board", is_safe_move=False,
-                         captures_opponent=True, captured_tokens=[], strategic_value=15.0,
-                         strategic_components={}),
-                ValidMove(token_id=1, current_position=5, current_state="active",
-                         target_position=15, move_type="advance_main_board", is_safe_move=False,
-                         captures_opponent=False, captured_tokens=[], strategic_value=8.0,
-                         strategic_components={})
-            ]
+                ValidMove(
+                    token_id=0,
+                    current_position=5,
+                    current_state="active",
+                    target_position=10,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=True,
+                    captured_tokens=[],
+                    strategic_value=15.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=5,
+                    current_state="active",
+                    target_position=15,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=8.0,
+                    strategic_components={},
+                ),
+            ],
         )
 
         decision = self.strategy.decide(context)
@@ -386,19 +559,43 @@ class TestWinnerStrategyAdvanced(unittest.TestCase):
         context = create_test_decision_context(
             dice_value=1,
             valid_moves=[
-                ValidMove(token_id=0, current_position=104, current_state="home_column",
-                         target_position=105, move_type="finish", is_safe_move=True,
-                         captures_opponent=False, captured_tokens=[], strategic_value=25.0,
-                         strategic_components={}),
-                ValidMove(token_id=1, current_position=5, current_state="active",
-                         target_position=10, move_type="advance_main_board", is_safe_move=False,
-                         captures_opponent=True, captured_tokens=[], strategic_value=20.0,
-                         strategic_components={}),
-                ValidMove(token_id=2, current_position=-1, current_state="home",
-                         target_position=0, move_type="exit_home", is_safe_move=True,
-                         captures_opponent=False, captured_tokens=[], strategic_value=15.0,
-                         strategic_components={})
-            ]
+                ValidMove(
+                    token_id=0,
+                    current_position=104,
+                    current_state="home_column",
+                    target_position=105,
+                    move_type="finish",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=25.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=5,
+                    current_state="active",
+                    target_position=10,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=True,
+                    captured_tokens=[],
+                    strategic_value=20.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=2,
+                    current_position=-1,
+                    current_state="home",
+                    target_position=0,
+                    move_type="exit_home",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=15.0,
+                    strategic_components={},
+                ),
+            ],
         )
 
         decision = self.strategy.decide(context)
@@ -412,16 +609,16 @@ class TestStrategyComparison(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.strategies = {
-            'killer': KillerStrategy(),
-            'winner': WinnerStrategy(),
-            'balanced': BalancedStrategy(),
-            'cautious': CautiousStrategy(),
-            'optimist': OptimistStrategy(),
-            'probabilistic': ProbabilisticStrategy(),
-            'probabilistic_v2': ProbabilisticV2Strategy(),
-            'probabilistic_v3': ProbabilisticV3Strategy(),
-            'hybrid_prob': HybridProbStrategy(),
-            'defensive': DefensiveStrategy()
+            "killer": KillerStrategy(),
+            "winner": WinnerStrategy(),
+            "balanced": BalancedStrategy(),
+            "cautious": CautiousStrategy(),
+            "optimist": OptimistStrategy(),
+            "probabilistic": ProbabilisticStrategy(),
+            "probabilistic_v2": ProbabilisticV2Strategy(),
+            "probabilistic_v3": ProbabilisticV3Strategy(),
+            "hybrid_prob": HybridProbStrategy(),
+            "defensive": DefensiveStrategy(),
         }
 
     def test_all_strategies_can_decide(self):
@@ -429,15 +626,31 @@ class TestStrategyComparison(unittest.TestCase):
         context = create_test_decision_context(
             dice_value=6,
             valid_moves=[
-                ValidMove(token_id=0, current_position=-1, current_state="home",
-                         target_position=0, move_type="exit_home", is_safe_move=True,
-                         captures_opponent=False, captured_tokens=[], strategic_value=10.0,
-                         strategic_components={}),
-                ValidMove(token_id=1, current_position=5, current_state="active",
-                         target_position=11, move_type="advance_main_board", is_safe_move=False,
-                         captures_opponent=True, captured_tokens=[], strategic_value=15.0,
-                         strategic_components={})
-            ]
+                ValidMove(
+                    token_id=0,
+                    current_position=-1,
+                    current_state="home",
+                    target_position=0,
+                    move_type="exit_home",
+                    is_safe_move=True,
+                    captures_opponent=False,
+                    captured_tokens=[],
+                    strategic_value=10.0,
+                    strategic_components={},
+                ),
+                ValidMove(
+                    token_id=1,
+                    current_position=5,
+                    current_state="active",
+                    target_position=11,
+                    move_type="advance_main_board",
+                    is_safe_move=False,
+                    captures_opponent=True,
+                    captured_tokens=[],
+                    strategic_value=15.0,
+                    strategic_components={},
+                ),
+            ],
         )
 
         for name, strategy in self.strategies.items():
@@ -455,5 +668,5 @@ class TestStrategyComparison(unittest.TestCase):
                 self.assertGreater(len(strategy.description), 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

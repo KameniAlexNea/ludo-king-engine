@@ -88,7 +88,7 @@ class TestToken(unittest.TestCase):
 
         # Can't overshoot finish
         self.token.position = 104  # One space from finish
-        self.assertTrue(self.token.can_move(1))   # Can reach finish
+        self.assertTrue(self.token.can_move(1))  # Can reach finish
         self.assertFalse(self.token.can_move(2))  # Would overshoot
 
     def test_can_move_finished(self):
@@ -328,5 +328,5 @@ class TestToken(unittest.TestCase):
         self.assertEqual(target, -1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -234,9 +234,7 @@ class HybridProbStrategy(Strategy):
         return best.move.token_id
 
     # ---- Risk helpers ----
-    def _immediate_risk(
-        self, move: ValidMove, opponent_positions: List[int]
-    ) -> float:
+    def _immediate_risk(self, move: ValidMove, opponent_positions: List[int]) -> float:
         tgt = move.target_position
         if not isinstance(tgt, int):
             return 0.0
@@ -294,9 +292,7 @@ class HybridProbStrategy(Strategy):
         val = math.exp(max(0.0, (StrategyConstants.HYBRID_PROXIMITY_REF - min_d)) / 3.0)
         return min(StrategyConstants.HYBRID_PROXIMITY_PENALTY_CAP, max(1.0, val))
 
-    def _cluster_factor(
-        self, move: ValidMove, opponent_positions: List[int]
-    ) -> float:
+    def _cluster_factor(self, move: ValidMove, opponent_positions: List[int]) -> float:
         if not opponent_positions:
             return 1.0
         tgt = move.target_position
@@ -474,11 +470,18 @@ class HybridProbStrategy(Strategy):
             prog = 0
             start = BoardConstants.START_POSITIONS[opp.color]
             for t in opp.positions_occupied:
-                prog += self._backward_distance(start, t) or 0 / GameConstants.MAIN_BOARD_SIZE
+                prog += (
+                    self._backward_distance(start, t)
+                    or 0 / GameConstants.MAIN_BOARD_SIZE
+                )
             result[opp.color] = min(
                 1.0,
-                finished / GameConstants.TOKENS_TO_WIN
-                + prog / len(opp.positions_occupied) if opp.positions_occupied else 0.0,
+                (
+                    finished / GameConstants.TOKENS_TO_WIN
+                    + prog / len(opp.positions_occupied)
+                    if opp.positions_occupied
+                    else 0.0
+                ),
             )
         return result
 

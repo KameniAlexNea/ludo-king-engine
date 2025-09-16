@@ -20,9 +20,10 @@ import random
 from typing import Dict, List
 
 from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
-from ludo_engine.strategies.base import Strategy
 from ludo_engine.model import AIDecisionContext, ValidMove
+from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import get_opponent_main_positions
+
 
 class WeightedRandomStrategy(Strategy):
     def __init__(self):
@@ -126,12 +127,17 @@ class WeightedRandomStrategy(Strategy):
 
     def save_and_return(self, tid: int) -> int:
         self.recent_moves_memory.append(tid)
-        if len(self.recent_moves_memory) > StrategyConstants.WEIGHTED_RANDOM_DIVERSITY_MEMORY:
+        if (
+            len(self.recent_moves_memory)
+            > StrategyConstants.WEIGHTED_RANDOM_DIVERSITY_MEMORY
+        ):
             self.recent_moves_memory.pop(0)
         return tid
 
     # --- threat approximation ---
-    def _approx_threats(self, moves: List[ValidMove], ctx: AIDecisionContext) -> Dict[int, int]:
+    def _approx_threats(
+        self, moves: List[ValidMove], ctx: AIDecisionContext
+    ) -> Dict[int, int]:
         opponent_positions = get_opponent_main_positions(ctx)
         threat_map: Dict[int, int] = {}
         for mv in moves:

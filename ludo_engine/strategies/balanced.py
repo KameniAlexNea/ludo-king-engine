@@ -122,9 +122,7 @@ class BalancedStrategy(Strategy):
         positions = ctx.player_state.positions_occupied
         occ: Dict[int, int] = {}
         for t in positions:
-            if t >= 0 and not BoardConstants.is_home_column_position(
-                t
-            ):
+            if t >= 0 and not BoardConstants.is_home_column_position(t):
                 occ[t] = occ.get(t, 0) + 1
         return [pos for pos, c in occ.items() if c >= 2]
 
@@ -194,9 +192,7 @@ class BalancedStrategy(Strategy):
     def _future_capture_positioning(
         self, moves: List[ValidMove], threat_map: Dict[int, Tuple[int, int]], ctx: Dict
     ) -> int | None:
-        candidates = [
-            m for m in moves if m.is_safe_move and not m.captures_opponent
-        ]
+        candidates = [m for m in moves if m.is_safe_move and not m.captures_opponent]
         if not candidates:
             return None
         scored: List[Tuple[float, ValidMove]] = []
@@ -290,7 +286,9 @@ class BalancedStrategy(Strategy):
         home_depth_sum = 0.0
         for pos in ctx.player_state.positions_occupied:
             if BoardConstants.is_home_column_position(pos):
-                home_depth_sum += (pos - GameConstants.HOME_COLUMN_START) / GameConstants.HOME_COLUMN_SIZE
+                home_depth_sum += (
+                    pos - GameConstants.HOME_COLUMN_START
+                ) / GameConstants.HOME_COLUMN_SIZE
         return (finished + home_depth_sum) / GameConstants.TOKENS_PER_PLAYER
 
     def _max_opponent_progress_ratio(self, ctx: AIDecisionContext) -> float:
@@ -300,5 +298,11 @@ class BalancedStrategy(Strategy):
         opp_positions = get_opponent_main_positions(ctx)
         for pos in opp_positions:
             if BoardConstants.is_home_column_position(pos):
-                finished += (pos - GameConstants.HOME_COLUMN_START) / GameConstants.HOME_COLUMN_SIZE
-        return finished / GameConstants.TOKENS_PER_PLAYER / len(ctx.opponents) if ctx.opponents else 0.0
+                finished += (
+                    pos - GameConstants.HOME_COLUMN_START
+                ) / GameConstants.HOME_COLUMN_SIZE
+        return (
+            finished / GameConstants.TOKENS_PER_PLAYER / len(ctx.opponents)
+            if ctx.opponents
+            else 0.0
+        )
