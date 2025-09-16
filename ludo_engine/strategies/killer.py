@@ -65,7 +65,7 @@ def _count_recap_threats(landing: int, opponent_tokens: List[int]) -> int:
 
 @dataclass
 class _CaptureScore:
-    move: Dict
+    move: ValidMove
     score: float
     details: Dict[str, float]
 
@@ -156,16 +156,16 @@ class KillerStrategy(Strategy):
 
     def _score_capture_move(
         self,
-        mv: Dict,
+        mv: ValidMove,
         opponent_positions: List[int],
         finished_map: Dict[str, int],
         max_finished: int,
         entries: Dict[str, int],
     ) -> Tuple[float, Dict[str, float]]:
         # Start from the underlying positional value rather than discarding it.
-        base_positional = mv.get("strategic_value", 0.0)
+        base_positional = mv.strategic_value
         base_capture = StrategyConstants.CAPTURE_BONUS
-        captured = mv.get("captured_tokens", [])
+        captured = mv.captured_tokens
         capture_count = len(captured)
         multi_bonus = 2 * capture_count
         score = base_positional + base_capture + multi_bonus
@@ -185,8 +185,8 @@ class KillerStrategy(Strategy):
         # Prey progress component
         progress_component = 0.0
         for ct in captured:
-            opp_color = ct["player_color"]
-            remaining = _steps_to_finish(mv["target_position"], entries[opp_color])
+            opp_color = ct.player_color
+            remaining = _steps_to_finish(mv.target_position, entries[opp_color])
             # Progress fraction (0..1 roughly) over ring+home length baseline
             baseline_total = (
                 GameConstants.MAIN_BOARD_SIZE + GameConstants.HOME_COLUMN_SIZE
@@ -200,7 +200,7 @@ class KillerStrategy(Strategy):
 
         # Threat emphasis (leading opponent)
         for ct in captured:
-            opp_color = ct["player_color"]
+            opp_color = ct.player_color
             if finished_map.get(opp_color, 0) == max_finished and max_finished > 0:
                 bonus = StrategyConstants.KILLER_THREAT_WEIGHT
                 details["threat"] += bonus
@@ -212,19 +212,19 @@ class KillerStrategy(Strategy):
         score += chain_bonus
 
         # Safety landing
-        if mv.get("is_safe_move"):
+        if mv.is_safe_move:
             safe_bonus = StrategyConstants.KILLER_SAFE_LAND_BONUS
             details["safe"] = safe_bonus
             score += safe_bonus
 
         # Block formation heuristic
-        if not mv.get("is_safe_move") and mv["strategic_value"] > 10:
+        if not mv.is_safe_move and mv.strategic_value > 10:
             block_bonus = StrategyConstants.KILLER_BLOCK_BONUS * 0.5
             details["block"] = block_bonus
             score += block_bonus
 
         # Recapture risk
-        threat_count = _count_recap_threats(mv["target_position"], opponent_positions)
+        threat_count = _count_recap_threats(mv.target_position, opponent_positions)
         if threat_count:
             # Scale penalty by number of threats, soft-capped.
             scaled = min(threat_count, 3) / 3.0  # 0..1
@@ -241,15 +241,15 @@ class KillerStrategy(Strategy):
         return score, details
 
     # --- Predictive positioning ---
-    def _choose_predictive(self, moves: List[Dict], ctx: Dict) -> int | None:
-        # current_color = ctx["current_situation"]["player_color"]
+    def _choose_predictive(self, moves: List[ValidMove], ctx: AIDecisionContext) -> int | None:
+        # current_color = ctx.current_situation.player_color
         opponent_positions = get_opponent_main_positions(ctx)
 
-        scored: List[Tuple[float, Dict]] = []
+        scored: List[Tuple[float, ValidMove]] = []
         for mv in moves:
-            if mv["move_type"] == "finish":
+            if mv.move_type == "finish":
                 continue  # finishing handled later
-            landing = mv["target_position"]
+            landing = mv.target_position
             if is_safe_or_home(landing):
                 continue
             count = 0
@@ -263,7 +263,7 @@ class KillerStrategy(Strategy):
                     count += 1
             stack_bonus = (
                 0.5
-                if (mv.get("strategic_value", 0) > 10 and not mv.get("is_safe_move"))
+                if (mv.strategic_value > 10 and not mv.is_safe_move)
                 else 0.0
             )
             score = count * StrategyConstants.KILLER_FUTURE_CAPTURE_WEIGHT + stack_bonus
@@ -273,21 +273,21 @@ class KillerStrategy(Strategy):
         if not scored:
             return None
         best = max(scored, key=lambda x: x[0])[1]
-        return best["token_id"]
+        return best.token_id
 
     # --- Utility ---
     # Removed _collect_opponent_positions in favor of utils.get_opponent_main_positions
 
     @staticmethod
     def _opponent_finished_map(
-        ctx: Dict, exclude_color: str
+        ctx: AIDecisionContext, exclude_color: str
     ) -> Tuple[Dict[str, int], int]:
         finished_map: Dict[str, int] = {}
         max_finished = 0
-        for p in ctx.get("players", []):
-            if p["color"] == exclude_color:
+        for opp in ctx.opponents:
+            if opp.color == exclude_color:
                 continue
-            finished_map[p["color"]] = p["finished_tokens"]
-            if p["finished_tokens"] > max_finished:
-                max_finished = p["finished_tokens"]
+            finished_map[opp.color] = opp.tokens_finished
+            if opp.tokens_finished > max_finished:
+                max_finished = opp.tokens_finished
         return finished_map, max_finished
