@@ -226,22 +226,22 @@ def launch_app():
                                 )
                             )
                     with gr.Column(scale=1):
-                        gr.Markdown("### ⚙️ Auto Play Settings")
-                        auto_steps_n = gr.Number(value=1, label="Steps", minimum=1, maximum=100)
-                        auto_delay = gr.Number(value=0.5, label="Delay (s)", minimum=0, maximum=5, step=0.1)
-                        run_auto_btn = gr.Button("🔄 Run Auto Steps", size="sm")
+                        gr.Markdown("### 🎛️ Display Options")
+                        show_ids = gr.Checkbox(label="Show Token IDs", value=True)
+                        export_btn = gr.Button("📤 Export Game State", size="sm")
+                        move_history_btn = gr.Button("📜 Show Move History", size="sm")
+                    
                 with gr.Row():
                     with gr.Column(scale=1):
                         gr.Markdown("### 🎮 Game Controls")
                         init_btn = gr.Button("🆕 Start New Game", variant="primary", size="sm")
                         random_btn = gr.Button("🎲 Random Strategies", size="sm")
                         step_btn = gr.Button("▶️ Play Step", size="sm")
-                    
                     with gr.Column(scale=1):
-                        gr.Markdown("### 🎛️ Display Options")
-                        show_ids = gr.Checkbox(label="Show Token IDs", value=True)
-                        export_btn = gr.Button("📤 Export Game State", size="sm")
-                        move_history_btn = gr.Button("📜 Show Move History", size="sm")
+                        gr.Markdown("### ⚙️ Auto Play Settings")
+                        auto_steps_n = gr.Number(value=1, label="Steps", minimum=1, maximum=100)
+                        auto_delay = gr.Number(value=0.5, label="Delay (s)", minimum=0, maximum=5, step=0.1)
+                        run_auto_btn = gr.Button("🔄 Run Auto Steps", size="sm")
                 
                 # Human player controls (initially hidden)
                 with gr.Row(visible=False) as human_controls:
