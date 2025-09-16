@@ -285,7 +285,9 @@ class LudoGame:
         self.current_player_index = (self.current_player_index + 1) % len(self.players)
         self.turn_count += 1
 
-    def play_turn(self, token_id: Optional[int] = None) -> TurnResult:
+    def play_turn(
+        self, token_id: Optional[int] = None, dice_value: Optional[int] = None
+    ) -> TurnResult:
         """
         Play a complete turn for the current player.
 
@@ -307,7 +309,8 @@ class LudoGame:
             )
 
         current_player = self.get_current_player()
-        dice_value = self.roll_dice()
+        if dice_value is None:
+            dice_value = self.roll_dice()
 
         turn_result = TurnResult(
             player_color=current_player.color.value,
@@ -386,7 +389,19 @@ class LudoGame:
             TurnResult: The result of each turn
         """
         while not self.game_over and self.turn_count < max_turns:
-            turn_result = self.play_turn()
+            current_player = self.get_current_player()
+            # Use AI strategy to select the best token to move
+            dice_value = self.roll_dice()
+            valid = self.get_valid_moves(current_player, dice_value)
+            if not valid:
+                continue
+            selected_token_id = current_player.make_strategic_decision(
+                self.get_ai_decision_context(dice_value)
+            )
+            # Play the turn with the selected token
+            turn_result = self.play_turn(
+                token_id=selected_token_id, dice_value=dice_value
+            )
             yield turn_result
 
     def get_ai_decision_context(self, dice_value: int) -> AIDecisionContext:
