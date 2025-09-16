@@ -67,7 +67,6 @@ def _count_recap_threats(landing: int, opponent_tokens: List[int]) -> int:
 class _CaptureScore:
     move: ValidMove
     score: float
-    details: Dict[str, float]
 
 
 class KillerStrategy(Strategy):
@@ -145,11 +144,10 @@ class KillerStrategy(Strategy):
 
         scored: List[_CaptureScore] = []
         for mv in capture_moves:
-            score, details = self._score_capture_move(
+            score = self._score_capture_move(
                 mv, opponent_positions, finished_map, max_finished, entries
             )
-            # Note: We can't add attributes to dataclass, so we'll just use the score for now
-            scored.append(_CaptureScore(mv, score, details))
+            scored.append(_CaptureScore(mv, score))
 
         best = max(scored, key=lambda cs: cs.score)
         return best.move.token_id
@@ -161,7 +159,7 @@ class KillerStrategy(Strategy):
         finished_map: Dict[str, int],
         max_finished: int,
         entries: Dict[str, int],
-    ) -> Tuple[float, Dict[str, float]]:
+    ) -> float:
         # Start from the underlying positional value rather than discarding it.
         base_positional = mv.strategic_value
         base_capture = StrategyConstants.CAPTURE_BONUS
@@ -169,18 +167,6 @@ class KillerStrategy(Strategy):
         capture_count = len(captured)
         multi_bonus = 2 * capture_count
         score = base_positional + base_capture + multi_bonus
-        details = {
-            "positional": base_positional,
-            "base_capture": base_capture,
-            "multi": multi_bonus,
-            "progress": 0.0,
-            "threat": 0.0,
-            "chain": 0.0,
-            "safe": 0.0,
-            "block": 0.0,
-            "risk_penalty": 0.0,
-            "weak_prey_penalty": 0.0,
-        }
 
         # Prey progress component
         progress_component = 0.0
@@ -195,7 +181,6 @@ class KillerStrategy(Strategy):
             progress_component += (
                 progress_frac * StrategyConstants.KILLER_PROGRESS_WEIGHT
             )
-        details["progress"] = progress_component
         score += progress_component
 
         # Threat emphasis (leading opponent)
@@ -203,24 +188,20 @@ class KillerStrategy(Strategy):
             opp_color = ct.player_color
             if finished_map.get(opp_color, 0) == max_finished and max_finished > 0:
                 bonus = StrategyConstants.KILLER_THREAT_WEIGHT
-                details["threat"] += bonus
                 score += bonus
 
         # Extra turn chain potential (always for capture)
         chain_bonus = StrategyConstants.KILLER_CHAIN_BONUS
-        details["chain"] = chain_bonus
         score += chain_bonus
 
         # Safety landing
         if mv.is_safe_move:
             safe_bonus = StrategyConstants.KILLER_SAFE_LAND_BONUS
-            details["safe"] = safe_bonus
             score += safe_bonus
 
         # Block formation heuristic
         if not mv.is_safe_move and mv.strategic_value > 10:
             block_bonus = StrategyConstants.KILLER_BLOCK_BONUS * 0.5
-            details["block"] = block_bonus
             score += block_bonus
 
         # Recapture risk
@@ -229,16 +210,14 @@ class KillerStrategy(Strategy):
             # Scale penalty by number of threats, soft-capped.
             scaled = min(threat_count, 3) / 3.0  # 0..1
             penalty = StrategyConstants.KILLER_RECAPTURE_PENALTY * scaled
-            details["risk_penalty"] = -penalty
             score -= penalty
 
         # Weak prey penalty
-        if progress_component < 0.2 and details["risk_penalty"] < 0:
+        if progress_component < 0.2 and threat_count > 0:
             penalty2 = StrategyConstants.KILLER_WEAK_PREY_PENALTY
-            details["weak_prey_penalty"] = -penalty2
             score -= penalty2
 
-        return score, details
+        return score
 
     # --- Predictive positioning ---
     def _choose_predictive(self, moves: List[ValidMove], ctx: AIDecisionContext) -> int | None:
