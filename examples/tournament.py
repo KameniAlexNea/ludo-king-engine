@@ -11,8 +11,9 @@ from typing import Dict, List, Optional
 
 from config import TournamentConfig
 
-from ludo_engine.core.game import LudoGame
-from ludo_engine.strategies.factory import StrategyFactory
+from ludo_engine.game import LudoGame
+from ludo_engine.player import PlayerColor
+from ludo_engine.strategy import StrategyFactory
 
 
 @dataclass
@@ -155,18 +156,21 @@ class LudoTournament:
         # Play multiple games if configured
         for _ in range(self.games_per_match):
             # Create game with home team having slight advantage (goes first)
-            game = LudoGame(
-                player_colors=["red", "blue"],
-                strategies=[home_strategy, away_strategy],
-                seed=random.randint(1, 1000000) if self.seed is None else None,
-            )
+            game = LudoGame(player_colors=[PlayerColor.RED, PlayerColor.GREEN])
 
-            result = game.play_game(max_turns=self.max_turns)
-            total_turns += result.turns_played
+            # Set strategies for players
+            for i, strategy_name in enumerate([home_strategy, away_strategy]):
+                strategy = StrategyFactory.create_strategy(strategy_name)
+                game.players[i].set_strategy(strategy)
 
-            if result.winner == "red":  # Home team
+            turns = list(game.play_game(max_turns=self.max_turns))
+            total_turns += len(turns)
+
+            winner = game.winner.color.value if game.winner else None
+
+            if winner == PlayerColor.RED.value:  # Home team
                 home_wins += 1
-            elif result.winner == "blue":  # Away team
+            elif winner == PlayerColor.GREEN.value:  # Away team
                 away_wins += 1
             # If no winner, it's a draw (no points added)
 

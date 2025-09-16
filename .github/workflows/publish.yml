@@ -1,15 +1,14 @@
-name: Test CI
+name: Publish to PyPI
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  release:
+    types: [published]
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
-  test:
+  publish:
     runs-on: ubuntu-latest
-
+    
     steps:
     - uses: actions/checkout@v4
 
@@ -26,11 +25,11 @@ jobs:
     - name: Install dependencies
       run: uv sync
 
-    - name: Run tests with coverage
-      run: uv run tox -e test-ci
+    - name: Build package
+      run: uv build
 
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
-        file: ./coverage.xml
-        fail_ci_if_error: false
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}

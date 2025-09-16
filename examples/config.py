@@ -7,7 +7,7 @@ and .env files for flexible tournament setup.
 
 import os
 from typing import List, Optional
-
+from ludo_engine.strategy import StrategyFactory
 
 class TournamentConfig:
     """Configuration class for tournament settings."""
@@ -24,16 +24,7 @@ class TournamentConfig:
         # Strategy settings
         self.default_strategies = self._get_list_env(
             "DEFAULT_STRATEGIES",
-            [
-                "random",
-                "killer",
-                "defensive",
-                "balanced",
-                "cautious",
-                "optimist",
-                "winner",
-                "probabilistic",
-            ],
+            StrategyFactory.get_available_strategies(),
         )
 
         # Game settings

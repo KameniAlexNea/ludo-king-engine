@@ -208,4 +208,11 @@ __marimo__/
 .python-version
 
 
+# Demo and temporary files
+demo_interface.py
+gradio_runtime/
+/tmp/
+
 .vscode
+examples/DrawBox.ipynb
+*.out
