@@ -461,7 +461,6 @@ class TestLudoGame(unittest.TestCase):
         # Move token to a position where it can't move with dice 1
         # First exit home
         self.game.execute_move(current_player, 0, 6)
-        token = current_player.tokens[0]
 
         # Try to move with dice that doesn't change position
         # This might be hard to trigger, but let's try with a token that can't move
@@ -474,13 +473,14 @@ class TestLudoGame(unittest.TestCase):
         # This is harder to test without mocking board.can_move_to_position
         # For now, test with invalid token state
         current_player = self.game.get_current_player()
-        result = self.game.execute_move(current_player, 0, 3)  # Can't move from home with 3
+        result = self.game.execute_move(
+            current_player, 0, 3
+        )  # Can't move from home with 3
         self.assertFalse(result.success)
 
     def test_next_turn(self):
         """Test next_turn method."""
         initial_index = self.game.current_player_index
-        initial_sixes = self.game.consecutive_sixes
 
         self.game.consecutive_sixes = 2  # Set to non-zero
         self.game.next_turn()

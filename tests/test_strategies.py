@@ -5,7 +5,6 @@ Tests cover unique decision logic for each strategy type.
 
 import unittest
 import unittest.mock
-import os
 
 from ludo_engine.model import (
     AIDecisionContext,
@@ -234,7 +233,7 @@ class TestBalancedStrategy(unittest.TestCase):
         # Set player as behind by adjusting opponent progress
         context.opponents[0].finished_tokens = 3  # Opponent has 3 finished
         context.player_state.finished_tokens = 0  # Player has 0 finished
-        
+
         decision = self.strategy.decide(context)
         self.assertEqual(decision, 0)
 
@@ -314,7 +313,7 @@ class TestCautiousStrategy(unittest.TestCase):
         # Set up late game scenario where player is behind
         context.opponents[0].finished_tokens = 3
         context.player_state.finished_tokens = 0
-        
+
         decision = self.strategy.decide(context)
         self.assertEqual(decision, 0)
 
@@ -336,7 +335,7 @@ class TestCautiousStrategy(unittest.TestCase):
                 ),
             ],
         )
-        
+
         decision = self.strategy.decide(context)
         self.assertEqual(decision, 0)  # Should still choose the only move
 
@@ -780,7 +779,7 @@ class TestWinnerStrategyAdvanced(unittest.TestCase):
                 ),
             ],
         )
-        
+
         decision = self.strategy.decide(context)
         # Should choose the deeper home column move (token 1)
         self.assertEqual(decision, 1)
@@ -815,7 +814,7 @@ class TestWinnerStrategyAdvanced(unittest.TestCase):
                 ),
             ],
         )
-        
+
         decision = self.strategy.decide(context)
         # Should choose safe capture over risky one
         self.assertEqual(decision, 0)
@@ -920,9 +919,9 @@ class TestWeightedRandomStrategy(unittest.TestCase):
             strategic_components={},
         )
         context = create_test_decision_context(valid_moves=[finish_move])
-        
+
         # Mock random.choice to return the finish move
-        with unittest.mock.patch('random.choice', return_value=finish_move):
+        with unittest.mock.patch("random.choice", return_value=finish_move):
             decision = self.strategy.decide(context)
             self.assertEqual(decision, 1)
 
@@ -931,7 +930,7 @@ class TestWeightedRandomStrategy(unittest.TestCase):
         context = create_test_decision_context()
         # Set player state for early phase (0 finished tokens)
         context.player_state.finished_tokens = 0
-        
+
         decision = self.strategy.decide(context)
         self.assertIsInstance(decision, int)
         self.assertIn(decision, [0])  # Only one move in test context
@@ -941,7 +940,7 @@ class TestWeightedRandomStrategy(unittest.TestCase):
         context = create_test_decision_context()
         # Set player state for late phase (3 finished tokens)
         context.player_state.finished_tokens = 3
-        
+
         decision = self.strategy.decide(context)
         self.assertIsInstance(decision, int)
 
@@ -960,7 +959,7 @@ class TestWeightedRandomStrategy(unittest.TestCase):
             strategic_components={},
         )
         context = create_test_decision_context(valid_moves=[capture_move])
-        
+
         decision = self.strategy.decide(context)
         self.assertEqual(decision, 0)
 
@@ -979,7 +978,7 @@ class TestWeightedRandomStrategy(unittest.TestCase):
             strategic_components={},
         )
         context = create_test_decision_context(valid_moves=[safe_move])
-        
+
         decision = self.strategy.decide(context)
         self.assertEqual(decision, 0)
 
@@ -998,7 +997,7 @@ class TestWeightedRandomStrategy(unittest.TestCase):
             strategic_components={},
         )
         context = create_test_decision_context(valid_moves=[home_move])
-        
+
         decision = self.strategy.decide(context)
         self.assertEqual(decision, 0)
 
@@ -1006,7 +1005,7 @@ class TestWeightedRandomStrategy(unittest.TestCase):
         """Test diversity penalty for repeated token moves."""
         # Set up recent moves memory
         self.strategy.recent_moves_memory = [0, 0, 0]  # Token 0 moved recently
-        
+
         context = create_test_decision_context()
         decision = self.strategy.decide(context)
         self.assertIsInstance(decision, int)
@@ -1014,10 +1013,12 @@ class TestWeightedRandomStrategy(unittest.TestCase):
     def test_epsilon_exploration(self):
         """Test epsilon uniform exploration."""
         context = create_test_decision_context()
-        
+
         # Mock random.random to trigger epsilon exploration
-        with unittest.mock.patch('random.random', return_value=0.01):  # Less than epsilon
-            with unittest.mock.patch('random.choice', return_value=0):
+        with unittest.mock.patch(
+            "random.random", return_value=0.01
+        ):  # Less than epsilon
+            with unittest.mock.patch("random.choice", return_value=0):
                 decision = self.strategy.decide(context)
                 self.assertEqual(decision, 0)
 
@@ -1027,7 +1028,7 @@ class TestWeightedRandomStrategy(unittest.TestCase):
         context = create_test_decision_context()
         # Add opponent at threatening position
         context.opponents[0].positions_occupied = [11]  # Close to target position 9
-        
+
         decision = self.strategy.decide(context)
         self.assertIsInstance(decision, int)
 
@@ -1036,7 +1037,7 @@ class TestWeightedRandomStrategy(unittest.TestCase):
         # Fill memory beyond limit
         for i in range(30):  # More than DIVERSITY_MEMORY (25)
             self.strategy.save_and_return(i % 4)
-        
+
         # Memory should be truncated to 25
         self.assertEqual(len(self.strategy.recent_moves_memory), 25)
 
