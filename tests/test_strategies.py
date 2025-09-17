@@ -24,7 +24,7 @@ from ludo_engine.strategies.aggressive.optimist import OptimistStrategy
 from ludo_engine.strategies.probabilistic import ProbabilisticStrategy
 from ludo_engine.strategies.probabilistic.probabilistic_v2 import ProbabilisticV2Strategy
 from ludo_engine.strategies.probabilistic.probabilistic_v3 import ProbabilisticV3Strategy
-from ludo_engine.strategies.probabilistic.weighted_random import WeightedRandomStrategy
+from ludo_engine.strategies.baseline.weighted_random import WeightedRandomStrategy
 from ludo_engine.strategies.hybrid.winner import WinnerStrategy
 
 
