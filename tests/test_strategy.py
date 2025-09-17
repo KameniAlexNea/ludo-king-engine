@@ -14,10 +14,12 @@ from ludo_engine.models.model import (
     StrategicAnalysis,
     ValidMove,
 )
-from ludo_engine.strategies.aggressive.killer import KillerStrategy
-from ludo_engine.strategies.baseline.random_strategy import RandomStrategy
-from ludo_engine.strategies.strategy import StrategyFactory
-from ludo_engine.strategies.hybrid.winner import WinnerStrategy
+from ludo_engine.strategies import (
+    KillerStrategy,
+    RandomStrategy,
+    StrategyFactory,
+    WinnerStrategy,
+)
 
 
 def create_test_decision_context(dice_value=4, valid_moves=None):

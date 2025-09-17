@@ -8,8 +8,8 @@ from typing import Optional
 
 from ludo_engine.models.model import AIDecisionContext
 from ludo_engine.strategies.base import Strategy
-from ludo_engine.strategies.special.llm.prompt import create_prompt
 from ludo_engine.strategies.baseline.random_strategy import RandomStrategy
+from ludo_engine.strategies.special.llm.prompt import create_prompt
 
 RESPONSE_PATTERNS = [
     re.compile(r"(?:^|\s)([0-3])(?:\s|$)"),  # Standalone digit

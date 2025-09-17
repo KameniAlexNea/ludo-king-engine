@@ -12,7 +12,7 @@ from ludo_engine.core.player import Player, PlayerColor
 from ludo_engine.core.token import TokenState
 from ludo_engine.models.constants import BoardConstants
 from ludo_engine.models.model import AIDecisionContext, TurnResult, ValidMove
-from ludo_engine.strategies.baseline.random_strategy import RandomStrategy
+from ludo_engine.strategies import RandomStrategy
 
 
 class TestLudoGame(unittest.TestCase):

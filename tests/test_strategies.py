@@ -14,18 +14,20 @@ from ludo_engine.models.model import (
     StrategicAnalysis,
     ValidMove,
 )
-from ludo_engine.strategies.hybrid.balanced import BalancedStrategy
-from ludo_engine.strategies.defensive.cautious import CautiousStrategy
-from ludo_engine.strategies.defensive import DefensiveStrategy
-from ludo_engine.strategies.probabilistic.hybrid_prob import HybridProbStrategy
-from ludo_engine.strategies.aggressive.killer import KillerStrategy
-from ludo_engine.strategies.special.llm.strategy import LLMStrategy
-from ludo_engine.strategies.aggressive.optimist import OptimistStrategy
-from ludo_engine.strategies.probabilistic import ProbabilisticStrategy
-from ludo_engine.strategies.probabilistic.probabilistic_v2 import ProbabilisticV2Strategy
-from ludo_engine.strategies.probabilistic.probabilistic_v3 import ProbabilisticV3Strategy
-from ludo_engine.strategies.baseline.weighted_random import WeightedRandomStrategy
-from ludo_engine.strategies.hybrid.winner import WinnerStrategy
+from ludo_engine.strategies import (
+    BalancedStrategy,
+    CautiousStrategy,
+    DefensiveStrategy,
+    HybridProbStrategy,
+    KillerStrategy,
+    LLMStrategy,
+    OptimistStrategy,
+    ProbabilisticStrategy,
+    ProbabilisticV2Strategy,
+    ProbabilisticV3Strategy,
+    WeightedRandomStrategy,
+    WinnerStrategy,
+)
 
 
 def create_test_decision_context(dice_value=4, valid_moves=None):

@@ -17,6 +17,7 @@ from ludo_engine.strategies.probabilistic import (
     WeightedRandomStrategy,
 )
 from ludo_engine.strategies.special import HumanStrategy, LLMStrategy
+from ludo_engine.strategies.strategy import StrategyFactory
 
 # Strategy Mapping - Centralized mapping of strategy names to classes
 STRATEGIES: dict[str, Strategy] = {
@@ -55,4 +56,5 @@ __all__ = [
     "STRATEGIES",
     "V3Config",
     "HybridConfig",
+    "StrategyFactory",
 ]
