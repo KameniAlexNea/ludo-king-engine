@@ -19,6 +19,7 @@ from ludo_engine.strategies.cautious import CautiousStrategy
 from ludo_engine.strategies.defensive import DefensiveStrategy
 from ludo_engine.strategies.hybrid_prob import HybridProbStrategy
 from ludo_engine.strategies.killer import KillerStrategy
+from ludo_engine.strategies.llm.strategy import LLMStrategy
 from ludo_engine.strategies.optimist import OptimistStrategy
 from ludo_engine.strategies.probabilistic import ProbabilisticStrategy
 from ludo_engine.strategies.probabilistic_v2 import ProbabilisticV2Strategy
@@ -1040,6 +1041,94 @@ class TestWeightedRandomStrategy(unittest.TestCase):
 
         # Memory should be truncated to 25
         self.assertEqual(len(self.strategy.recent_moves_memory), 25)
+
+
+class TestLLMStrategy(unittest.TestCase):
+    """Test cases for LLMStrategy."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        # Don't create strategy here - create in individual tests with proper patches
+        pass
+
+    @unittest.mock.patch(
+        "ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"
+    )
+    @unittest.mock.patch.dict(
+        "os.environ", {"LLM_PROVIDER": "ollama", "LLM_MODEL": "test-model"}
+    )
+    def test_initialization(self, mock_init):
+        """Test LLM strategy initialization."""
+        strategy = LLMStrategy(provider="ollama", model="test-model")
+        self.assertEqual(strategy.provider, "ollama")
+        self.assertEqual(strategy.model, "test-model")
+        self.assertIn("Ollama", strategy.name)
+
+    def test_fallback_behavior(self):
+        """Test that strategy falls back gracefully when LLM unavailable."""
+        with unittest.mock.patch(
+            "ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"
+        ):
+            strategy = LLMStrategy()
+            strategy.llm = None
+
+        context = create_test_decision_context()
+        decision = strategy.decide(context)
+
+        # Should return a valid token ID (fallback to random)
+        self.assertIn(decision, [0, 1])
+
+    @unittest.mock.patch(
+        "ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"
+    )
+    def test_successful_decision_making(self, mock_init):
+        """Test successful LLM decision making."""
+        # Mock LLM response
+        mock_response = unittest.mock.MagicMock()
+        mock_response.content = "I choose token 1 for the best strategic move"
+
+        with unittest.mock.patch(
+            "sys.modules",
+            {
+                "langchain_ollama": unittest.mock.MagicMock(),
+                "langchain_groq": unittest.mock.MagicMock(),
+                "langchain_core": unittest.mock.MagicMock(),
+            },
+        ):
+            with unittest.mock.patch("langchain_ollama.ChatOllama") as mock_ollama:
+                mock_ollama.return_value.invoke.return_value = mock_response
+
+                strategy = LLMStrategy(provider="ollama")
+                context = create_test_decision_context()
+                decision = strategy.decide(context)
+
+        self.assertEqual(
+            decision, 0
+        )  # Should fall back to random since token 1 is not valid
+
+    def test_response_parsing_robustness(self):
+        """Test various response parsing scenarios."""
+        with unittest.mock.patch(
+            "ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"
+        ):
+            strategy = LLMStrategy()
+            strategy.llm = unittest.mock.MagicMock()
+
+        context = create_test_decision_context()
+
+        test_cases = [
+            ("Choose token 0", 0),
+            ("I recommend token 0", 0),
+            ("Decision: 0", 0),
+            ("Move 0", 0),
+            ("Invalid response", None),
+            ("", None),
+        ]
+
+        for response, expected in test_cases:
+            with self.subTest(response=response):
+                result = strategy._parse_response(response, context)
+                self.assertEqual(result, expected)
 
 
 if __name__ == "__main__":

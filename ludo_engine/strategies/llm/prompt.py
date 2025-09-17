@@ -1,4 +1,4 @@
-from ludo_engine.model import ValidMove, AIDecisionContext
+from ludo_engine.model import AIDecisionContext, ValidMove
 
 PROMPT = """You are playing Ludo. Analyze the current game situation and choose the best move based on your own strategic assessment.
 

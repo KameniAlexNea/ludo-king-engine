@@ -4,7 +4,7 @@ Simple LLM Strategy - Just call the LLM and parse the response.
 
 import os
 import re
-from typing import Dict, Optional
+from typing import Optional
 
 from ludo_engine.model import AIDecisionContext
 from ludo_engine.strategies.base import Strategy
@@ -94,7 +94,9 @@ class LLMStrategy(Strategy):
         # Fallback to random strategy
         return self.fallback_strategy.decide(game_context)
 
-    def _parse_response(self, response: str, game_context: Dict) -> Optional[int]:
+    def _parse_response(
+        self, response: str, game_context: AIDecisionContext
+    ) -> Optional[int]:
         """Parse the LLM response to extract token ID."""
         if not response:
             return None
@@ -106,7 +108,7 @@ class LLMStrategy(Strategy):
         )
 
         valid_moves = self._get_valid_moves(game_context)
-        valid_token_ids = [move["token_id"] for move in valid_moves]
+        valid_token_ids = [move.token_id for move in valid_moves]
 
         # Clean response
         response = response.strip().lower()
