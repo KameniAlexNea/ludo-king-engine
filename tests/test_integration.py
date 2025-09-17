@@ -124,7 +124,7 @@ class TestGameIntegration(unittest.TestCase):
             initial_positions[i] = [token.position for token in player.tokens]
 
         # Make some moves
-        for _ in range(10):
+        for _ in range(100):
             if any(player.has_won() for player in game.players):
                 break
             game.play_turn()

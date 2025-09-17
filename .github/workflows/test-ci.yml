@@ -27,7 +27,9 @@ jobs:
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
     - name: Install dependencies
-      run: uv sync --dev
+      run: |
+        uv sync
+        uv add --dev tox
 
     - name: Run tests with coverage
       run: uv run tox -e test-ci
