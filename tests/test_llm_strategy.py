@@ -3,6 +3,7 @@ Unit tests for LLM Strategy implementation.
 Tests cover LLM integration, response parsing, and fallback behavior.
 """
 
+import json
 import unittest
 import unittest.mock
 from unittest.mock import MagicMock, patch
@@ -244,7 +245,6 @@ class TestLLMStrategy(unittest.TestCase):
             with self.subTest(response=response):
                 token_id = strategy._parse_response(response, self.context)
                 # Extract expected token from JSON
-                import json
 
                 expected = json.loads(response)
                 expected_token = expected.get(
