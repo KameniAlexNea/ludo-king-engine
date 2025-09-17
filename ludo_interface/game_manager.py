@@ -1,11 +1,11 @@
 from typing import Dict, List, Optional
 
 from ludo_engine.game import LudoGame
-from ludo_engine.token import Token
-from ludo_engine.player import PlayerColor
-from ludo_engine.strategy import StrategyFactory
-from ludo_engine.strategies.human import HumanStrategy
 from ludo_engine.model import MoveResult
+from ludo_engine.player import PlayerColor
+from ludo_engine.strategies.human import HumanStrategy
+from ludo_engine.strategy import StrategyFactory
+from ludo_engine.token import Token
 
 
 class GameManager:
@@ -34,7 +34,11 @@ class GameManager:
     def get_human_strategy(self, game: LudoGame) -> Optional[HumanStrategy]:
         """Get the human strategy from the current player if it exists."""
         current_player = game.get_current_player()
-        return current_player.strategy if isinstance(current_player.strategy, HumanStrategy) else None
+        return (
+            current_player.strategy
+            if isinstance(current_player.strategy, HumanStrategy)
+            else None
+        )
 
     def is_human_turn(self, game: LudoGame) -> bool:
         """Check if it's currently a human player's turn."""
@@ -44,22 +48,26 @@ class GameManager:
         """Get move options for a human player."""
         current_player = game.get_current_player()
         valid_moves = game.get_valid_moves(current_player, dice)
-        
+
         options = []
         for move in valid_moves:
             token = current_player.tokens[move.token_id]
-            options.append({
-                "token_id": move.token_id,
-                "description": f"Token {move.token_id}: {token.state.value} at {token.position} -> {move.target_position}",
-                "move_type": move.move_type
-            })
+            options.append(
+                {
+                    "token_id": move.token_id,
+                    "description": f"Token {move.token_id}: {token.state.value} at {token.position} -> {move.target_position}",
+                    "move_type": move.move_type,
+                }
+            )
         return options
 
     def serialize_move(self, move_result: MoveResult) -> str:
         """Serializes a move result into a human-readable string."""
         if not move_result or not move_result.success:
             return "No move"
-        parts = [f"{move_result.player_color} token {move_result.token_id} -> {move_result.new_position}"]
+        parts = [
+            f"{move_result.player_color} token {move_result.token_id} -> {move_result.new_position}"
+        ]
         if move_result.captured_tokens:
             parts.append(f"captured {len(move_result.captured_tokens)}")
         if move_result.finished_token:
@@ -68,7 +76,12 @@ class GameManager:
             parts.append("extra turn")
         return ", ".join(parts)
 
-    def play_step(self, game: LudoGame, human_move_choice: Optional[int] = None, dice: Optional[int] = None):
+    def play_step(
+        self,
+        game: LudoGame,
+        human_move_choice: Optional[int] = None,
+        dice: Optional[int] = None,
+    ):
         """Plays a single step of the game.
 
         If `dice` is provided, use it; otherwise roll a new dice value.
@@ -85,8 +98,13 @@ class GameManager:
             extra_turn = dice == 6
             if not extra_turn:
                 game.next_turn()
-            
-            token_positions = ", ".join([f"token {i}: {t.position} ({t.state.value})" for i, t in enumerate(current_player.tokens)])
+
+            token_positions = ", ".join(
+                [
+                    f"token {i}: {t.position} ({t.state.value})"
+                    for i, t in enumerate(current_player.tokens)
+                ]
+            )
             desc = f"{current_player.color.value} rolled {dice} - no moves{' (extra turn)' if extra_turn else ''} | Positions: {token_positions}"
             return game, desc, self.game_state_tokens(game), [], False
 
@@ -98,11 +116,15 @@ class GameManager:
 
         chosen_move = None
         if human_strategy and human_move_choice is not None:
-            chosen_move = next((m for m in valid_moves if m.token_id == human_move_choice), None)
+            chosen_move = next(
+                (m for m in valid_moves if m.token_id == human_move_choice), None
+            )
         else:
             ctx = game.get_ai_decision_context(dice)
             token_choice = current_player.make_strategic_decision(ctx)
-            chosen_move = next((m for m in valid_moves if m.token_id == token_choice), None)
+            chosen_move = next(
+                (m for m in valid_moves if m.token_id == token_choice), None
+            )
 
         if chosen_move is None:
             chosen_move = valid_moves[0]

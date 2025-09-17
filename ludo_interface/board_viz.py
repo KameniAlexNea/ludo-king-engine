@@ -1,5 +1,4 @@
 from typing import Dict, List, Tuple
-import math
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -126,10 +125,10 @@ def _draw_gradient_rect(d: ImageDraw.ImageDraw, bbox, color_start, color_end):
     """Draw a rectangle with vertical gradient."""
     x0, y0, x1, y1 = bbox
     height = y1 - y0
-    
+
     if height <= 0:
         return
-    
+
     for i in range(height):
         ratio = i / height
         r = int(color_start[0] * (1 - ratio) + color_end[0] * ratio)
@@ -151,12 +150,12 @@ def _draw_home_quadrants(d: ImageDraw.ImageDraw):
     border_width = 8
     for color, ((c0, c1), (r0, r1)) in HOME_QUADRANTS.items():
         box = (c0 * CELL, r0 * CELL, (c1 + 1) * CELL, (r1 + 1) * CELL)
-        
+
         # Draw gradient background
         light_color = COLOR_LIGHT[color]
         main_color = COLOR_MAP[color]
         _draw_gradient_rect(d, box, light_color, main_color + (50,))
-        
+
         # Draw enhanced border with inner shadow effect
         for w in range(border_width):
             alpha = int(255 * (1 - w / border_width) * 0.8)
@@ -169,12 +168,19 @@ def _draw_home_quadrants(d: ImageDraw.ImageDraw):
             )
             d.rectangle(inset_box, outline=border_color, width=2)
 
-def _draw_stacked_tokens(d: ImageDraw.ImageDraw, tokens_at_pos: List[Tuple[str, Token]], 
-                        center_x: int, center_y: int, base_radius: int, show_ids: bool = True):
+
+def _draw_stacked_tokens(
+    d: ImageDraw.ImageDraw,
+    tokens_at_pos: List[Tuple[str, Token]],
+    center_x: int,
+    center_y: int,
+    base_radius: int,
+    show_ids: bool = True,
+):
     """Draw multiple tokens stacked at the same position with offset and shadow effects."""
     if not tokens_at_pos:
         return
-    
+
     # Calculate stacking offsets
     num_tokens = len(tokens_at_pos)
     if num_tokens == 1:
@@ -188,70 +194,102 @@ def _draw_stacked_tokens(d: ImageDraw.ImageDraw, tokens_at_pos: List[Tuple[str, 
         # If more than 4, stack them on top
         for i in range(4, num_tokens):
             offsets.append((0, 0))
-    
+
     # Draw tokens with shadows and stacking
     for i, ((color, token), offset) in enumerate(zip(tokens_at_pos, offsets)):
         offset_x, offset_y = offset
         token_x = center_x + offset_x
         token_y = center_y + offset_y
-        
+
         # Draw shadow first
         shadow_radius = base_radius + 2
         shadow_x = token_x + 2
         shadow_y = token_y + 2
         d.ellipse(
-            (shadow_x - shadow_radius, shadow_y - shadow_radius,
-             shadow_x + shadow_radius, shadow_y + shadow_radius),
-            fill=(0, 0, 0, 80)
+            (
+                shadow_x - shadow_radius,
+                shadow_y - shadow_radius,
+                shadow_x + shadow_radius,
+                shadow_y + shadow_radius,
+            ),
+            fill=(0, 0, 0, 80),
         )
-        
+
         # Draw token with gradient effect
         token_color = COLOR_MAP[color]
         light_color = COLOR_LIGHT[color]
-        
+
         # Outer ring (darker)
         d.ellipse(
-            (token_x - base_radius, token_y - base_radius,
-             token_x + base_radius, token_y + base_radius),
-            fill=COLOR_DARK[color], outline=(0, 0, 0, 180), width=2
+            (
+                token_x - base_radius,
+                token_y - base_radius,
+                token_x + base_radius,
+                token_y + base_radius,
+            ),
+            fill=COLOR_DARK[color],
+            outline=(0, 0, 0, 180),
+            width=2,
         )
-        
+
         # Inner circle (lighter)
         inner_radius = base_radius - 3
         d.ellipse(
-            (token_x - inner_radius, token_y - inner_radius,
-             token_x + inner_radius, token_y + inner_radius),
-            fill=token_color
+            (
+                token_x - inner_radius,
+                token_y - inner_radius,
+                token_x + inner_radius,
+                token_y + inner_radius,
+            ),
+            fill=token_color,
         )
-        
+
         # Highlight (top-left)
         highlight_radius = base_radius - 6
         highlight_x = token_x - 2
         highlight_y = token_y - 2
         d.ellipse(
-            (highlight_x - highlight_radius, highlight_y - highlight_radius,
-             highlight_x + highlight_radius, highlight_y + highlight_radius),
-            fill=light_color
+            (
+                highlight_x - highlight_radius,
+                highlight_y - highlight_radius,
+                highlight_x + highlight_radius,
+                highlight_y + highlight_radius,
+            ),
+            fill=light_color,
         )
-        
+
         # Token ID
         if show_ids and FONT:
             text_color = (255, 255, 255) if sum(token_color) < 400 else (0, 0, 0)
-            d.text((token_x - 5, token_y - 8), str(token.token_id), 
-                  fill=text_color, font=FONT)
-        
+            d.text(
+                (token_x - 5, token_y - 8),
+                str(token.token_id),
+                fill=text_color,
+                font=FONT,
+            )
+
         # Stack indicator for multiple tokens
         if num_tokens > 1:
             stack_indicator_x = token_x + base_radius - 6
             stack_indicator_y = token_y - base_radius + 2
             d.ellipse(
-                (stack_indicator_x - 4, stack_indicator_y - 4,
-                 stack_indicator_x + 4, stack_indicator_y + 4),
-                fill=(255, 255, 255), outline=(0, 0, 0), width=1
+                (
+                    stack_indicator_x - 4,
+                    stack_indicator_y - 4,
+                    stack_indicator_x + 4,
+                    stack_indicator_y + 4,
+                ),
+                fill=(255, 255, 255),
+                outline=(0, 0, 0),
+                width=1,
             )
             if FONT:
-                d.text((stack_indicator_x - 3, stack_indicator_y - 6), str(num_tokens),
-                      fill=(0, 0, 0), font=FONT)
+                d.text(
+                    (stack_indicator_x - 3, stack_indicator_y - 6),
+                    str(num_tokens),
+                    fill=(0, 0, 0),
+                    font=FONT,
+                )
 
 
 def _token_home_grid_position(color: str, token_id: int) -> Tuple[int, int]:
@@ -313,7 +351,7 @@ def _generate_board_template() -> Image.Image:
     for idx, (c, r) in PATH_INDEX_TO_COORD.items():
         bbox = _cell_bbox(c, r)
         outline = GRID_LINE
-        
+
         if idx in start_index_to_color:  # starting squares (safe)
             color = start_index_to_color[idx]
             fill = COLOR_MAP[color]
@@ -324,10 +362,32 @@ def _generate_board_template() -> Image.Image:
             cx, cy = (bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2
             star_size = 8
             # Simple star shape using lines
-            d.line([(cx, cy - star_size), (cx, cy + star_size)], fill=(255, 255, 255), width=2)
-            d.line([(cx - star_size, cy), (cx + star_size, cy)], fill=(255, 255, 255), width=2)
-            d.line([(cx - star_size//2, cy - star_size//2), (cx + star_size//2, cy + star_size//2)], fill=(255, 255, 255), width=2)
-            d.line([(cx - star_size//2, cy + star_size//2), (cx + star_size//2, cy - star_size//2)], fill=(255, 255, 255), width=2)
+            d.line(
+                [(cx, cy - star_size), (cx, cy + star_size)],
+                fill=(255, 255, 255),
+                width=2,
+            )
+            d.line(
+                [(cx - star_size, cy), (cx + star_size, cy)],
+                fill=(255, 255, 255),
+                width=2,
+            )
+            d.line(
+                [
+                    (cx - star_size // 2, cy - star_size // 2),
+                    (cx + star_size // 2, cy + star_size // 2),
+                ],
+                fill=(255, 255, 255),
+                width=2,
+            )
+            d.line(
+                [
+                    (cx - star_size // 2, cy + star_size // 2),
+                    (cx + star_size // 2, cy - star_size // 2),
+                ],
+                fill=(255, 255, 255),
+                width=2,
+            )
         elif idx in entry_index_to_color:  # home entry squares
             color = entry_index_to_color[idx]
             fill = PATH_COLOR
@@ -339,11 +399,20 @@ def _generate_board_template() -> Image.Image:
             # Add star decoration
             cx, cy = (bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2
             star_size = 6
-            d.polygon([
-                (cx, cy - star_size), (cx + 2, cy - 2), (cx + star_size, cy),
-                (cx + 2, cy + 2), (cx, cy + star_size), (cx - 2, cy + 2),
-                (cx - star_size, cy), (cx - 2, cy - 2)
-            ], fill=(255, 165, 0), outline=(0, 0, 0))
+            d.polygon(
+                [
+                    (cx, cy - star_size),
+                    (cx + 2, cy - 2),
+                    (cx + star_size, cy),
+                    (cx + 2, cy + 2),
+                    (cx, cy + star_size),
+                    (cx - 2, cy + 2),
+                    (cx - star_size, cy),
+                    (cx - 2, cy - 2),
+                ],
+                fill=(255, 165, 0),
+                outline=(0, 0, 0),
+            )
         else:
             fill = PATH_COLOR
             d.rectangle(bbox, fill=fill, outline=outline)
@@ -361,22 +430,22 @@ def _generate_board_template() -> Image.Image:
     cx0, cy0, cx1, cy1 = _cell_bbox(7, 7)
     midx = (cx0 + cx1) // 2
     midy = (cy0 + cy1) // 2
-    
+
     # Shadow for center
     _draw_shadow(d, (cx0, cy0, cx1, cy1), offset=3)
-    
+
     # Center background
     d.rectangle((cx0, cy0, cx1, cy1), fill=CENTER_COLOR, outline=(60, 60, 60), width=4)
-    
+
     # Enhanced triangles with gradients
     colors_order = [Colors.RED, Colors.BLUE, Colors.YELLOW, Colors.GREEN]
     triangle_coords = [
         [(cx0, cy0), (cx1, cy0), (midx, midy)],  # top
-        [(cx1, cy0), (cx1, cy1), (midx, midy)],  # right  
+        [(cx1, cy0), (cx1, cy1), (midx, midy)],  # right
         [(cx0, cy1), (cx1, cy1), (midx, midy)],  # bottom
-        [(cx0, cy0), (cx0, cy1), (midx, midy)]   # left
+        [(cx0, cy0), (cx0, cy1), (midx, midy)],  # left
     ]
-    
+
     for i, (color, coords) in enumerate(zip(colors_order, triangle_coords)):
         d.polygon(coords, fill=COLOR_MAP[color], outline=COLOR_DARK[color])
 
@@ -409,7 +478,7 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
     # Start with the cached board template
     img = get_board_template()
     d = ImageDraw.Draw(img)
-    
+
     # Calculate finish anchors (same as in template generation)
     cx0, cy0, cx1, cy1 = _cell_bbox(7, 7)
     midx = (cx0 + cx1) // 2
@@ -424,21 +493,23 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
     # Enhanced token rendering with proper stacking
     # First, collect all tokens by position and state for stacking
     position_groups = {}
-    
+
     for color, tlist in tokens.items():
         for tk in tlist:
             state = tk.state.value
             pos = tk.position
-            
+
             if state == TokenState.HOME.value:
                 # Home tokens - render individually in their designated spots
                 c, r = _token_home_grid_position(color, tk.token_id)
                 bbox = _cell_bbox(c, r)
                 cx, cy = (bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2
                 _draw_stacked_tokens(d, [(color, tk)], cx, cy, CELL // 2 - 6, show_ids)
-                
-            elif (state == TokenState.HOME_COLUMN.value and 
-                  HOME_COLUMN_START <= pos <= HOME_COLUMN_END):
+
+            elif (
+                state == TokenState.HOME_COLUMN.value
+                and HOME_COLUMN_START <= pos <= HOME_COLUMN_END
+            ):
                 # Home column tokens
                 coord_map = HOME_COLUMN_COORDS[color]
                 if pos in coord_map:
@@ -446,14 +517,14 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
                     if key not in position_groups:
                         position_groups[key] = []
                     position_groups[key].append((color, tk))
-                    
+
             elif state == TokenState.FINISHED.value:
                 # Finished tokens - stack at finish anchor
                 key = f"finished_{color}"
                 if key not in position_groups:
                     position_groups[key] = []
                 position_groups[key].append((color, tk))
-                
+
             else:  # active on main path
                 if 0 <= pos < len(PATH_INDEX_TO_COORD):
                     key = f"main_path_{pos}"
@@ -473,12 +544,12 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
                 bbox = _cell_bbox(c, r)
                 cx, cy = (bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2
                 _draw_stacked_tokens(d, token_group, cx, cy, CELL // 2 - 4, show_ids)
-                
+
         elif key.startswith("finished_"):
             color = key.split("_")[1]
             ax, ay = finish_anchor[color]
             _draw_stacked_tokens(d, token_group, ax, ay, CELL // 2 - 4, show_ids)
-            
+
         elif key.startswith("main_path_"):
             pos = int(key.split("_")[2])
             c, r = PATH_INDEX_TO_COORD[pos]
@@ -491,7 +562,7 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
 
 def clear_board_cache():
     """
-    Clear the board template cache. 
+    Clear the board template cache.
     Useful if you want to regenerate the template (e.g., after changing styling).
     """
     global _BOARD_TEMPLATE
