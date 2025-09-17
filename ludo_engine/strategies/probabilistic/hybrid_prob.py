@@ -218,7 +218,7 @@ class HybridProbStrategy(Strategy):
             scored.append(scores)
 
         # Optional Pareto pruning
-        candidates: list[MoveEvaluation] = (
+        candidates: List[MoveEvaluation] = (
             self._pareto_filter(scored) if self.cfg.pareto_prune else scored
         )
 

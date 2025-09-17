@@ -1,3 +1,5 @@
+from typing import List
+
 import gradio as gr
 
 from ludo_engine.core import PlayerColor
@@ -10,8 +12,8 @@ class UIBuilder:
 
     def __init__(
         self,
-        ai_strategies: list[str],
-        default_players: list[PlayerColor],
+        ai_strategies: List[str],
+        default_players: List[PlayerColor],
         show_token_ids: bool,
         handler: EventHandler,
     ):

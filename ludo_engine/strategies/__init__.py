@@ -2,6 +2,8 @@
 Strategies module - Collection of all available Ludo AI strategies.
 """
 
+from typing import Dict
+
 from ludo_engine.strategies.aggressive import KillerStrategy, OptimistStrategy
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.baseline import RandomStrategy
@@ -19,7 +21,7 @@ from ludo_engine.strategies.probabilistic import (
 from ludo_engine.strategies.special import HumanStrategy, LLMStrategy
 
 # Strategy Mapping - Centralized mapping of strategy names to classes
-STRATEGIES: dict[str, Strategy] = {
+STRATEGIES: Dict[str, Strategy] = {
     "human": HumanStrategy,
     "killer": KillerStrategy,
     "winner": WinnerStrategy,

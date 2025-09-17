@@ -2,6 +2,7 @@ import json
 import random
 import time
 from dataclasses import asdict
+from typing import List
 
 import gradio as gr
 
@@ -19,8 +20,8 @@ class EventHandler:
         self,
         game_manager: GameManager,
         utils: Utils,
-        ai_strategies: list[str],
-        default_players: list[PlayerColor],
+        ai_strategies: List[str],
+        default_players: List[PlayerColor],
         show_token_ids: bool,
     ):
         self.game_manager = game_manager
@@ -67,7 +68,7 @@ class EventHandler:
         return [random.choice(strategies) for _ in range(len(self.default_players))]
 
     def _ui_steps(
-        self, game, history: list[str], show, pending_dice, human_choice=None
+        self, game, history: List[str], show, pending_dice, human_choice=None
     ):
         if game is None:
             return (
@@ -168,7 +169,7 @@ class EventHandler:
                 None,  # auto_delay_state
             )
 
-    def _ui_run_auto(self, n, delay, game: LudoGame, history: list[str], show: bool):
+    def _ui_run_auto(self, n, delay, game: LudoGame, history: List[str], show: bool):
         if game is None:
             yield (
                 None,
@@ -347,7 +348,7 @@ class EventHandler:
         return tuple(out)
 
     def _ui_resume_auto(
-        self, remaining, delay, game: LudoGame, history: list[str], show: bool
+        self, remaining, delay, game: LudoGame, history: List[str], show: bool
     ):
         try:
             rem = int(remaining) if remaining is not None else 0
