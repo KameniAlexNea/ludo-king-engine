@@ -6,10 +6,10 @@ Manages the game board state and validates moves.
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Set, Tuple
 
-from ludo_engine.models.constants import BoardConstants
-from ludo_engine.models.model import BoardPositionInfo, BoardState, PositionInfo
 from ludo_engine.core.player import Player, PlayerColor
 from ludo_engine.core.token import Token, TokenState
+from ludo_engine.models.constants import BoardConstants
+from ludo_engine.models.model import BoardPositionInfo, BoardState, PositionInfo
 
 
 @dataclass

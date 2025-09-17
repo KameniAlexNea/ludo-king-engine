@@ -7,6 +7,7 @@ import random
 from typing import List, Optional, Union
 
 from ludo_engine.core.board import Board
+from ludo_engine.core.player import Player, PlayerColor
 from ludo_engine.models.constants import GameConstants
 from ludo_engine.models.model import (
     AIDecisionContext,
@@ -19,7 +20,6 @@ from ludo_engine.models.model import (
     TurnResult,
     ValidMove,
 )
-from ludo_engine.core.player import Player, PlayerColor
 
 
 class LudoGame:

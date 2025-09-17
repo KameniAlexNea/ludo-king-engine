@@ -7,7 +7,11 @@ maintaining safety. Prefers finishing > deep home advancement > safe captures
 
 from typing import List, Tuple
 
-from ludo_engine.models.constants import BoardConstants, GameConstants, StrategyConstants
+from ludo_engine.models.constants import (
+    BoardConstants,
+    GameConstants,
+    StrategyConstants,
+)
 from ludo_engine.models.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
 

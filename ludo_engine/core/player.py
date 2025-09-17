@@ -6,7 +6,12 @@ Each player has a color and controls 4 tokens.
 from enum import Enum
 from typing import List
 
-from ludo_engine.models.constants import BoardConstants, GameConstants, StrategyConstants
+from ludo_engine.core.token import Token, TokenState
+from ludo_engine.models.constants import (
+    BoardConstants,
+    GameConstants,
+    StrategyConstants,
+)
 from ludo_engine.models.model import (
     AIDecisionContext,
     PlayerState,
@@ -14,7 +19,6 @@ from ludo_engine.models.model import (
     ValidMove,
 )
 from ludo_engine.strategies.base import Strategy
-from ludo_engine.core.token import Token, TokenState
 
 
 class PlayerColor(Enum):

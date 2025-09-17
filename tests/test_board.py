@@ -7,9 +7,9 @@ and board state representation.
 import unittest
 
 from ludo_engine.core.board import Board, Position
-from ludo_engine.models.constants import BoardConstants
 from ludo_engine.core.player import Player, PlayerColor
 from ludo_engine.core.token import TokenState
+from ludo_engine.models.constants import BoardConstants
 
 
 class TestBoard(unittest.TestCase):
