@@ -5,8 +5,7 @@ from dataclasses import asdict
 
 import gradio as gr
 
-from ludo_engine.core.game import LudoGame
-from ludo_engine.core.player import PlayerColor
+from ludo_engine.core import LudoGame, PlayerColor
 from ludo_interface.board_viz import draw_board
 
 from .game_manager import GameManager

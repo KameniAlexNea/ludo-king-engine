@@ -8,7 +8,7 @@ os.environ.setdefault(
 )
 
 
-from ludo_engine.core.player import PlayerColor
+from ludo_engine.core import PlayerColor
 from ludo_engine.strategies.strategy import StrategyFactory
 from ludo_interface.board_viz import preload_board_template
 

@@ -1,6 +1,6 @@
 import gradio as gr
 
-from ludo_engine.core.player import PlayerColor
+from ludo_engine.core import PlayerColor
 
 from .event_handler import EventHandler
 
