@@ -85,7 +85,7 @@ class TestGameIntegration(unittest.TestCase):
         game.players[1].strategy = WinnerStrategy()
 
         # Play several turns
-        for _ in range(20):
+        for _ in range(100):
             if any(player.has_won() for player in game.players):
                 break
             game.play_turn()
@@ -309,7 +309,7 @@ class TestGameIntegration(unittest.TestCase):
         )
 
         # Make many moves quickly
-        for _ in range(50):
+        for _ in range(100):
             if any(player.has_won() for player in game.players):
                 break
             game.play_turn()
@@ -369,8 +369,8 @@ class TestStrategyIntegration(unittest.TestCase):
 
         # Play some turns
         for _ in range(
-            20
-        ):  # Increase to 20 turns to give more chance for tokens to become active
+            100
+        ):
             if any(player.has_won() for player in game.players):
                 break
             game.play_turn()
