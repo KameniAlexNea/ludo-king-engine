@@ -667,7 +667,7 @@ class LudoApp:
         if not game: return "No game"
         state_dict = {
             "current_turn": game.current_player_index,
-            "tokens": self._game_state_tokens(game),
+            "tokens": {k: [v.to_dict() for v in vs] for k, vs in self._game_state_tokens(game).items()},
             "game_over": game.game_over,
             "winner": game.winner.color.value if game.winner else None,
         }
