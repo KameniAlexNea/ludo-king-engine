@@ -368,9 +368,7 @@ class TestStrategyIntegration(unittest.TestCase):
         game.players[1].strategy = winner
 
         # Play some turns
-        for _ in range(
-            100
-        ):
+        for _ in range(100):
             if any(player.has_won() for player in game.players):
                 break
             game.play_turn()

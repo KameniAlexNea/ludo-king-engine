@@ -5,7 +5,7 @@ maintaining safety. Prefers finishing > deep home advancement > safe captures
 > safe progression > exits (only when necessary) > fallback.
 """
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from ludo_engine.models.constants import (
     BoardConstants,
@@ -74,7 +74,7 @@ class WinnerStrategy(Strategy):
         return best_move.token_id if best_move else 0
 
     # --- Helpers ---
-    def _choose_safe_capture(self, moves: List[ValidMove]) -> int | None:
+    def _choose_safe_capture(self, moves: List[ValidMove]) -> Optional[int]:
         capture_moves = self._get_capture_moves(moves)
         if not capture_moves:
             return None

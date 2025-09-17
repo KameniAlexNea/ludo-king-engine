@@ -4,7 +4,7 @@ Provides common constants, distance utilities, safe-position checks, and
 threat computation to eliminate duplication across strategies.
 """
 
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from ludo_engine.models.constants import BoardConstants, GameConstants
 from ludo_engine.models.model import AIDecisionContext, ValidMove
@@ -63,7 +63,9 @@ def get_opponent_main_positions(ctx: AIDecisionContext, *args) -> List[int]:
 
 
 def compute_threats_for_moves(
-    moves: List[ValidMove], ctx: AIDecisionContext, my_positions: Set[int] | None = None
+    moves: List[ValidMove],
+    ctx: AIDecisionContext,
+    my_positions: Optional[Set[int]] = None,
 ) -> Dict[int, Tuple[int, int]]:
     """Compute incoming threat for each move's landing square.
 
