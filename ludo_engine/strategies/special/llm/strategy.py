@@ -7,8 +7,7 @@ import re
 from typing import Optional
 
 from ludo_engine.models import AIDecisionContext
-from ludo_engine.strategies import Strategy
-from ludo_engine.strategies import RandomStrategy
+from ludo_engine.strategies import RandomStrategy, Strategy
 from ludo_engine.strategies.special.llm.prompt import create_prompt
 
 RESPONSE_PATTERNS = [
