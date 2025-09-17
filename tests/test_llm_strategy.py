@@ -97,21 +97,6 @@ class TestLLMStrategy(unittest.TestCase):
         """Set up test fixtures."""
         self.context = create_test_decision_context()
 
-    @unittest.skip("Requires langchain dependencies")
-    def test_initialization_ollama(self):
-        """Test LLM strategy initialization with Ollama provider."""
-        pass
-
-    @unittest.skip("Requires langchain dependencies")
-    def test_initialization_groq(self):
-        """Test LLM strategy initialization with Groq provider."""
-        pass
-
-    @unittest.skip("Requires langchain dependencies")
-    def test_initialization_groq_no_api_key(self):
-        """Test LLM strategy initialization fails gracefully without API key."""
-        pass
-
     def test_fallback_when_no_llm(self):
         """Test that strategy falls back to random when LLM is not available."""
         with patch("ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"):
@@ -124,16 +109,6 @@ class TestLLMStrategy(unittest.TestCase):
             decision = strategy.decide(self.context)
             self.assertEqual(decision, 1)
             mock_fallback.assert_called_once_with(self.context)
-
-    @unittest.skip("Requires langchain dependencies")
-    def test_successful_ollama_response(self):
-        """Test successful decision making with Ollama response."""
-        pass
-
-    @unittest.skip("Requires langchain dependencies")
-    def test_successful_groq_response(self):
-        """Test successful decision making with Groq response."""
-        pass
 
     def test_response_parsing_various_formats(self):
         """Test parsing of various LLM response formats."""
@@ -186,11 +161,6 @@ class TestLLMStrategy(unittest.TestCase):
             with self.subTest(response=response_text):
                 token_id = strategy._parse_response(response_text, self.context)
                 self.assertIsNone(token_id)
-
-    @unittest.skip("Requires langchain dependencies")
-    def test_llm_exception_handling(self):
-        """Test that exceptions during LLM calls are handled gracefully."""
-        pass
 
     def test_thinking_removal(self):
         """Test that <think> tags are properly removed from responses."""
