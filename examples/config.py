@@ -8,7 +8,7 @@ and .env files for flexible tournament setup.
 import os
 from typing import List, Optional
 
-from ludo_engine.strategy import StrategyFactory
+from ludo_engine.strategies.strategy import StrategyFactory
 
 
 class TournamentConfig:

@@ -6,8 +6,8 @@ and future capture potential while still finishing when convenient.
 
 from typing import List, Tuple
 
-from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
-from ludo_engine.model import AIDecisionContext, ValidMove
+from ludo_engine.models.constants import BoardConstants, GameConstants, StrategyConstants
+from ludo_engine.models.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     forward_distance,

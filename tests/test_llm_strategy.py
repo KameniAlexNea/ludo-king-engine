@@ -8,7 +8,7 @@ import unittest
 import unittest.mock
 from unittest.mock import MagicMock, patch
 
-from ludo_engine.model import (
+from ludo_engine.models.model import (
     AIDecisionContext,
     CurrentSituation,
     OpponentInfo,

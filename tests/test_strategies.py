@@ -6,7 +6,7 @@ Tests cover unique decision logic for each strategy type.
 import unittest
 import unittest.mock
 
-from ludo_engine.model import (
+from ludo_engine.models.model import (
     AIDecisionContext,
     CurrentSituation,
     OpponentInfo,

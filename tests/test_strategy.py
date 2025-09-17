@@ -6,7 +6,7 @@ Tests cover strategy creation, available strategies, and basic decision making.
 import unittest
 from unittest.mock import patch
 
-from ludo_engine.model import (
+from ludo_engine.models.model import (
     AIDecisionContext,
     CurrentSituation,
     OpponentInfo,
@@ -17,7 +17,7 @@ from ludo_engine.model import (
 from ludo_engine.strategies.killer import KillerStrategy
 from ludo_engine.strategies.random_strategy import RandomStrategy
 from ludo_engine.strategies.winner import WinnerStrategy
-from ludo_engine.strategy import StrategyFactory
+from ludo_engine.strategies.strategy import StrategyFactory
 
 
 def create_test_decision_context(dice_value=4, valid_moves=None):

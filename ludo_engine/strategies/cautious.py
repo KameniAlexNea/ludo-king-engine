@@ -7,8 +7,8 @@ behind late game.
 
 from typing import List, Set
 
-from ludo_engine.constants import BoardConstants, StrategyConstants
-from ludo_engine.model import AIDecisionContext, ValidMove
+from ludo_engine.models.constants import BoardConstants, StrategyConstants
+from ludo_engine.models.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     LARGE_THREAT_COUNT,

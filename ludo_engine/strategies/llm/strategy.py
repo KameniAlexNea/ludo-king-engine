@@ -6,7 +6,7 @@ import os
 import re
 from typing import Optional
 
-from ludo_engine.model import AIDecisionContext
+from ludo_engine.models.model import AIDecisionContext
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.llm.prompt import create_prompt
 from ludo_engine.strategies.random_strategy import RandomStrategy
