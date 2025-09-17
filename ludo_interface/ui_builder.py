@@ -113,8 +113,8 @@ class UIBuilder:
                                     else self.ai_strategies[0]
                                 )
                             ),
-                            label="🔴🟢🟡🔵"[i] + f" {color.value.title()}",
-                            container=False,
+                            label="🔴🟢🟡🔵"[i] + f" {color.value.title()} Strategy",
+                            container=True,
                             scale=1,
                         )
                         for i, color in enumerate(self.default_players)
@@ -126,7 +126,7 @@ class UIBuilder:
                     with gr.Row():
                         step_btn = gr.Button("▶️ Step", size="sm", scale=1)
                         auto_steps_n = gr.Number(
-                            value=5, minimum=1, maximum=100, container=False, scale=1
+                            value=100, minimum=1, maximum=1000, container=False, scale=1
                         )
                     with gr.Row():
                         run_auto_btn = gr.Button("🔄 Auto", size="sm", scale=1)
@@ -392,7 +392,7 @@ class UIBuilder:
                                 )
                             ],
                             label="🔴🟢🟡🔵"[i] + f" {color.value.title()} Strategy",
-                            container=False,
+                            container=True,
                         )
                         for i, color in enumerate(self.default_players)
                     ]
