@@ -1,6 +1,7 @@
 import json
 import random
 import time
+from dataclasses import asdict
 
 import gradio as gr
 
@@ -403,7 +404,7 @@ class EventHandler:
         state_dict = {
             "current_turn": game.current_player_index,
             "tokens": {
-                k: [v.to_dict() for v in vs]
+                k: [asdict(v.to_dict()) for v in vs]
                 for k, vs in self.game_manager.game_state_tokens(game).items()
             },
             "game_over": game.game_over,
@@ -414,18 +415,151 @@ class EventHandler:
     def _ui_run_bulk(self, n_games, *strats):
         ai_strats = [s if s != "human" else "random" for s in strats]
         win_counts = {c.value: 0 for c in self.default_players}
-        for _ in range(int(n_games)):
+
+        # Run the simulation
+        total_games = int(n_games)
+        for _ in range(total_games):
             g = self.game_manager.init_game(list(ai_strats))
-            while not g.game_over:
+            turns_taken = 0
+            while not g.game_over and turns_taken < 1000:  # Safety limit
                 g, _, _, _, _ = self.game_manager.play_step(g)
+                turns_taken += 1
             if g.winner:
                 win_counts[g.winner.color.value] += 1
+
+        # Calculate statistics
         total = sum(win_counts.values()) or 1
+
+        # Summary JSON for the main results
         summary = {
-            k: {"wins": v, "win_rate": round(v / total, 3)}
-            for k, v in win_counts.items()
+            "tournament_results": {
+                "total_games": total_games,
+                "completed_games": total,
+                "strategies": {strats[i]: ai_strats[i] for i in range(len(strats))},
+            },
+            "win_statistics": {
+                k: {
+                    "wins": v,
+                    "win_rate": round(v / total, 3),
+                    "win_percentage": f"{round(v / total * 100, 1)}%",
+                }
+                for k, v in win_counts.items()
+            },
         }
-        return json.dumps(summary, indent=2)
+
+        # Detailed text results
+        detailed_text = f"""🏆 TOURNAMENT RESULTS
+        
+📊 SIMULATION SUMMARY
+├─ Total Games: {total_games:,}
+├─ Completed: {total:,}
+├─ Success Rate: {round(total / total_games * 100, 1)}%
+└─ Strategies: {len(ai_strats)} players
+
+🎯 PLAYER PERFORMANCE
+"""
+
+        # Sort by win count for better display
+        sorted_results = sorted(win_counts.items(), key=lambda x: x[1], reverse=True)
+
+        for i, (player, wins) in enumerate(sorted_results):
+            rank_emoji = ["🥇", "🥈", "🥉", "🏅"][min(i, 3)]
+            win_rate = wins / total if total > 0 else 0
+            strategy = ai_strats[list(win_counts.keys()).index(player)]
+
+            detailed_text += f"""
+{rank_emoji} {player.upper()} ({strategy})
+   ├─ Wins: {wins:,} / {total:,}
+   ├─ Win Rate: {win_rate:.3f} ({win_rate * 100:.1f}%)
+   └─ Strategy: {strategy}
+"""
+
+        # Performance analysis
+        if total > 100:
+            best_player = max(win_counts.items(), key=lambda x: x[1])
+            worst_player = min(win_counts.items(), key=lambda x: x[1])
+            best_rate = best_player[1] / total
+            worst_rate = worst_player[1] / total
+
+            detailed_text += f"""
+📈 ANALYSIS
+├─ Best Performer: {best_player[0]} ({best_rate * 100:.1f}%)
+├─ Worst Performer: {worst_player[0]} ({worst_rate * 100:.1f}%)
+├─ Performance Gap: {(best_rate - worst_rate) * 100:.1f}%
+└─ Statistical Confidence: {"High" if total >= 1000 else "Medium" if total >= 500 else "Low"}
+"""
+
+        # Status message
+        status_html = f"""
+        <div style='text-align:center;padding:20px;'>
+            <h3 style='color:#28a745;margin:0;'>✅ Tournament Complete!</h3>
+            <p style='margin:5px 0;color:#666;'>
+                Simulated {total_games:,} games • Best: <strong>{max(win_counts.items(), key=lambda x: x[1])[0].title()}</strong> 
+                ({max(win_counts.values()) / total * 100:.1f}% win rate)
+            </p>
+        </div>
+        """
+
+        # Simple chart visualization (HTML/CSS bar chart)
+        chart_html = self._create_win_rate_chart(win_counts, total, ai_strats)
+
+        return summary, detailed_text, status_html, chart_html
+
+    def _create_win_rate_chart(self, win_counts, total, strategies):
+        """Create a simple HTML/CSS bar chart for win rates."""
+        if total == 0:
+            return "<div style='text-align:center;padding:40px;color:#666;'>No data to display</div>"
+
+        # Color scheme for players
+        colors = {
+            "red": "#dc3545",
+            "green": "#28a745",
+            "yellow": "#ffc107",
+            "blue": "#007bff",
+        }
+
+        chart_html = """
+        <div style='padding:20px;'>
+            <h4 style='text-align:center;margin-bottom:20px;color:#333;'>🏆 Win Rate Comparison</h4>
+            <div style='max-width:600px;margin:0 auto;'>
+        """
+
+        max_wins = max(win_counts.values()) if win_counts.values() else 1
+
+        for player, wins in win_counts.items():
+            win_rate = wins / total if total > 0 else 0
+            bar_width = (wins / max_wins * 100) if max_wins > 0 else 0
+            color = colors.get(player, "#6c757d")
+            strategy = strategies[list(win_counts.keys()).index(player)]
+
+            chart_html += f"""
+            <div style='margin:15px 0;'>
+                <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;'>
+                    <span style='font-weight:bold;color:{color};'>{player.title()}</span>
+                    <span style='font-size:0.9em;color:#666;'>{strategy}</span>
+                    <span style='font-weight:bold;'>{win_rate * 100:.1f}%</span>
+                </div>
+                <div style='background:#f8f9fa;border-radius:10px;height:25px;position:relative;overflow:hidden;'>
+                    <div style='background:{color};height:100%;width:{bar_width:.1f}%;border-radius:10px;transition:width 0.5s ease;display:flex;align-items:center;justify-content:center;'>
+                        <span style='color:white;font-size:0.8em;font-weight:bold;'>{wins}</span>
+                    </div>
+                </div>
+            </div>
+            """
+
+        chart_html += (
+            """
+            </div>
+            <div style='text-align:center;margin-top:20px;font-size:0.9em;color:#666;'>
+                📊 Based on """
+            + f"{total:,} completed games"
+            + """
+            </div>
+        </div>
+        """
+        )
+
+        return chart_html
 
     def _ui_update_stats(self, stats, game: LudoGame):
         if game and game.game_over and game.winner:
