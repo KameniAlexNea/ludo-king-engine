@@ -115,13 +115,17 @@ class LudoApp:
             parts.append("extra turn")
         return ", ".join(parts)
 
-    def _play_step(self, game: LudoGame, human_move_choice: Optional[int] = None):
-        """Plays a single step of the game."""
+    def _play_step(self, game: LudoGame, human_move_choice: Optional[int] = None, dice: Optional[int] = None):
+        """Plays a single step of the game.
+
+        If `dice` is provided, use it; otherwise roll a new dice value.
+        """
         if game.game_over:
             return game, "Game over", self._game_state_tokens(game), [], False
 
         current_player = game.get_current_player()
-        dice = game.roll_dice()
+        if dice is None:
+            dice = game.roll_dice()
         valid_moves = game.get_valid_moves(current_player, dice)
 
         if not valid_moves:
@@ -169,10 +173,14 @@ class LudoApp:
             stats_state = gr.State({"games": 0, "wins": {c.value: 0 for c in self.default_players}})
             waiting_for_human = gr.State(False)
             human_move_options = gr.State([])
+            # Persist the dice rolled when auto-play pauses for a human turn
+            pending_dice = gr.State(None)
+            # Holds the token id chosen by the human via a button
+            selected_token_id = gr.State(None)
 
             with gr.Tabs():
                 with gr.TabItem("🎮 Play Game"):
-                    self._build_play_game_tab(game_state, move_history, stats_state, waiting_for_human, human_move_options)
+                    self._build_play_game_tab(game_state, move_history, stats_state, waiting_for_human, human_move_options, pending_dice, selected_token_id)
                 with gr.TabItem("🏆 Simulate Multiple Games"):
                     self._build_simulation_tab()
             
@@ -187,7 +195,7 @@ class LudoApp:
             """)
         return demo
 
-    def _build_play_game_tab(self, game_state, move_history, stats_state, waiting_for_human, human_move_options):
+    def _build_play_game_tab(self, game_state, move_history, stats_state, waiting_for_human, human_move_options, pending_dice, selected_token_id):
         """Builds the 'Play Game' tab of the UI."""
         with gr.Row():
             with gr.Column(scale=2):
@@ -238,31 +246,31 @@ class LudoApp:
         # Event Handlers
         init_btn.click(
             self._ui_init, strategy_inputs,
-            [game_state, board_plot, log, move_history, stats_state, current_player_display, human_controls, human_moves_display] + move_buttons + [human_move_options]
+            [game_state, board_plot, log, move_history, stats_state, current_player_display, human_controls, human_moves_display] + move_buttons + [human_move_options, pending_dice, selected_token_id]
         )
         random_btn.click(
             self._ui_random_strategies, outputs=strategy_inputs
         ).then(
             self._ui_init, strategy_inputs,
-            [game_state, board_plot, log, move_history, stats_state, current_player_display, human_controls, human_moves_display] + move_buttons + [human_move_options]
+            [game_state, board_plot, log, move_history, stats_state, current_player_display, human_controls, human_moves_display] + move_buttons + [human_move_options, pending_dice, selected_token_id]
         )
         step_btn.click(
-            self._ui_steps, [game_state, move_history, show_ids],
-            [game_state, board_plot, log, move_history, waiting_for_human, current_player_display, human_moves_display, human_controls] + move_buttons + [human_move_options]
+            self._ui_steps, [game_state, move_history, show_ids, pending_dice],
+            [game_state, board_plot, log, move_history, waiting_for_human, current_player_display, human_moves_display, human_controls] + move_buttons + [human_move_options, pending_dice]
         ).then(self._ui_update_stats, [stats_state, game_state], [stats_state]).then(lambda s: s, [stats_state], [stats_display])
 
         for i, btn in enumerate(move_buttons):
             btn.click(
-                lambda opts, idx=i: opts[idx]["token_id"] if idx < len(opts) else 0,
-                [human_move_options], [gr.State()]
+                lambda opts, idx=i: opts[idx]["token_id"] if idx < len(opts) else None,
+                [human_move_options], [selected_token_id]
             ).then(
-                self._ui_make_human_move, [gr.State(), game_state, move_history, show_ids, human_move_options],
-                [game_state, board_plot, log, move_history, waiting_for_human, current_player_display, human_moves_display, human_controls] + move_buttons + [human_move_options]
+                self._ui_make_human_move, [selected_token_id, game_state, move_history, show_ids, human_move_options, pending_dice],
+                [game_state, board_plot, log, move_history, waiting_for_human, current_player_display, human_moves_display, human_controls] + move_buttons + [human_move_options, pending_dice, selected_token_id]
             ).then(self._ui_update_stats, [stats_state, game_state], [stats_state]).then(lambda s: s, [stats_state], [stats_display])
 
         run_auto_btn.click(
             self._ui_run_auto, [auto_steps_n, auto_delay, game_state, move_history, show_ids],
-            [game_state, board_plot, log, move_history, waiting_for_human, current_player_display, human_moves_display, human_controls] + move_buttons + [human_move_options]
+            [game_state, board_plot, log, move_history, waiting_for_human, current_player_display, human_moves_display, human_controls] + move_buttons + [human_move_options, pending_dice]
         ).then(self._ui_update_stats, [stats_state, game_state], [stats_state]).then(lambda s: s, [stats_state], [stats_display])
 
         move_history_btn.click(lambda h: "\n".join(h[-50:]), [move_history], [history_box])
@@ -301,18 +309,20 @@ class LudoApp:
             game, html, "🎮 Game initialized! Roll the dice to start.", [],
             {"games": 0, "wins": {c.value: 0 for c in self.default_players}},
             player_html, gr.update(visible=controls_visible), "",
-            gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), []
+            gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), [],
+            None,  # reset pending_dice
+            None   # reset selected_token_id
         )
 
     def _ui_random_strategies(self):
         strategies = [s for s in self.ai_strategies if s != "human"]
         return [random.choice(strategies) for _ in range(len(self.default_players))]
 
-    def _ui_steps(self, game, history: list[str], show, human_choice=None):
+    def _ui_steps(self, game, history: list[str], show, pending_dice, human_choice=None):
         if game is None:
-            return None, None, "No game initialized", history, False, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), []
+            return None, None, "No game initialized", history, False, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), [], None, None
         
-        game, desc, tokens, move_opts, waiting = self._play_step(game, human_choice)
+        game, desc, tokens, move_opts, waiting = self._play_step(game, human_choice, pending_dice)
         history.append(desc)
         if len(history) > 50: history = history[-50:]
         
@@ -328,13 +338,16 @@ class LudoApp:
         if waiting and move_opts:
             moves_html = "<h4>Choose your move:</h4><ul>" + "".join([f"<li><strong>Token {opt['token_id']}</strong>: {opt['description']} ({opt['move_type']})</li>" for opt in move_opts]) + "</ul>"
             btn_updates = [gr.update(visible=i < len(move_opts), value=f"Move Token {move_opts[i]['token_id']}" if i < len(move_opts) else "") for i in range(4)]
-            return game, html, desc, history, waiting, player_html, moves_html, gr.update(visible=True), *btn_updates, move_opts
+            # keep pending_dice if we're still waiting (it may be provided from auto-play)
+            next_pending_dice = pending_dice
+            return game, html, desc, history, waiting, player_html, moves_html, gr.update(visible=True), *btn_updates, move_opts, next_pending_dice, None
         else:
-            return game, html, desc, history, False, player_html, "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), []
+            # clear pending_dice and selected_token_id after the turn resolves
+            return game, html, desc, history, False, player_html, "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), [], None, None
 
     def _ui_run_auto(self, n, delay, game: LudoGame, history: list[str], show: bool):
         if game is None:
-            yield None, None, "No game", history, False, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), []
+            yield None, None, "No game", history, False, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), [], None, None
             return
         
         desc = ""
@@ -356,7 +369,8 @@ class LudoApp:
                     moves_html = "<h4>Choose your move:</h4><ul>" + "".join([f"<li><strong>Token {opt['token_id']}</strong>: {opt['description']} ({opt['move_type']})</li>" for opt in move_options]) + "</ul>"
                     btn_updates = [gr.update(visible=i < len(move_options), value=f"Move Token {move_options[i]['token_id']}" if i < len(move_options) else "") for i in range(4)]
                     
-                    yield game, html, desc, history, True, player_html, moves_html, gr.update(visible=True), *btn_updates, move_options
+                    # set pending_dice to the rolled value and pause for human
+                    yield game, html, desc, history, True, player_html, moves_html, gr.update(visible=True), *btn_updates, move_options, dice, None
                     return
                 else:
                     extra_turn = dice == 6
@@ -380,15 +394,17 @@ class LudoApp:
                 player_html = f"<h3>🏆 Winner: {game.winner.color.value.title()}!</h3>"
             
             waiting = self._is_human_turn(game) and not game.game_over
-            yield game, html, desc, history, waiting, player_html, "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), []
+            # clear pending_dice while continuing auto-play (no human pause)
+            yield game, html, desc, history, waiting, player_html, "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), [], None, None
             
             if game.game_over: break
             if delay and delay > 0 and not waiting: time.sleep(float(delay))
 
-    def _ui_make_human_move(self, token_id, game, history, show, move_opts):
+    def _ui_make_human_move(self, token_id, game, history, show, move_opts, pending_dice):
         if not move_opts:
-            return game, None, "No moves available", history, False, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), []
-        return self._ui_steps(game, history, show, token_id)
+            return game, None, "No moves available", history, False, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), [], pending_dice, None
+        # Use the pending_dice from auto-play to execute the human's chosen move
+        return self._ui_steps(game, history, show, pending_dice, token_id)
 
     def _ui_export(self, game: LudoGame):
         if not game: return "No game"
