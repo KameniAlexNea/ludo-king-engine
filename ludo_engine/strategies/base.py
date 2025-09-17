@@ -5,7 +5,7 @@ Base strategy classes and interfaces for Ludo AI.
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from ludo_engine.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, ValidMove
 
 
 class Strategy(ABC):

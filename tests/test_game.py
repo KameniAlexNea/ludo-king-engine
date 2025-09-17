@@ -7,12 +7,9 @@ and AI decision context generation to achieve high code coverage.
 import unittest
 from unittest.mock import patch
 
-from ludo_engine.constants import BoardConstants
-from ludo_engine.game import LudoGame
-from ludo_engine.model import AIDecisionContext, TurnResult, ValidMove
-from ludo_engine.player import Player, PlayerColor
-from ludo_engine.strategies.random_strategy import RandomStrategy
-from ludo_engine.token import TokenState
+from ludo_engine.core import LudoGame, Player, PlayerColor, TokenState
+from ludo_engine.models import AIDecisionContext, BoardConstants, TurnResult, ValidMove
+from ludo_engine.strategies import RandomStrategy
 
 
 class TestLudoGame(unittest.TestCase):
@@ -219,7 +216,7 @@ class TestLudoGame(unittest.TestCase):
             context.current_situation.player_color, self.game.players[0].color.value
         )
         self.assertIsInstance(context.valid_moves, list)
-        from ludo_engine.model import PlayerState
+        from ludo_engine.models.model import PlayerState
 
         self.assertIsInstance(context.player_state, PlayerState)
 

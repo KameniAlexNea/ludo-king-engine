@@ -1,9 +1,9 @@
 [project]
 name = "ludo-king-engine"
-version = "0.1.1"
+version = "0.1.2"
 description = "A pure Python implementation of the Ludo game, built for reinforcement learning and strategy testing. The engine defines deterministic rules, cleanly separates game mechanics from strategies, and requires no external libraries."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.8"
 authors = [
     { name = "KameniAlexNea", email = "noreply@github.com" }
 ]
@@ -15,21 +15,23 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Games/Entertainment :: Board Games",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-dependencies = [
-    "gradio>=5.45.0",
-    "pillow>=11.3.0",
-    "tox>=4.30.2",
-]
+dependencies = []
 
 [project.optional-dependencies]
+dev = [
+    "tox",
+]
 gradio = [
-    "gradio>=5.45.0",
-    "Pillow>=11.3.0",
+    "gradio",
+    "Pillow",
 ]
 
 [project.urls]
@@ -49,3 +51,8 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["ludo_engine*", "ludo_interface*"]
 exclude = ["gradio_runtime*"]
+
+[dependency-groups]
+dev = [
+    "tox>=4.25.0",
+]

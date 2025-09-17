@@ -6,13 +6,9 @@ Tests cover full game scenarios, multi-player interactions, and end-to-end game 
 import unittest
 from unittest.mock import patch
 
-from ludo_engine.game import LudoGame
-from ludo_engine.model import TurnResult
-from ludo_engine.player import Player, PlayerColor
-from ludo_engine.strategies.killer import KillerStrategy
-from ludo_engine.strategies.random_strategy import RandomStrategy
-from ludo_engine.strategies.winner import WinnerStrategy
-from ludo_engine.token import TokenState
+from ludo_engine.core import LudoGame, Player, PlayerColor, TokenState
+from ludo_engine.models import TurnResult
+from ludo_engine.strategies import KillerStrategy, RandomStrategy, WinnerStrategy
 
 
 class TestGameIntegration(unittest.TestCase):
@@ -89,7 +85,7 @@ class TestGameIntegration(unittest.TestCase):
         game.players[1].strategy = WinnerStrategy()
 
         # Play several turns
-        for _ in range(20):
+        for _ in range(100):
             if any(player.has_won() for player in game.players):
                 break
             game.play_turn()
@@ -128,7 +124,7 @@ class TestGameIntegration(unittest.TestCase):
             initial_positions[i] = [token.position for token in player.tokens]
 
         # Make some moves
-        for _ in range(10):
+        for _ in range(100):
             if any(player.has_won() for player in game.players):
                 break
             game.play_turn()
@@ -252,7 +248,7 @@ class TestGameIntegration(unittest.TestCase):
             game.get_current_player().color.value,
         )
         self.assertIsInstance(context.valid_moves, list)
-        from ludo_engine.model import PlayerState
+        from ludo_engine.models.model import PlayerState
 
         self.assertIsInstance(context.player_state, PlayerState)
 
@@ -313,7 +309,7 @@ class TestGameIntegration(unittest.TestCase):
         )
 
         # Make many moves quickly
-        for _ in range(50):
+        for _ in range(100):
             if any(player.has_won() for player in game.players):
                 break
             game.play_turn()
@@ -372,9 +368,7 @@ class TestStrategyIntegration(unittest.TestCase):
         game.players[1].strategy = winner
 
         # Play some turns
-        for _ in range(
-            20
-        ):  # Increase to 20 turns to give more chance for tokens to become active
+        for _ in range(100):
             if any(player.has_won() for player in game.players):
                 break
             game.play_turn()

@@ -10,14 +10,17 @@ Pure Python implementation of the Ludo board game used by RL environments (`ludo
 
 ## Module Overview
 ```
-ludo/
-	board.py        # Board logic: movement validation, capture resolution
-	constants.py    # Game, board, color, path constants & helper values
-	game.py         # Orchestrates turns, dice, move validation/execution
-	player.py       # Player container holding tokens & strategy binding
-	token.py        # Token state & movement logic
-	strategy.py     # StrategyFactory & registry helpers
-	strategies/     # Concrete strategies (heuristics + LLM interface)
+ludo_engine/
+	core/
+		board.py        # Board logic: movement validation, capture resolution
+		game.py         # Orchestrates turns, dice, move validation/execution
+		player.py       # Player container holding tokens & strategy binding
+		token.py        # Token state & movement logic
+	models/
+		constants.py    # Game, board, color, path constants & helper values
+		model.py        # Data models and decision contexts
+	strategies/
+		strategy.py     # StrategyFactory & registry helpers
 		base.py
 		random_strategy.py
 		killer.py / defensive.py / balanced.py / cautious.py / optimist.py / winner.py

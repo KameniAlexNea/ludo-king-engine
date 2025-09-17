@@ -15,10 +15,14 @@ without compensation and minimizes exposure within a limited acceptable threat
 band.
 """
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
-from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
-from ludo_engine.model import AIDecisionContext, ValidMove
+from ludo_engine.models.constants import (
+    BoardConstants,
+    GameConstants,
+    StrategyConstants,
+)
+from ludo_engine.models.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     LARGE_THREAT_COUNT,
@@ -173,7 +177,7 @@ class DefensiveStrategy(Strategy):
     # --- Capture Logic ---
     def _choose_safe_capture(
         self, moves: List[ValidMove], threat_map: Dict[int, Tuple[int, int]]
-    ) -> int | None:
+    ) -> Optional[int]:
         captures = self._get_capture_moves(moves)
         safe_caps = [m for m in captures if m.is_safe_move]
         if not safe_caps:
@@ -224,7 +228,7 @@ class DefensiveStrategy(Strategy):
     # --- Selection Helpers ---
     def _select_safest(
         self, moves: List[ValidMove], threat_map: Dict[int, Tuple[int, int]]
-    ) -> int | None:
+    ) -> Optional[int]:
         if not moves:
             return None
         # sort by (threat_count, -is_home_column, -strategic_value)

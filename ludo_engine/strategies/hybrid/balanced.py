@@ -6,10 +6,14 @@ and cautious (avoid needless risk when ahead). Dynamic weights shift based on
 relative progress and late-game pressure.
 """
 
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
-from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
-from ludo_engine.model import AIDecisionContext, ValidMove
+from ludo_engine.models.constants import (
+    BoardConstants,
+    GameConstants,
+    StrategyConstants,
+)
+from ludo_engine.models.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     LARGE_THREAT_COUNT,
@@ -154,7 +158,7 @@ class BalancedStrategy(Strategy):
         moves: List[ValidMove],
         threat_map: Dict[int, Tuple[int, int]],
         aggressive: bool,
-    ) -> int | None:
+    ) -> Optional[int]:
         captures = self._get_capture_moves(moves)
         if not captures:
             return None
@@ -191,7 +195,7 @@ class BalancedStrategy(Strategy):
     # --- Future Capture Positioning ---
     def _future_capture_positioning(
         self, moves: List[ValidMove], threat_map: Dict[int, Tuple[int, int]], ctx: Dict
-    ) -> int | None:
+    ) -> Optional[int]:
         candidates = [m for m in moves if m.is_safe_move and not m.captures_opponent]
         if not candidates:
             return None
@@ -243,7 +247,7 @@ class BalancedStrategy(Strategy):
         threat_map: Dict[int, Tuple[int, int]],
         ahead: bool,
         behind: bool = False,
-    ) -> int | None:
+    ) -> Optional[int]:
         if not moves:
             return None
         scored: List[Tuple[float, ValidMove]] = []

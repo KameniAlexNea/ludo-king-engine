@@ -6,12 +6,13 @@ Manages game flow, rules, and provides interface for AI players.
 import random
 from typing import List, Optional, Union
 
-from ludo_engine.board import Board
-from ludo_engine.constants import GameConstants
-from ludo_engine.model import (
+from ludo_engine.core.board import Board
+from ludo_engine.core.player import Player, PlayerColor
+from ludo_engine.models import (
     AIDecisionContext,
     CapturedToken,
     CurrentSituation,
+    GameConstants,
     MoveResult,
     OpponentInfo,
     PlayerConfiguration,
@@ -19,7 +20,6 @@ from ludo_engine.model import (
     TurnResult,
     ValidMove,
 )
-from ludo_engine.player import Player, PlayerColor
 
 
 class LudoGame:

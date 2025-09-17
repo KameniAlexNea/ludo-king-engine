@@ -7,18 +7,17 @@ and game state representation.
 import unittest
 from unittest.mock import patch
 
-from ludo_engine.constants import GameConstants
-from ludo_engine.model import (
+from ludo_engine.core import Player, PlayerColor, TokenState
+from ludo_engine.models import (
     AIDecisionContext,
     CurrentSituation,
+    GameConstants,
     OpponentInfo,
     PlayerState,
     StrategicAnalysis,
     ValidMove,
 )
-from ludo_engine.player import Player, PlayerColor
-from ludo_engine.strategies.random_strategy import RandomStrategy
-from ludo_engine.token import TokenState
+from ludo_engine.strategies import RandomStrategy
 
 
 def create_test_decision_context(dice_value=4, valid_moves=None):

@@ -2,7 +2,7 @@
 Human strategy - allows human player to make decisions through the interface.
 """
 
-from ludo_engine.model import AIDecisionContext
+from ludo_engine.models.model import AIDecisionContext
 from ludo_engine.strategies.base import Strategy
 
 

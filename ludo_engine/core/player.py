@@ -4,17 +4,19 @@ Each player has a color and controls 4 tokens.
 """
 
 from enum import Enum
-from typing import List
+from typing import List, Optional, Tuple
 
-from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
-from ludo_engine.model import (
+from ludo_engine.core.token import Token, TokenState
+from ludo_engine.models import (
     AIDecisionContext,
+    BoardConstants,
+    GameConstants,
     PlayerState,
     StrategicComponents,
+    StrategyConstants,
     ValidMove,
 )
-from ludo_engine.strategies.base import Strategy
-from ludo_engine.token import Token, TokenState
+from ludo_engine.strategies import Strategy
 
 
 class PlayerColor(Enum):
@@ -211,8 +213,8 @@ class Player:
         return BoardConstants.is_safe_position(target_position, self.color.value)
 
     def _calculate_strategic_value(
-        self, token: Token, dice_value: int, target_position: int | None = None
-    ) -> tuple[float, StrategicComponents]:
+        self, token: Token, dice_value: int, target_position: Optional[int] = None
+    ) -> Tuple[float, StrategicComponents]:
         """Enhanced heuristic with component breakdown.
 
         Components implemented per requested improvements:

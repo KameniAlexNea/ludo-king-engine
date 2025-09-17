@@ -12,10 +12,14 @@ API and existing detail fields while correcting previous priority inversions.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
-from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
-from ludo_engine.model import AIDecisionContext, ValidMove
+from ludo_engine.models.constants import (
+    BoardConstants,
+    GameConstants,
+    StrategyConstants,
+)
+from ludo_engine.models.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     forward_distance,
@@ -132,7 +136,7 @@ class KillerStrategy(Strategy):
     # --- Capture scoring ---
     def _choose_capture(
         self, moves: List[ValidMove], ctx: AIDecisionContext
-    ) -> int | None:
+    ) -> Optional[int]:
         capture_moves = self._get_capture_moves(moves)
         if not capture_moves:
             return None
@@ -222,7 +226,7 @@ class KillerStrategy(Strategy):
     # --- Predictive positioning ---
     def _choose_predictive(
         self, moves: List[ValidMove], ctx: AIDecisionContext
-    ) -> int | None:
+    ) -> Optional[int]:
         # current_color = ctx.current_situation.player_color
         opponent_positions = get_opponent_main_positions(ctx)
 

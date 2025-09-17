@@ -4,10 +4,14 @@ Bold, opportunistic: prefers high-value risky advancements, proactive exits,
 and future capture potential while still finishing when convenient.
 """
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
-from ludo_engine.constants import BoardConstants, GameConstants, StrategyConstants
-from ludo_engine.model import AIDecisionContext, ValidMove
+from ludo_engine.models.constants import (
+    BoardConstants,
+    GameConstants,
+    StrategyConstants,
+)
+from ludo_engine.models.model import AIDecisionContext, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     forward_distance,
@@ -92,7 +96,7 @@ class OptimistStrategy(Strategy):
     # --- Capture scoring ---
     def _score_captures(
         self, captures: List[ValidMove], ctx: AIDecisionContext
-    ) -> ValidMove | None:
+    ) -> Optional[ValidMove]:
         entries = BoardConstants.HOME_COLUMN_ENTRIES
         scored: List[Tuple[float, ValidMove]] = []
         for mv in captures:
@@ -121,7 +125,7 @@ class OptimistStrategy(Strategy):
     # --- Future capture positioning ---
     def _choose_future_capture(
         self, moves: List[ValidMove], ctx: AIDecisionContext, fallback: bool
-    ) -> ValidMove | None:
+    ) -> Optional[ValidMove]:
         scored: List[Tuple[float, ValidMove]] = []
         for mv in moves:
             landing = mv.target_position

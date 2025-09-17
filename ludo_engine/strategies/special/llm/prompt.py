@@ -1,4 +1,6 @@
-from ludo_engine.model import AIDecisionContext, ValidMove
+from typing import List
+
+from ludo_engine.models import AIDecisionContext, ValidMove
 
 PROMPT = """You are playing Ludo. Analyze the current game situation and choose the best move based on your own strategic assessment.
 
@@ -50,7 +52,7 @@ Choose the token ID (0-3) for your move. Respond with ONLY the token number.
 DECISION: """
 
 
-def create_prompt(game_context: AIDecisionContext, valid_moves: list[ValidMove]) -> str:
+def create_prompt(game_context: AIDecisionContext, valid_moves: List[ValidMove]) -> str:
     """Create structured prompt for LLM decision making with sanitized data."""
     # valid_moves = self._get_valid_moves(game_context)
     player_state = game_context.player_state
