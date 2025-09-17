@@ -167,7 +167,28 @@ class LudoApp:
 
     def create_ui(self):
         """Creates and returns the Gradio UI for the Ludo game."""
-        with gr.Blocks(title="🎲 Enhanced Ludo AI Visualizer", theme=gr.themes.Soft()) as demo:
+        with gr.Blocks(
+            title="🎲 Enhanced Ludo AI Visualizer", 
+            theme=gr.themes.Soft(),
+            css="""
+            .board-container {
+                max-height: 80vh !important;
+                overflow: hidden !important;
+            }
+            .board-container img {
+                max-width: 100% !important;
+                max-height: 80vh !important;
+                object-fit: contain !important;
+            }
+            .gradio-accordion {
+                margin: 0.25rem 0 !important;
+            }
+            .gradio-box {
+                padding: 0.5rem !important;
+                margin: 0.25rem 0 !important;
+            }
+            """
+        ) as demo:
             game_state = gr.State()
             move_history = gr.State([])
             stats_state = gr.State({"games": 0, "wins": {c.value: 0 for c in self.default_players}})
@@ -198,62 +219,70 @@ class LudoApp:
                     self._build_simulation_tab()
             
             gr.Markdown("""
-            # 🎲 Enhanced Ludo AI Visualizer
-            Experience Ludo with beautiful graphics, multiple AI strategies, and human player support!
-            ## Features:
-            - 🤖 **Multiple AI Strategies**: Choose from various AI personalities
-            - 👤 **Human Players**: Select "human" strategy to play yourself
-            - 🎨 **Enhanced Graphics**: Beautiful board with token stacking visualization
-            - 📊 **Game Statistics**: Track wins and performance
+            ## 🎲 Enhanced Ludo AI Visualizer
+            **Features:** 🤖 Multiple AI Strategies • 👤 Human Players • 🎨 Enhanced Graphics • 📊 Statistics
             """)
         return demo
 
     def _build_play_game_tab(self, game_state, move_history, stats_state, waiting_for_human, human_move_options, pending_dice, selected_token_id, auto_steps_remaining, auto_delay_state):
         """Builds the 'Play Game' tab of the UI."""
+        # Main layout: Board dominates the center, controls in compact sidebars
         with gr.Row():
-            with gr.Column(scale=2):
-                gr.Markdown("### 👥 Player Configuration")
-                strategy_inputs = [
-                    gr.Dropdown(
-                        choices=self.ai_strategies,
-                        value="human" if i == 0 else self.ai_strategies[1] if len(self.ai_strategies) > 1 else self.ai_strategies[0],
-                        label=f"🔴🟢🟡🔵"[i] + f" {color.value.title()} Strategy",
-                        info="Choose 'human' to play yourself!"
-                    ) for i, color in enumerate(self.default_players)
-                ]
-            with gr.Column(scale=1):
-                gr.Markdown("### 🎛️ Display Options")
-                show_ids = gr.Checkbox(label="Show Token IDs", value=self.show_token_ids)
-                export_btn = gr.Button("📤 Export Game State", size="sm")
-                move_history_btn = gr.Button("📜 Show Move History", size="sm")
+            # Left sidebar: Player config and game controls (compact)
+            with gr.Column(scale=1, min_width=280):
+                with gr.Accordion("👥 Players", open=True):
+                    strategy_inputs = [
+                        gr.Dropdown(
+                            choices=self.ai_strategies,
+                            value="human" if i == 0 else self.ai_strategies[1] if len(self.ai_strategies) > 1 else self.ai_strategies[0],
+                            label=f"🔴🟢🟡🔵"[i] + f" {color.value.title()}",
+                            container=False,
+                            scale=1
+                        ) for i, color in enumerate(self.default_players)
+                    ]
+                
+                with gr.Accordion("🎮 Controls", open=True):
+                    init_btn = gr.Button("� New Game", variant="primary", size="sm")
+                    random_btn = gr.Button("🎲 Random", size="sm")
+                    with gr.Row():
+                        step_btn = gr.Button("▶️ Step", size="sm", scale=1)
+                        auto_steps_n = gr.Number(value=5, minimum=1, maximum=100, container=False, scale=1)
+                    with gr.Row():
+                        run_auto_btn = gr.Button("🔄 Auto", size="sm", scale=1)
+                        auto_delay = gr.Number(value=0.5, minimum=0, maximum=5, step=0.1, container=False, scale=1)
+                
+                with gr.Accordion("�️ Options", open=False):
+                    show_ids = gr.Checkbox(label="Show Token IDs", value=self.show_token_ids, container=False)
+                    export_btn = gr.Button("📤 Export", size="sm")
+                    move_history_btn = gr.Button("📜 History", size="sm")
 
-        with gr.Row():
-            with gr.Column(scale=1):
-                gr.Markdown("### 🎮 Game Controls")
-                init_btn = gr.Button("🆕 Start New Game", variant="primary", size="sm")
-                random_btn = gr.Button("🎲 Random Strategies", size="sm")
-                step_btn = gr.Button("▶️ Play Step", size="sm")
-            with gr.Column(scale=1):
-                gr.Markdown("### ⚙️ Auto Play Settings")
-                auto_steps_n = gr.Number(value=1, label="Steps", minimum=1, maximum=100)
-                auto_delay = gr.Number(value=0.5, label="Delay (s)", minimum=0, maximum=5, step=0.1)
-                run_auto_btn = gr.Button("🔄 Run Auto Steps", size="sm")
-
-        with gr.Row(visible=False) as human_controls:
-            with gr.Column():
-                gr.Markdown("### 🤔 Your Turn!")
-                human_moves_display = gr.HTML()
-                move_buttons = [gr.Button(f"Move Token {i}", visible=False, variant="secondary", size="sm") for i in range(4)]
-
-        with gr.Row(equal_height=True):
+            # Center: Main game board (large, no scrolling)
             with gr.Column(scale=3):
-                board_plot = gr.HTML(label="🎯 Game Board")
-            with gr.Column(scale=1):
-                current_player_display = gr.HTML(value="<h3>🎯 Current Player: Game not started</h3>")
-                log = gr.Textbox(label="📝 Last Action", interactive=False, lines=3)
-                history_box = gr.Textbox(label="📚 Move History", lines=8, max_lines=15)
+                board_plot = gr.HTML(label="🎯 Game Board", elem_classes=["board-container"])
+                
+                # Human move controls (overlay when needed)
+                with gr.Row(visible=False) as human_controls:
+                    with gr.Column():
+                        human_moves_display = gr.HTML()
+                        with gr.Row():
+                            move_buttons = [gr.Button(f"Token {i}", visible=False, variant="secondary", size="sm") for i in range(4)]
 
-        stats_display = gr.JSON(label="📊 Game Statistics", value={"games": 0, "wins": {c.value: 0 for c in self.default_players}})
+            # Right sidebar: Game info and stats (compact)
+            with gr.Column(scale=1, min_width=280):
+                # Current player when not in human turn
+                with gr.Row():
+                    current_player_display = gr.HTML(value="<h3>🎯 Current Player: Game not started</h3>")
+                
+                with gr.Accordion("📝 Last Action", open=True):
+                    log = gr.Textbox(show_label=False, interactive=False, lines=3, max_lines=4, container=False)
+                
+                with gr.Accordion("📊 Statistics", open=True):
+                    stats_display = gr.JSON(show_label=False, container=False, value={"games": 0, "wins": {c.value: 0 for c in self.default_players}})
+                
+                with gr.Accordion("📚 History", open=False):
+                    history_box = gr.Textbox(show_label=False, lines=6, max_lines=10, container=False)
+
+        # Hidden elements
         export_box = gr.Textbox(label="Game State JSON", lines=6, visible=False)
 
         # Event Handlers
@@ -356,7 +385,7 @@ class LudoApp:
             + [human_move_options, pending_dice, selected_token_id, auto_steps_remaining, auto_delay_state]
         ).then(self._ui_update_stats, [stats_state, game_state], [stats_state]).then(lambda s: s, [stats_state], [stats_display])
 
-        move_history_btn.click(lambda h: "\n".join(h[-50:]), [move_history], [history_box])
+        move_history_btn.click(lambda h: "\n".join(h[-30:]), [move_history], [history_box])
         export_btn.click(self._ui_export, [game_state], [export_box])
 
     def _build_simulation_tab(self):
