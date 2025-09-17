@@ -169,17 +169,6 @@ def _draw_home_quadrants(d: ImageDraw.ImageDraw):
             )
             d.rectangle(inset_box, outline=border_color, width=2)
 
-
-def _get_tokens_at_position(tokens: Dict[str, List[Token]], position: int, state: str) -> List[Tuple[str, Token]]:
-    """Get all tokens at a specific position and state."""
-    tokens_at_pos = []
-    for color, token_list in tokens.items():
-        for token in token_list:
-            if token.position == position and token.state.value == state:
-                tokens_at_pos.append((color, token))
-    return tokens_at_pos
-
-
 def _draw_stacked_tokens(d: ImageDraw.ImageDraw, tokens_at_pos: List[Tuple[str, Token]], 
                         center_x: int, center_y: int, base_radius: int, show_ids: bool = True):
     """Draw multiple tokens stacked at the same position with offset and shadow effects."""
