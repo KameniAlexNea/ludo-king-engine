@@ -5,14 +5,23 @@ import time
 import gradio as gr
 
 from ludo_engine.game import LudoGame
+from ludo_engine.player import PlayerColor
 from ludo_interface.board_viz import draw_board
+
+from .game_manager import GameManager
+from .utils import Utils
 
 
 class EventHandler:
     """Handles UI event callbacks and interactions."""
 
     def __init__(
-        self, game_manager, utils, ai_strategies, default_players, show_token_ids
+        self,
+        game_manager: GameManager,
+        utils: Utils,
+        ai_strategies: list[str],
+        default_players: list[PlayerColor],
+        show_token_ids: bool,
     ):
         self.game_manager = game_manager
         self.utils = utils

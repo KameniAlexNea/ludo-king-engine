@@ -1,10 +1,20 @@
 import gradio as gr
 
+from ludo_engine.player import PlayerColor
+
+from .event_handler import EventHandler
+
 
 class UIBuilder:
     """Handles Gradio UI construction and layout."""
 
-    def __init__(self, ai_strategies, default_players, show_token_ids, handler):
+    def __init__(
+        self,
+        ai_strategies: list[str],
+        default_players: list[PlayerColor],
+        show_token_ids: bool,
+        handler: EventHandler,
+    ):
         self.ai_strategies = ai_strategies
         self.default_players = default_players
         self.show_token_ids = show_token_ids
