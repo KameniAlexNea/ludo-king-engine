@@ -1,3 +1,5 @@
+from ludo_engine.model import AIDecisionContext, ValidMove
+
 PROMPT = """You are playing Ludo. Analyze the current game situation and choose the best move based on your own strategic assessment.
 
 LUDO RULES & BOARD LAYOUT:
@@ -48,24 +50,24 @@ Choose the token ID (0-3) for your move. Respond with ONLY the token number.
 DECISION: """
 
 
-def create_prompt(game_context: dict, valid_moves: list[dict]) -> str:
+def create_prompt(game_context: AIDecisionContext, valid_moves: list[ValidMove]) -> str:
     """Create structured prompt for LLM decision making with sanitized data."""
     # valid_moves = self._get_valid_moves(game_context)
-    player_state: dict = game_context.get("player_state", {})
-    opponents: list[dict] = game_context.get("opponents", [])
+    player_state = game_context.player_state
+    opponents = game_context.opponents
 
     # Build moves information safely (data already validated)
     moves_info = []
     for i, move in enumerate(valid_moves):
-        token_id = move.get("token_id", 0)
-        move_type = move.get("move_type", "unknown")
-        strategic_value = move.get("strategic_value", 0.0)
+        token_id = move.token_id
+        move_type = move.move_type
+        strategic_value = move.strategic_value
 
         move_desc = f"Token {token_id}: {move_type} (value: {strategic_value:.2f})"  #
 
-        if move.get("captures_opponent"):
+        if move.captures_opponent:
             move_desc += " [CAPTURES OPPONENT]"
-        if move.get("is_safe_move"):
+        if move.is_safe_move:
             move_desc += " [SAFE]"
         else:
             move_desc += " [RISKY]"
@@ -73,21 +75,13 @@ def create_prompt(game_context: dict, valid_moves: list[dict]) -> str:
         moves_info.append(move_desc)
 
     # Extract game state data (already validated)
-    my_progress = player_state.get("finished_tokens", 0)
-    my_home_tokens = player_state.get("home_tokens", 0)
+    my_progress = player_state.finished_tokens
+    my_home_tokens = player_state.tokens_in_home
     my_active_tokens = max(0, 4 - my_home_tokens - my_progress)
 
     # Extract opponent data (already validated)
-    opponent_progress = [opp.get("finished_tokens", 0) for opp in opponents]
+    opponent_progress = [opp.finished_tokens for opp in opponents]
     max_opponent_progress = max(opponent_progress, default=0)
-
-    # # Determine game phase
-    # if my_progress == 0:
-    #     game_phase = "Early"
-    # elif my_progress < 3:
-    #     game_phase = "Mid"
-    # else:
-    #     game_phase = "End"
 
     # Create prompt with validated data
     moves_text = "\n".join(f"{i + 1}. {move}" for i, move in enumerate(moves_info))
@@ -98,7 +92,6 @@ def create_prompt(game_context: dict, valid_moves: list[dict]) -> str:
         my_active_tokens=my_active_tokens,
         opponent_progress=opponent_progress,
         max_opponent_progress=max_opponent_progress,
-        # game_phase=game_phase,
         moves_text=moves_text,
     )
 
