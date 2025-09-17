@@ -2,21 +2,21 @@
 Strategies module - Collection of all available Ludo AI strategies.
 """
 
-from ludo_engine.strategies.balanced import BalancedStrategy
+from ludo_engine.strategies.aggressive import KillerStrategy, OptimistStrategy
 from ludo_engine.strategies.base import Strategy
-from ludo_engine.strategies.cautious import CautiousStrategy
-from ludo_engine.strategies.defensive import DefensiveStrategy
-from ludo_engine.strategies.human import HumanStrategy
-from ludo_engine.strategies.hybrid_prob import HybridConfig, HybridProbStrategy
-from ludo_engine.strategies.killer import KillerStrategy
-from ludo_engine.strategies.llm import LLMStrategy
-from ludo_engine.strategies.optimist import OptimistStrategy
-from ludo_engine.strategies.probabilistic import ProbabilisticStrategy
-from ludo_engine.strategies.probabilistic_v2 import ProbabilisticV2Strategy
-from ludo_engine.strategies.probabilistic_v3 import ProbabilisticV3Strategy, V3Config
-from ludo_engine.strategies.random_strategy import RandomStrategy
-from ludo_engine.strategies.weighted_random import WeightedRandomStrategy
-from ludo_engine.strategies.winner import WinnerStrategy
+from ludo_engine.strategies.baseline import RandomStrategy
+from ludo_engine.strategies.defensive import CautiousStrategy, DefensiveStrategy
+from ludo_engine.strategies.hybrid import BalancedStrategy, WinnerStrategy
+from ludo_engine.strategies.probabilistic import (
+    HybridConfig,
+    HybridProbStrategy,
+    ProbabilisticStrategy,
+    ProbabilisticV2Strategy,
+    ProbabilisticV3Strategy,
+    V3Config,
+    WeightedRandomStrategy,
+)
+from ludo_engine.strategies.special import HumanStrategy, LLMStrategy
 
 # Strategy Mapping - Centralized mapping of strategy names to classes
 STRATEGIES: dict[str, Strategy] = {
@@ -46,9 +46,10 @@ __all__ = [
     "BalancedStrategy",
     "ProbabilisticStrategy",
     "ProbabilisticV2Strategy",
+    "ProbabilisticV3Strategy",
+    "WeightedRandomStrategy",
     "HybridProbStrategy",
     "RandomStrategy",
-    "WeightedRandomStrategy",
     "CautiousStrategy",
     "LLMStrategy",
     "STRATEGIES",

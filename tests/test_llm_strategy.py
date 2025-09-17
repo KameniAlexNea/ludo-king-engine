@@ -16,8 +16,8 @@ from ludo_engine.models.model import (
     StrategicAnalysis,
     ValidMove,
 )
-from ludo_engine.strategies.llm.prompt import create_prompt
-from ludo_engine.strategies.llm.strategy import LLMStrategy
+from ludo_engine.strategies.special.llm.prompt import create_prompt
+from ludo_engine.strategies.special.llm.strategy import LLMStrategy
 
 
 def create_test_decision_context(dice_value=4, valid_moves=None):
@@ -99,7 +99,7 @@ class TestLLMStrategy(unittest.TestCase):
 
     def test_fallback_when_no_llm(self):
         """Test that strategy falls back to random when LLM is not available."""
-        with patch("ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"):
+        with patch("ludo_engine.strategies.special.llm.strategy.LLMStrategy._initialize_llm"):
             strategy = LLMStrategy()
             strategy.llm = None
 
@@ -112,7 +112,7 @@ class TestLLMStrategy(unittest.TestCase):
 
     def test_response_parsing_various_formats(self):
         """Test parsing of various LLM response formats."""
-        with patch("ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"):
+        with patch("ludo_engine.strategies.special.llm.strategy.LLMStrategy._initialize_llm"):
             strategy = LLMStrategy()
             strategy.llm = MagicMock()  # Mock to avoid actual LLM calls
 
@@ -134,7 +134,7 @@ class TestLLMStrategy(unittest.TestCase):
 
     def test_response_parsing_invalid_token(self):
         """Test that invalid token IDs are rejected."""
-        with patch("ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"):
+        with patch("ludo_engine.strategies.special.llm.strategy.LLMStrategy._initialize_llm"):
             strategy = LLMStrategy()
             strategy.llm = MagicMock()
 
@@ -145,7 +145,7 @@ class TestLLMStrategy(unittest.TestCase):
 
     def test_response_parsing_empty_or_invalid(self):
         """Test parsing of empty or invalid responses."""
-        with patch("ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"):
+        with patch("ludo_engine.strategies.special.llm.strategy.LLMStrategy._initialize_llm"):
             strategy = LLMStrategy()
             strategy.llm = MagicMock()
 
@@ -164,7 +164,7 @@ class TestLLMStrategy(unittest.TestCase):
 
     def test_thinking_removal(self):
         """Test that <think> tags are properly removed from responses."""
-        with patch("ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"):
+        with patch("ludo_engine.strategies.special.llm.strategy.LLMStrategy._initialize_llm"):
             strategy = LLMStrategy()
             strategy.llm = MagicMock()
 
@@ -181,7 +181,7 @@ class TestLLMStrategy(unittest.TestCase):
 
     def test_case_insensitive_parsing(self):
         """Test that response parsing is case insensitive."""
-        with patch("ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"):
+        with patch("ludo_engine.strategies.special.llm.strategy.LLMStrategy._initialize_llm"):
             strategy = LLMStrategy()
             strategy.llm = MagicMock()
 
@@ -202,7 +202,7 @@ class TestLLMStrategy(unittest.TestCase):
 
     def test_json_response_parsing(self):
         """Test parsing of JSON-like responses."""
-        with patch("ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"):
+        with patch("ludo_engine.strategies.special.llm.strategy.LLMStrategy._initialize_llm"):
             strategy = LLMStrategy()
             strategy.llm = MagicMock()
 

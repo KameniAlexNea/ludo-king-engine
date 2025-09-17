@@ -14,18 +14,18 @@ from ludo_engine.models.model import (
     StrategicAnalysis,
     ValidMove,
 )
-from ludo_engine.strategies.balanced import BalancedStrategy
-from ludo_engine.strategies.cautious import CautiousStrategy
+from ludo_engine.strategies.hybrid.balanced import BalancedStrategy
+from ludo_engine.strategies.defensive.cautious import CautiousStrategy
 from ludo_engine.strategies.defensive import DefensiveStrategy
-from ludo_engine.strategies.hybrid_prob import HybridProbStrategy
-from ludo_engine.strategies.killer import KillerStrategy
-from ludo_engine.strategies.llm.strategy import LLMStrategy
-from ludo_engine.strategies.optimist import OptimistStrategy
+from ludo_engine.strategies.probabilistic.hybrid_prob import HybridProbStrategy
+from ludo_engine.strategies.aggressive.killer import KillerStrategy
+from ludo_engine.strategies.special.llm.strategy import LLMStrategy
+from ludo_engine.strategies.aggressive.optimist import OptimistStrategy
 from ludo_engine.strategies.probabilistic import ProbabilisticStrategy
-from ludo_engine.strategies.probabilistic_v2 import ProbabilisticV2Strategy
-from ludo_engine.strategies.probabilistic_v3 import ProbabilisticV3Strategy
-from ludo_engine.strategies.weighted_random import WeightedRandomStrategy
-from ludo_engine.strategies.winner import WinnerStrategy
+from ludo_engine.strategies.probabilistic.probabilistic_v2 import ProbabilisticV2Strategy
+from ludo_engine.strategies.probabilistic.probabilistic_v3 import ProbabilisticV3Strategy
+from ludo_engine.strategies.probabilistic.weighted_random import WeightedRandomStrategy
+from ludo_engine.strategies.hybrid.winner import WinnerStrategy
 
 
 def create_test_decision_context(dice_value=4, valid_moves=None):
@@ -1052,7 +1052,7 @@ class TestLLMStrategy(unittest.TestCase):
         pass
 
     @unittest.mock.patch(
-        "ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"
+        "ludo_engine.strategies.special.llm.strategy.LLMStrategy._initialize_llm"
     )
     @unittest.mock.patch.dict(
         "os.environ", {"LLM_PROVIDER": "ollama", "LLM_MODEL": "test-model"}
@@ -1067,7 +1067,7 @@ class TestLLMStrategy(unittest.TestCase):
     def test_fallback_behavior(self):
         """Test that strategy falls back gracefully when LLM unavailable."""
         with unittest.mock.patch(
-            "ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"
+            "ludo_engine.strategies.special.llm.strategy.LLMStrategy._initialize_llm"
         ):
             strategy = LLMStrategy()
             strategy.llm = None
@@ -1079,7 +1079,7 @@ class TestLLMStrategy(unittest.TestCase):
         self.assertIn(decision, [0, 1])
 
     @unittest.mock.patch(
-        "ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"
+        "ludo_engine.strategies.special.llm.strategy.LLMStrategy._initialize_llm"
     )
     def test_successful_decision_making(self, mock_init):
         """Test successful LLM decision making."""
@@ -1109,7 +1109,7 @@ class TestLLMStrategy(unittest.TestCase):
     def test_response_parsing_robustness(self):
         """Test various response parsing scenarios."""
         with unittest.mock.patch(
-            "ludo_engine.strategies.llm.strategy.LLMStrategy._initialize_llm"
+            "ludo_engine.strategies.special.llm.strategy.LLMStrategy._initialize_llm"
         ):
             strategy = LLMStrategy()
             strategy.llm = unittest.mock.MagicMock()
