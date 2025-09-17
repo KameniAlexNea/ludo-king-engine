@@ -11,6 +11,7 @@ import base64
 import io
 import json
 import time
+import random
 
 import gradio as gr
 
@@ -30,493 +31,404 @@ DEFAULT_PLAYERS = [
     PlayerColor.BLUE,
 ]
 
+class LudoApp:
+    """Encapsulates the Ludo game application logic and Gradio UI."""
 
-def _img_to_data_uri(pil_img):
-    """Return an inline data URI for the PIL image to avoid Gradio temp file folders."""
-    buf = io.BytesIO()
-    pil_img.save(buf, format="PNG")
-    b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-    return (
-        "<div style='display:flex;justify-content:center;'>"
-        f"<img src='data:image/png;base64,{b64}' "
-        "style='image-rendering:pixelated;max-width:800px;width:100%;height:auto;border-radius:10px;box-shadow:0 4px 8px rgba(0,0,0,0.1);' />"
-        "</div>"
-    )
+    def __init__(self, players: Optional[List[PlayerColor]] = None, show_token_ids: bool = True):
+        """
+        Initializes the Ludo application.
+        
+        Args:
+            players (Optional[List[PlayerColor]]): A list of player colors. Defaults to standard four players.
+            show_token_ids (bool): Whether to display token IDs on the board.
+        """
+        self.default_players = players if players is not None else DEFAULT_PLAYERS
+        self.show_token_ids = show_token_ids
+        self.ai_strategies = StrategyFactory.get_available_strategies()
+        
+        # Preload assets
+        preload_board_template()
+        print("🚀 Initializing Enhanced Ludo Game...")
 
-
-def _init_game(strategies: List[str]):
-    # Instantiate strategies via factory
-    strategy_objs = []
-    for _, strat_name in enumerate(strategies):
-        strategy = StrategyFactory.create_strategy(strat_name)
-        strategy_objs.append(strategy)
-    # Build game with chosen strategies
-    game = LudoGame(DEFAULT_PLAYERS)
-    # Attach strategies
-    for player, strat in zip(game.players, strategy_objs):
-        player.set_strategy(strat)
-    return game
-
-
-def _game_state_tokens(game: LudoGame) -> Dict[str, List[Token]]:
-    token_map: Dict[str, List[Dict]] = {c.value: [] for c in PlayerColor}
-    for p in game.players:
-        for t in p.tokens:
-            token_map[p.color.value].append(t)
-    return token_map
-
-
-def _get_human_strategy(game: LudoGame) -> Optional[HumanStrategy]:
-    """Get the human strategy from the current player if it exists."""
-    current_player = game.get_current_player()
-    if isinstance(current_player.strategy, HumanStrategy):
-        return current_player.strategy
-    return None
-
-
-def _is_human_turn(game: LudoGame) -> bool:
-    """Check if it's currently a human player's turn."""
-    return _get_human_strategy(game) is not None
-
-
-def _get_human_move_options(game: LudoGame, dice: int) -> List[dict]:
-    """Get move options for human player."""
-    current_player = game.get_current_player()
-    valid_moves = game.get_valid_moves(current_player, dice)
-    
-    options = []
-    for move in valid_moves:
-        token = current_player.tokens[move.token_id]
-        options.append({
-            "token_id": move.token_id,
-            "description": f"Token {move.token_id}: {token.state.value} at {token.position} → {move.new_position}",
-            "move_type": move.move_type
-        })
-    
-    return options
-
-
-def _serialize_move(move_result: MoveResult) -> str:
-    if not move_result or not move_result.success:
-        return "No move"
-    parts = [
-        f"{move_result.player_color} token {move_result.token_id} -> {move_result.new_position}"
-    ]
-    if move_result.captured_tokens:
-        cap = move_result.captured_tokens
-        parts.append(f"captured {len(cap)}")
-    if move_result.finished_token:
-        parts.append("finished")
-    if move_result.extra_turn:
-        parts.append("extra turn")
-    return ", ".join(parts)
-
-
-def _play_step(game: LudoGame, human_move_choice: Optional[int] = None):
-    if game.game_over:
-        return game, "Game over", _game_state_tokens(game), [], False
-    
-    current_player = game.get_current_player()
-    dice = game.roll_dice()
-    valid = game.get_valid_moves(current_player, dice)
-    
-    if not valid:
-        # If rolled a 6, player gets another turn even with no moves
-        extra_turn = dice == 6
-        if not extra_turn:
-            game.next_turn()
-
-        # Debug info: show all token positions
-        token_positions = []
-        for i, token in enumerate(current_player.tokens):
-            token_positions.append(f"token {i}: {token.position} ({token.state.value})")
-        positions_str = ", ".join(token_positions)
-
+    def _img_to_data_uri(self, pil_img):
+        """Return an inline data URI for the PIL image to avoid Gradio temp file folders."""
+        buf = io.BytesIO()
+        pil_img.save(buf, format="PNG")
+        b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
         return (
-            game,
-            f"{current_player.color.value} rolled {dice} - no moves{' (extra turn)' if extra_turn else ''} | Positions: {positions_str}",
-            _game_state_tokens(game),
-            [],
-            False
+            "<div style='display:flex;justify-content:center;'>"
+            f"<img src='data:image/png;base64,{b64}' "
+            "style='image-rendering:pixelated;max-width:800px;width:100%;height:auto;border-radius:10px;box-shadow:0 4px 8px rgba(0,0,0,0.1);' />"
+            "</div>"
         )
-    
-    # Check if it's a human player's turn
-    human_strategy = _get_human_strategy(game)
-    if human_strategy and human_move_choice is None:
-        # Human player needs to make a choice - return move options
-        move_options = _get_human_move_options(game, dice)
-        return (
-            game,
-            f"{current_player.color.value} rolled {dice} - Choose your move:",
-            _game_state_tokens(game),
-            move_options,
-            True  # waiting for human input
-        )
-    
-    # Determine which move to make
-    chosen = None
-    if human_strategy and human_move_choice is not None:
-        # Human player made a choice
-        for mv in valid:
-            if mv.token_id == human_move_choice:
-                chosen = mv
-                break
-    else:
-        # AI player - use strategy
-        ctx = game.get_ai_decision_context(dice)
-        token_choice = current_player.make_strategic_decision(ctx)
-        for mv in valid:
-            if mv.token_id == token_choice:
-                chosen = mv
-                break
-    
-    if chosen is None:
-        chosen = valid[0]
-    
-    move_res = game.execute_move(current_player, chosen.token_id, dice)
-    desc = f"{current_player.color.value} rolled {dice}: {_serialize_move(move_res)}"
-    
-    if move_res.extra_turn and not game.game_over:
-        # do not advance turn
-        pass
-    else:
-        if not game.game_over:
-            game.next_turn()
-    
-    if game.game_over:
-        desc += f" | WINNER: {game.winner.color.value}"
-    
-    return game, desc, _game_state_tokens(game), [], False
 
+    def _init_game(self, strategies: List[str]) -> LudoGame:
+        """Initializes a new Ludo game with the given strategies."""
+        strategy_objs = [StrategyFactory.create_strategy(name) for name in strategies]
+        game = LudoGame(self.default_players)
+        for player, strat in zip(game.players, strategy_objs):
+            player.set_strategy(strat)
+        return game
 
-def launch_app():
-    # Preload board template for optimal performance
-    print("🚀 Initializing Enhanced Ludo Game...")
-    preload_board_template()
-    
-    with gr.Blocks(title="🎲 Enhanced Ludo AI Visualizer", theme=gr.themes.Soft()) as demo:
-        
-        
-        with gr.Tabs():
-            with gr.TabItem("🎮 Play Game"):
-                with gr.Row():
-                    with gr.Column(scale=2):
-                        gr.Markdown("### 👥 Player Configuration")
-                        strategy_inputs = []
-                        for i, color in enumerate(DEFAULT_PLAYERS):
-                            strategy_inputs.append(
-                                gr.Dropdown(
-                                    choices=AI_STRATEGIES,
-                                    value="human" if i == 0 else AI_STRATEGIES[1] if len(AI_STRATEGIES) > 1 else AI_STRATEGIES[0],
-                                    label=f"🔴🟢🟡🔵"[i] + f" {color.value.title()} Strategy",
-                                    info="Choose 'human' to play yourself!"
-                                )
-                            )
-                    with gr.Column(scale=1):
-                        gr.Markdown("### 🎛️ Display Options")
-                        show_ids = gr.Checkbox(label="Show Token IDs", value=True)
-                        export_btn = gr.Button("📤 Export Game State", size="sm")
-                        move_history_btn = gr.Button("📜 Show Move History", size="sm")
-                    
-                with gr.Row():
-                    with gr.Column(scale=1):
-                        gr.Markdown("### 🎮 Game Controls")
-                        init_btn = gr.Button("🆕 Start New Game", variant="primary", size="sm")
-                        random_btn = gr.Button("🎲 Random Strategies", size="sm")
-                        step_btn = gr.Button("▶️ Play Step", size="sm")
-                    with gr.Column(scale=1):
-                        gr.Markdown("### ⚙️ Auto Play Settings")
-                        auto_steps_n = gr.Number(value=1, label="Steps", minimum=1, maximum=100)
-                        auto_delay = gr.Number(value=0.5, label="Delay (s)", minimum=0, maximum=5, step=0.1)
-                        run_auto_btn = gr.Button("🔄 Run Auto Steps", size="sm")
-                
-                # Human player controls (initially hidden)
-                with gr.Row(visible=False) as human_controls:
-                    with gr.Column():
-                        gr.Markdown("### 🤔 Your Turn!")
-                        human_moves_display = gr.HTML()
-                        move_buttons = []
-                        for i in range(4):  # Max 4 tokens
-                            btn = gr.Button(f"Move Token {i}", visible=False, variant="secondary", size="sm")
-                            move_buttons.append(btn)
-                
-                with gr.Row(equal_height=True):
-                    with gr.Column(scale=3):
-                        board_plot = gr.HTML(label="🎯 Game Board")
-                    with gr.Column(scale=1):
-                        current_player_display = gr.HTML(value="<h3>🎯 Current Player: Game not started</h3>")
-                        log = gr.Textbox(label="📝 Last Action", interactive=False, lines=3)
-                        history_box = gr.Textbox(label="📚 Move History", lines=8, max_lines=15)
-                
-                stats_display = gr.JSON(
-                    label="📊 Game Statistics",
-                    value={"games": 0, "wins": {c.value: 0 for c in DEFAULT_PLAYERS}},
-                )
-                
-            with gr.TabItem("🏆 Simulate Multiple Games"):
-                gr.Markdown("### 🤖 AI Tournament Simulation")
-                sim_strat_inputs = []
-                for color in DEFAULT_PLAYERS:
-                    sim_strat_inputs.append(
-                        gr.Dropdown(
-                            choices=[s for s in AI_STRATEGIES if s != "human"],
-                            value=[s for s in AI_STRATEGIES if s != "human"][0],
-                            label=f"{color.value.title()} Strategy",
-                        )
-                    )
-                with gr.Row():
-                    bulk_games = gr.Slider(
-                        10, 2000, value=100, step=10, label="Number of Games"
-                    )
-                    bulk_run_btn = gr.Button("🚀 Run Simulation", variant="primary")
-                bulk_results = gr.Textbox(label="🏆 Simulation Results", lines=10)
-        
-        # Hidden state components
-        export_box = gr.Textbox(label="Game State JSON", lines=6, visible=False)
-        gr.Markdown("""
-        # 🎲 Enhanced Ludo AI Visualizer
-        
-        Experience Ludo with beautiful graphics, multiple AI strategies, and human player support!
-        
-        ## Features:
-        - 🤖 **Multiple AI Strategies**: Choose from various AI personalities
-        - 👤 **Human Players**: Select "human" strategy to play yourself
-        - 🎨 **Enhanced Graphics**: Beautiful board with token stacking visualization
-        - 📊 **Game Statistics**: Track wins and performance
-        """)
-        game_state = gr.State()
-        move_history = gr.State([])
-        stats_state = gr.State(
-            {"games": 0, "wins": {c.value: 0 for c in DEFAULT_PLAYERS}}
-        )
-        waiting_for_human = gr.State(False)
-        human_move_options = gr.State([])
+    def _game_state_tokens(self, game: LudoGame) -> Dict[str, List[Token]]:
+        """Extracts token information from the game state."""
+        token_map: Dict[str, List[Dict]] = {c.value: [] for c in PlayerColor}
+        for p in game.players:
+            for t in p.tokens:
+                token_map[p.color.value].append(t)
+        return token_map
 
-        def _init(*strats):
-            game = _init_game(list(strats))
-            pil_img = draw_board(_game_state_tokens(game), show_ids=True)
-            html = _img_to_data_uri(pil_img)
+    def _get_human_strategy(self, game: LudoGame) -> Optional[HumanStrategy]:
+        """Get the human strategy from the current player if it exists."""
+        current_player = game.get_current_player()
+        return current_player.strategy if isinstance(current_player.strategy, HumanStrategy) else None
+
+    def _is_human_turn(self, game: LudoGame) -> bool:
+        """Check if it's currently a human player's turn."""
+        return self._get_human_strategy(game) is not None
+
+    def _get_human_move_options(self, game: LudoGame, dice: int) -> List[dict]:
+        """Get move options for a human player."""
+        current_player = game.get_current_player()
+        valid_moves = game.get_valid_moves(current_player, dice)
+        
+        options = []
+        for move in valid_moves:
+            token = current_player.tokens[move.token_id]
+            options.append({
+                "token_id": move.token_id,
+                "description": f"Token {move.token_id}: {token.state.value} at {token.position} -> {move.target_position}",
+                "move_type": move.move_type
+            })
+        return options
+
+    def _serialize_move(self, move_result: MoveResult) -> str:
+        """Serializes a move result into a human-readable string."""
+        if not move_result or not move_result.success:
+            return "No move"
+        parts = [f"{move_result.player_color} token {move_result.token_id} -> {move_result.new_position}"]
+        if move_result.captured_tokens:
+            parts.append(f"captured {len(move_result.captured_tokens)}")
+        if move_result.finished_token:
+            parts.append("finished")
+        if move_result.extra_turn:
+            parts.append("extra turn")
+        return ", ".join(parts)
+
+    def _play_step(self, game: LudoGame, human_move_choice: Optional[int] = None):
+        """Plays a single step of the game."""
+        if game.game_over:
+            return game, "Game over", self._game_state_tokens(game), [], False
+
+        current_player = game.get_current_player()
+        dice = game.roll_dice()
+        valid_moves = game.get_valid_moves(current_player, dice)
+
+        if not valid_moves:
+            extra_turn = dice == 6
+            if not extra_turn:
+                game.next_turn()
             
+            token_positions = ", ".join([f"token {i}: {t.position} ({t.state.value})" for i, t in enumerate(current_player.tokens)])
+            desc = f"{current_player.color.value} rolled {dice} - no moves{' (extra turn)' if extra_turn else ''} | Positions: {token_positions}"
+            return game, desc, self._game_state_tokens(game), [], False
+
+        human_strategy = self._get_human_strategy(game)
+        if human_strategy and human_move_choice is None:
+            move_options = self._get_human_move_options(game, dice)
+            desc = f"{current_player.color.value} rolled {dice} - Choose your move:"
+            return game, desc, self._game_state_tokens(game), move_options, True
+
+        chosen_move = None
+        if human_strategy and human_move_choice is not None:
+            chosen_move = next((m for m in valid_moves if m.token_id == human_move_choice), None)
+        else:
+            ctx = game.get_ai_decision_context(dice)
+            token_choice = current_player.make_strategic_decision(ctx)
+            chosen_move = next((m for m in valid_moves if m.token_id == token_choice), None)
+
+        if chosen_move is None:
+            chosen_move = valid_moves[0]
+
+        move_res = game.execute_move(current_player, chosen_move.token_id, dice)
+        desc = f"{current_player.color.value} rolled {dice}: {self._serialize_move(move_res)}"
+
+        if not move_res.extra_turn and not game.game_over:
+            game.next_turn()
+
+        if game.game_over:
+            desc += f" | WINNER: {game.winner.color.value}"
+
+        return game, desc, self._game_state_tokens(game), [], False
+
+    def create_ui(self):
+        """Creates and returns the Gradio UI for the Ludo game."""
+        with gr.Blocks(title="🎲 Enhanced Ludo AI Visualizer", theme=gr.themes.Soft()) as demo:
+            game_state = gr.State()
+            move_history = gr.State([])
+            stats_state = gr.State({"games": 0, "wins": {c.value: 0 for c in self.default_players}})
+            waiting_for_human = gr.State(False)
+            human_move_options = gr.State([])
+
+            with gr.Tabs():
+                with gr.TabItem("🎮 Play Game"):
+                    self._build_play_game_tab(game_state, move_history, stats_state, waiting_for_human, human_move_options)
+                with gr.TabItem("🏆 Simulate Multiple Games"):
+                    self._build_simulation_tab()
+            
+            gr.Markdown("""
+            # 🎲 Enhanced Ludo AI Visualizer
+            Experience Ludo with beautiful graphics, multiple AI strategies, and human player support!
+            ## Features:
+            - 🤖 **Multiple AI Strategies**: Choose from various AI personalities
+            - 👤 **Human Players**: Select "human" strategy to play yourself
+            - 🎨 **Enhanced Graphics**: Beautiful board with token stacking visualization
+            - 📊 **Game Statistics**: Track wins and performance
+            """)
+        return demo
+
+    def _build_play_game_tab(self, game_state, move_history, stats_state, waiting_for_human, human_move_options):
+        """Builds the 'Play Game' tab of the UI."""
+        with gr.Row():
+            with gr.Column(scale=2):
+                gr.Markdown("### 👥 Player Configuration")
+                strategy_inputs = [
+                    gr.Dropdown(
+                        choices=self.ai_strategies,
+                        value="human" if i == 0 else self.ai_strategies[1] if len(self.ai_strategies) > 1 else self.ai_strategies[0],
+                        label=f"🔴🟢🟡🔵"[i] + f" {color.value.title()} Strategy",
+                        info="Choose 'human' to play yourself!"
+                    ) for i, color in enumerate(self.default_players)
+                ]
+            with gr.Column(scale=1):
+                gr.Markdown("### 🎛️ Display Options")
+                show_ids = gr.Checkbox(label="Show Token IDs", value=self.show_token_ids)
+                export_btn = gr.Button("📤 Export Game State", size="sm")
+                move_history_btn = gr.Button("📜 Show Move History", size="sm")
+
+        with gr.Row():
+            with gr.Column(scale=1):
+                gr.Markdown("### 🎮 Game Controls")
+                init_btn = gr.Button("🆕 Start New Game", variant="primary", size="sm")
+                random_btn = gr.Button("🎲 Random Strategies", size="sm")
+                step_btn = gr.Button("▶️ Play Step", size="sm")
+            with gr.Column(scale=1):
+                gr.Markdown("### ⚙️ Auto Play Settings")
+                auto_steps_n = gr.Number(value=1, label="Steps", minimum=1, maximum=100)
+                auto_delay = gr.Number(value=0.5, label="Delay (s)", minimum=0, maximum=5, step=0.1)
+                run_auto_btn = gr.Button("🔄 Run Auto Steps", size="sm")
+
+        with gr.Row(visible=False) as human_controls:
+            with gr.Column():
+                gr.Markdown("### 🤔 Your Turn!")
+                human_moves_display = gr.HTML()
+                move_buttons = [gr.Button(f"Move Token {i}", visible=False, variant="secondary", size="sm") for i in range(4)]
+
+        with gr.Row(equal_height=True):
+            with gr.Column(scale=3):
+                board_plot = gr.HTML(label="🎯 Game Board")
+            with gr.Column(scale=1):
+                current_player_display = gr.HTML(value="<h3>🎯 Current Player: Game not started</h3>")
+                log = gr.Textbox(label="📝 Last Action", interactive=False, lines=3)
+                history_box = gr.Textbox(label="📚 Move History", lines=8, max_lines=15)
+
+        stats_display = gr.JSON(label="📊 Game Statistics", value={"games": 0, "wins": {c.value: 0 for c in self.default_players}})
+        export_box = gr.Textbox(label="Game State JSON", lines=6, visible=False)
+
+        # Event Handlers
+        init_btn.click(
+            self._ui_init, strategy_inputs,
+            [game_state, board_plot, log, move_history, stats_state, current_player_display, human_controls, human_moves_display] + move_buttons + [human_move_options]
+        )
+        random_btn.click(
+            self._ui_random_strategies, outputs=strategy_inputs
+        ).then(
+            self._ui_init, strategy_inputs,
+            [game_state, board_plot, log, move_history, stats_state, current_player_display, human_controls, human_moves_display] + move_buttons + [human_move_options]
+        )
+        step_btn.click(
+            self._ui_steps, [game_state, move_history, show_ids],
+            [game_state, board_plot, log, move_history, waiting_for_human, current_player_display, human_moves_display, human_controls] + move_buttons + [human_move_options]
+        ).then(self._ui_update_stats, [stats_state, game_state], [stats_state]).then(lambda s: s, [stats_state], [stats_display])
+
+        for i, btn in enumerate(move_buttons):
+            btn.click(
+                lambda opts, idx=i: opts[idx]["token_id"] if idx < len(opts) else 0,
+                [human_move_options], [gr.State()]
+            ).then(
+                self._ui_make_human_move, [gr.State(), game_state, move_history, show_ids, human_move_options],
+                [game_state, board_plot, log, move_history, waiting_for_human, current_player_display, human_moves_display, human_controls] + move_buttons + [human_move_options]
+            ).then(self._ui_update_stats, [stats_state, game_state], [stats_state]).then(lambda s: s, [stats_state], [stats_display])
+
+        run_auto_btn.click(
+            self._ui_run_auto, [auto_steps_n, auto_delay, game_state, move_history, show_ids],
+            [game_state, board_plot, log, move_history, waiting_for_human, current_player_display, human_moves_display, human_controls] + move_buttons + [human_move_options]
+        ).then(self._ui_update_stats, [stats_state, game_state], [stats_state]).then(lambda s: s, [stats_state], [stats_display])
+
+        move_history_btn.click(lambda h: "\n".join(h[-50:]), [move_history], [history_box])
+        export_btn.click(self._ui_export, [game_state], [export_box])
+
+    def _build_simulation_tab(self):
+        """Builds the 'Simulate Multiple Games' tab of the UI."""
+        gr.Markdown("### 🤖 AI Tournament Simulation")
+        sim_strat_inputs = [
+            gr.Dropdown(
+                choices=[s for s in self.ai_strategies if s != "human"],
+                value=[s for s in self.ai_strategies if s != "human"][0],
+                label=f"{color.value.title()} Strategy",
+            ) for color in self.default_players
+        ]
+        with gr.Row():
+            bulk_games = gr.Slider(10, 2000, value=100, step=10, label="Number of Games")
+            bulk_run_btn = gr.Button("🚀 Run Simulation", variant="primary")
+        bulk_results = gr.Textbox(label="🏆 Simulation Results", lines=10)
+        
+        bulk_run_btn.click(self._ui_run_bulk, [bulk_games] + sim_strat_inputs, [bulk_results])
+
+    # UI-specific methods (callbacks for Gradio)
+    def _ui_init(self, *strats):
+        game = self._init_game(list(strats))
+        pil_img = draw_board(self._game_state_tokens(game), show_ids=self.show_token_ids)
+        html = self._img_to_data_uri(pil_img)
+        
+        current_player = game.get_current_player()
+        player_html = f"<h3 style='color: {current_player.color.value};'>🎯 Current Player: {current_player.color.value.title()}</h3>"
+        
+        has_human = any(s == "human" for s in strats)
+        controls_visible = has_human and self._is_human_turn(game)
+        
+        return (
+            game, html, "🎮 Game initialized! Roll the dice to start.", [],
+            {"games": 0, "wins": {c.value: 0 for c in self.default_players}},
+            player_html, gr.update(visible=controls_visible), "",
+            gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), []
+        )
+
+    def _ui_random_strategies(self):
+        strategies = [s for s in self.ai_strategies if s != "human"]
+        return [random.choice(strategies) for _ in range(len(self.default_players))]
+
+    def _ui_steps(self, game, history: list[str], show, human_choice=None):
+        if game is None:
+            return None, None, "No game initialized", history, False, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), []
+        
+        game, desc, tokens, move_opts, waiting = self._play_step(game, human_choice)
+        history.append(desc)
+        if len(history) > 50: history = history[-50:]
+        
+        pil_img = draw_board(tokens, show_ids=show)
+        html = self._img_to_data_uri(pil_img)
+        
+        if not game.game_over:
             current_player = game.get_current_player()
             player_html = f"<h3 style='color: {current_player.color.value};'>🎯 Current Player: {current_player.color.value.title()}</h3>"
-            
-            # Check if any human players
-            has_human = any(strat == "human" for strat in strats)
-            controls_visible = has_human and _is_human_turn(game)
-            
-            return (
-                game,
-                html,
-                "🎮 Game initialized! Roll the dice to start.",
-                [],
-                {"games": 0, "wins": {c.value: 0 for c in DEFAULT_PLAYERS}},
-                player_html,
-                gr.update(visible=controls_visible),
-                "",
-                gr.update(visible=False),
-                gr.update(visible=False), 
-                gr.update(visible=False), 
-                gr.update(visible=False),
-                []
-            )
+        else:
+            player_html = f"<h3>🏆 Winner: {game.winner.color.value.title()}!</h3>"
+        
+        if waiting and move_opts:
+            moves_html = "<h4>Choose your move:</h4><ul>" + "".join([f"<li><strong>Token {opt['token_id']}</strong>: {opt['description']} ({opt['move_type']})</li>" for opt in move_opts]) + "</ul>"
+            btn_updates = [gr.update(visible=i < len(move_opts), value=f"Move Token {move_opts[i]['token_id']}" if i < len(move_opts) else "") for i in range(4)]
+            return game, html, desc, history, waiting, player_html, moves_html, gr.update(visible=True), *btn_updates, move_opts
+        else:
+            return game, html, desc, history, False, player_html, "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), []
 
-        def _random_strategies():
-            """Return random strategies for all 4 players."""
-            import random
-            strategies = [s for s in AI_STRATEGIES if s != "human"]  # Exclude human for random
-            return [random.choice(strategies) for _ in range(4)]
-
-        def _steps(game, history: list[str], show, human_choice=None):
-            if game is None:
-                return None, None, "No game initialized", history, False, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), []
+    def _ui_run_auto(self, n, delay, game: LudoGame, history: list[str], show: bool):
+        if game is None:
+            yield None, None, "No game", history, False, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), []
+            return
+        
+        desc = ""
+        for _ in range(int(n)):
+            if self._is_human_turn(game):
+                current_player = game.get_current_player()
+                dice = game.roll_dice()
+                valid_moves = game.get_valid_moves(current_player, dice)
+                
+                if valid_moves:
+                    pil_img = draw_board(self._game_state_tokens(game), show_ids=show)
+                    html = self._img_to_data_uri(pil_img)
+                    player_html = f"<h3 style='color: {current_player.color.value};'>🎯 Current Player: {current_player.color.value.title()}</h3>"
+                    desc = f"Auto-play paused: {current_player.color.value} rolled {dice} - Choose your move:"
+                    history.append(desc)
+                    if len(history) > 50: history = history[-50:]
+                    
+                    move_options = self._get_human_move_options(game, dice)
+                    moves_html = "<h4>Choose your move:</h4><ul>" + "".join([f"<li><strong>Token {opt['token_id']}</strong>: {opt['description']} ({opt['move_type']})</li>" for opt in move_options]) + "</ul>"
+                    btn_updates = [gr.update(visible=i < len(move_options), value=f"Move Token {move_options[i]['token_id']}" if i < len(move_options) else "") for i in range(4)]
+                    
+                    yield game, html, desc, history, True, player_html, moves_html, gr.update(visible=True), *btn_updates, move_options
+                    return
+                else:
+                    extra_turn = dice == 6
+                    if not extra_turn: game.next_turn()
+                    desc = f"{current_player.color.value} rolled {dice} - no moves{' (extra turn)' if extra_turn else ''}"
+                    history.append(desc)
+                    if len(history) > 50: history = history[-50:]
+            else:
+                game, step_desc, _, _, _ = self._play_step(game)
+                desc = step_desc
+                history.append(step_desc)
+                if len(history) > 50: history = history[-50:]
             
-            game, desc, tokens, move_opts, waiting = _play_step(game, human_choice)
-            history.append(desc)
-            if len(history) > 50:
-                history = history[-50:]
+            pil_img = draw_board(self._game_state_tokens(game), show_ids=show)
+            html = self._img_to_data_uri(pil_img)
             
-            pil_img = draw_board(tokens, show_ids=show)
-            html = _img_to_data_uri(pil_img)
-            
-            # Update current player display
             if not game.game_over:
                 current_player = game.get_current_player()
                 player_html = f"<h3 style='color: {current_player.color.value};'>🎯 Current Player: {current_player.color.value.title()}</h3>"
             else:
                 player_html = f"<h3>🏆 Winner: {game.winner.color.value.title()}!</h3>"
             
-            # Handle human player interface
-            if waiting and move_opts:
-                moves_html = "<h4>Choose your move:</h4><ul>"
-                for opt in move_opts:
-                    moves_html += f"<li><strong>Token {opt['token_id']}</strong>: {opt['description']} ({opt['move_type']})</li>"
-                moves_html += "</ul>"
-                
-                # Update button visibility and labels
-                btn_updates = []
-                for i in range(4):
-                    if i < len(move_opts):
-                        btn_updates.append(gr.update(visible=True, value=f"Move Token {move_opts[i]['token_id']}"))
-                    else:
-                        btn_updates.append(gr.update(visible=False))
-                
-                return (game, html, desc, history, waiting, player_html, moves_html, 
-                        gr.update(visible=True), *btn_updates, move_opts)
-            else:
-                return (game, html, desc, history, False, player_html, "", 
-                        gr.update(visible=False), gr.update(visible=False), 
-                        gr.update(visible=False), gr.update(visible=False), 
-                        gr.update(visible=False), [])
-
-        def _run_auto(n, delay, game: LudoGame, history: list[str], show: bool):
-            if game is None:
-                return None, None, "No game", history, False, "", ""
+            waiting = self._is_human_turn(game) and not game.game_over
+            yield game, html, desc, history, waiting, player_html, "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), []
             
-            desc = ""
-            for _ in range(int(n)):
-                # Skip auto play if it's human turn
-                if _is_human_turn(game):
-                    desc = f"Waiting for human player ({game.get_current_player().color.value})"
-                    break
-                    
-                game, step_desc, tokens, _, _ = _play_step(game)
-                desc = step_desc
-                history.append(step_desc)
-                if len(history) > 50:
-                    history = history[-50:]
-                
-                # Update board visualization immediately after each step
-                pil_img = draw_board(_game_state_tokens(game), show_ids=show)
-                html = _img_to_data_uri(pil_img)
-                
-                # Update current player display
-                if not game.game_over:
-                    current_player = game.get_current_player()
-                    player_html = f"<h3 style='color: {current_player.color.value};'>🎯 Current Player: {current_player.color.value.title()}</h3>"
-                else:
-                    player_html = f"<h3>🏆 Winner: {game.winner.color.value.title()}!</h3>"
-                
-                waiting = _is_human_turn(game) and not game.game_over
-                
-                # Yield updated state BEFORE sleep so interface updates immediately
-                yield game, html, desc, history, waiting, player_html, ""
-                
-                if game.game_over:
-                    break
-                if delay and delay > 0:
-                    time.sleep(float(delay))
+            if game.game_over: break
+            if delay and delay > 0 and not waiting: time.sleep(float(delay))
 
-        def _make_human_move(token_id, game, history, show, move_opts):
-            """Handle human player move selection."""
-            if not move_opts:
-                return game, None, "No moves available", history, False, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), []
-            
-            return _steps(game, history, show, token_id)
+    def _ui_make_human_move(self, token_id, game, history, show, move_opts):
+        if not move_opts:
+            return game, None, "No moves available", history, False, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), []
+        return self._ui_steps(game, history, show, token_id)
 
-        def _export(game: LudoGame):
-            if not game:
-                return "No game"
-            state_dict = {
-                "current_turn": game.current_player_index,
-                "tokens": _game_state_tokens(game),
-                "game_over": game.game_over,
-                "winner": game.winner.color.value if game.winner else None,
-            }
-            return json.dumps(state_dict, indent=2)
+    def _ui_export(self, game: LudoGame):
+        if not game: return "No game"
+        state_dict = {
+            "current_turn": game.current_player_index,
+            "tokens": self._game_state_tokens(game),
+            "game_over": game.game_over,
+            "winner": game.winner.color.value if game.winner else None,
+        }
+        return json.dumps(state_dict, indent=2)
 
-        def _run_bulk(n_games, *strats):
-            # Filter out human strategies for bulk simulation
-            ai_strats = [s if s != "human" else "random" for s in strats]
-            win_counts = {c.value: 0 for c in DEFAULT_PLAYERS}
-            for _ in range(int(n_games)):
-                g = _init_game(list(ai_strats))
-                while not g.game_over:
-                    g, _, _, _, _ = _play_step(g)
+    def _ui_run_bulk(self, n_games, *strats):
+        ai_strats = [s if s != "human" else "random" for s in strats]
+        win_counts = {c.value: 0 for c in self.default_players}
+        for _ in range(int(n_games)):
+            g = self._init_game(list(ai_strats))
+            while not g.game_over:
+                g, _, _, _, _ = self._play_step(g)
+            if g.winner:
                 win_counts[g.winner.color.value] += 1
-            total = sum(win_counts.values()) or 1
-            summary = {
-                k: {"wins": v, "win_rate": round(v / total, 3)}
-                for k, v in win_counts.items()
-            }
-            return json.dumps(summary, indent=2)
+        total = sum(win_counts.values()) or 1
+        summary = {k: {"wins": v, "win_rate": round(v / total, 3)} for k, v in win_counts.items()}
+        return json.dumps(summary, indent=2)
 
-        def _update_stats(stats, game: LudoGame):
-            if game and game.game_over and game.winner:
-                stats = dict(stats)
-                stats["games"] += 1
-                stats["wins"][game.winner.color.value] += 1
-            return stats
+    def _ui_update_stats(self, stats, game: LudoGame):
+        if game and game.game_over and game.winner:
+            stats = dict(stats)
+            stats["games"] += 1
+            stats["wins"][game.winner.color.value] += 1
+        return stats
 
-        # Event handlers
-        init_btn.click(
-            _init,
-            strategy_inputs,
-            [game_state, board_plot, log, move_history, stats_state, 
-             current_player_display, human_controls, human_moves_display] + move_buttons + [human_move_options],
-        )
-        
-        random_btn.click(
-            _random_strategies,
-            outputs=strategy_inputs,
-        ).then(
-            _init,
-            strategy_inputs,
-            [game_state, board_plot, log, move_history, stats_state, 
-             current_player_display, human_controls, human_moves_display] + move_buttons + [human_move_options],
-        )
-        
-        step_btn.click(
-            _steps,
-            [game_state, move_history, show_ids],
-            [game_state, board_plot, log, move_history, waiting_for_human, 
-             current_player_display, human_moves_display, human_controls] + move_buttons + [human_move_options],
-        ).then(_update_stats, [stats_state, game_state], [stats_state]).then(
-            lambda s: s, [stats_state], [stats_display]
-        )
-        
-        # Human move buttons
-        for i, btn in enumerate(move_buttons):
-            btn.click(
-                lambda opts, idx=i: opts[idx]["token_id"] if idx < len(opts) else 0,
-                [human_move_options],
-                [gr.State()]
-            ).then(
-                _make_human_move,
-                [gr.State(), game_state, move_history, show_ids, human_move_options],
-                [game_state, board_plot, log, move_history, waiting_for_human, 
-                 current_player_display, human_moves_display, human_controls] + move_buttons + [human_move_options],
-            ).then(_update_stats, [stats_state, game_state], [stats_state]).then(
-                lambda s: s, [stats_state], [stats_display]
-            )
-        
-        run_auto_btn.click(
-            _run_auto,
-            [auto_steps_n, auto_delay, game_state, move_history, show_ids],
-            [game_state, board_plot, log, move_history, waiting_for_human, current_player_display, human_moves_display],
-        ).then(_update_stats, [stats_state, game_state], [stats_state]).then(
-            lambda s: s, [stats_state], [stats_display]
-        )
-        
-        move_history_btn.click(
-            lambda h: "\n".join(h[-50:]), [move_history], [history_box]
-        )
-        export_btn.click(_export, [game_state], [export_box])
-        bulk_run_btn.click(_run_bulk, [bulk_games] + sim_strat_inputs, [bulk_results])
-
-    return demo
+    def launch(self, server_name="0.0.0.0", server_port=7860, **kwargs):
+        """Launches the Gradio application."""
+        demo = self.create_ui()
+        demo.launch(server_name=server_name, server_port=server_port, **kwargs)
 
 
-def main():
+def launch_app():
     """Main entry point for the application."""
-    demo = launch_app()
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=7860,
-        share=False,
-        inbrowser=True,
-        show_error=True
-    )
-
+    return LudoApp()
 
 if __name__ == "__main__":
-    launch_app().launch()
+    launch_app().launch(share=False, inbrowser=True, show_error=True)
