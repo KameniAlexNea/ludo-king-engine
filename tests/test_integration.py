@@ -6,10 +6,8 @@ Tests cover full game scenarios, multi-player interactions, and end-to-end game 
 import unittest
 from unittest.mock import patch
 
-from ludo_engine.core.game import LudoGame
-from ludo_engine.core.player import Player, PlayerColor
-from ludo_engine.core.token import TokenState
-from ludo_engine.models.model import TurnResult
+from ludo_engine.core import LudoGame, Player, PlayerColor, TokenState
+from ludo_engine.models import TurnResult
 from ludo_engine.strategies import KillerStrategy, RandomStrategy, WinnerStrategy
 
 

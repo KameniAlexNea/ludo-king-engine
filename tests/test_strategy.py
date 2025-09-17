@@ -6,7 +6,7 @@ Tests cover strategy creation, available strategies, and basic decision making.
 import unittest
 from unittest.mock import patch
 
-from ludo_engine.models.model import (
+from ludo_engine.models import (
     AIDecisionContext,
     CurrentSituation,
     OpponentInfo,

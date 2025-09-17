@@ -7,11 +7,8 @@ and AI decision context generation to achieve high code coverage.
 import unittest
 from unittest.mock import patch
 
-from ludo_engine.core.game import LudoGame
-from ludo_engine.core.player import Player, PlayerColor
-from ludo_engine.core.token import TokenState
-from ludo_engine.models.constants import BoardConstants
-from ludo_engine.models.model import AIDecisionContext, TurnResult, ValidMove
+from ludo_engine.core import LudoGame, Player, PlayerColor, TokenState
+from ludo_engine.models import AIDecisionContext, BoardConstants, TurnResult, ValidMove
 from ludo_engine.strategies import RandomStrategy
 
 

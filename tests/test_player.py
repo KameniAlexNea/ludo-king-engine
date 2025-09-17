@@ -7,12 +7,11 @@ and game state representation.
 import unittest
 from unittest.mock import patch
 
-from ludo_engine.core.player import Player, PlayerColor
-from ludo_engine.core.token import TokenState
-from ludo_engine.models.constants import GameConstants
-from ludo_engine.models.model import (
+from ludo_engine.core import Player, PlayerColor, TokenState
+from ludo_engine.models import (
     AIDecisionContext,
     CurrentSituation,
+    GameConstants,
     OpponentInfo,
     PlayerState,
     StrategicAnalysis,
