@@ -11,7 +11,7 @@ from ludo_engine.models.constants import (
     GameConstants,
     StrategyConstants,
 )
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, TokenState, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     forward_distance,
@@ -63,12 +63,12 @@ class OptimistStrategy(Strategy):
 
         # 3. Aggressive exit to increase board presence until target count reached
         if active_tokens < StrategyConstants.OPTIMIST_EXIT_EARLY_ACTIVE_TARGET:
-            exit_move = self._get_move_by_type(moves, "exit_home")
+            exit_move = self._get_move_by_type(moves, TokenState.HOME)
             if exit_move:
                 return exit_move.token_id
 
         # 4. Finish tokens (still beneficial but not first priority)
-        finish_move = self._get_move_by_type(moves, "finish")
+        finish_move = self._get_move_by_type(moves, TokenState.FINISHED)
         if finish_move:
             return finish_move.token_id
 

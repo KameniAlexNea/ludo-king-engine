@@ -10,8 +10,10 @@ from ludo_engine.models import (
     AIDecisionContext,
     CurrentSituation,
     OpponentInfo,
+    PlayerColor,
     PlayerState,
     StrategicAnalysis,
+    TokenState,
     ValidMove,
 )
 from ludo_engine.strategies import KillerStrategy, RandomStrategy, WinnerStrategy
@@ -27,7 +29,7 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
                 current_position=5,
                 current_state="active",
                 target_position=9,
-                move_type="advance_main_board",
+                move_type=TokenState.ACTIVE,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -38,14 +40,14 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
 
     return AIDecisionContext(
         current_situation=CurrentSituation(
-            player_color="red",
+            player_color=PlayerColor.RED,
             dice_value=dice_value,
             consecutive_sixes=0,
             turn_count=1,
         ),
         player_state=PlayerState(
             player_id=0,
-            color="red",
+            color=PlayerColor.RED,
             start_position=0,
             tokens=[],
             tokens_in_home=4,
@@ -57,7 +59,7 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
         ),
         opponents=[
             OpponentInfo(
-                color="blue",
+                color=PlayerColor.BLUE,
                 finished_tokens=0,
                 tokens_active=1,
                 threat_level=0.2,
@@ -98,7 +100,7 @@ class TestStrategyBase(unittest.TestCase):
                     current_position=-1,
                     current_state="home",
                     target_position=0,
-                    move_type="exit_home",
+                    move_type=TokenState.HOME,
                     is_safe_move=True,
                     captures_opponent=False,
                     captured_tokens=[],
@@ -110,7 +112,7 @@ class TestStrategyBase(unittest.TestCase):
                     current_position=-1,
                     current_state="home",
                     target_position=0,
-                    move_type="exit_home",
+                    move_type=TokenState.HOME,
                     is_safe_move=True,
                     captures_opponent=False,
                     captured_tokens=[],
@@ -131,7 +133,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=-1,
                 current_state="home",
                 target_position=0,
-                move_type="exit_home",
+                move_type=TokenState.HOME,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -143,7 +145,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=5,
                 current_state="active",
                 target_position=10,
-                move_type="advance_main_board",
+                move_type=TokenState.ACTIVE,
                 is_safe_move=False,
                 captures_opponent=True,
                 captured_tokens=[],
@@ -152,12 +154,12 @@ class TestStrategyBase(unittest.TestCase):
             ),
         ]
 
-        exit_move = self.strategy._get_move_by_type(moves, "exit_home")
+        exit_move = self.strategy._get_move_by_type(moves, TokenState.HOME)
         self.assertIsNotNone(exit_move)
-        self.assertEqual(exit_move.move_type, "exit_home")
+        self.assertEqual(exit_move.move_type, TokenState.HOME)
 
-        capture_move = self.strategy._get_move_by_type(moves, "capture")
-        self.assertIsNone(capture_move)  # No capture moves
+        capture_move = self.strategy._get_move_by_type(moves, TokenState.FINISHED)
+        self.assertIsNone(capture_move)  # No finished moves
 
     def test_get_moves_by_type(self):
         """Test getting all moves by type."""
@@ -167,7 +169,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=-1,
                 current_state="home",
                 target_position=0,
-                move_type="exit_home",
+                move_type=TokenState.HOME,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -179,7 +181,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=-1,
                 current_state="home",
                 target_position=0,
-                move_type="exit_home",
+                move_type=TokenState.HOME,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -191,7 +193,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=5,
                 current_state="active",
                 target_position=10,
-                move_type="advance_main_board",
+                move_type=TokenState.ACTIVE,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -200,10 +202,10 @@ class TestStrategyBase(unittest.TestCase):
             ),
         ]
 
-        exit_moves = self.strategy._get_moves_by_type(moves, "exit_home")
+        exit_moves = self.strategy._get_moves_by_type(moves, TokenState.HOME)
         self.assertEqual(len(exit_moves), 2)
 
-        advance_moves = self.strategy._get_moves_by_type(moves, "advance_main_board")
+        advance_moves = self.strategy._get_moves_by_type(moves, TokenState.ACTIVE)
         self.assertEqual(len(advance_moves), 1)
 
     def test_get_capture_moves(self):
@@ -214,7 +216,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=5,
                 current_state="active",
                 target_position=10,
-                move_type="advance_main_board",
+                move_type=TokenState.ACTIVE,
                 is_safe_move=False,
                 captures_opponent=True,
                 captured_tokens=[],
@@ -226,7 +228,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=5,
                 current_state="active",
                 target_position=15,
-                move_type="advance_main_board",
+                move_type=TokenState.ACTIVE,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -247,7 +249,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=-1,
                 current_state="home",
                 target_position=0,
-                move_type="exit_home",
+                move_type=TokenState.HOME,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -259,7 +261,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=5,
                 current_state="active",
                 target_position=10,
-                move_type="advance_main_board",
+                move_type=TokenState.ACTIVE,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -280,7 +282,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=-1,
                 current_state="home",
                 target_position=0,
-                move_type="exit_home",
+                move_type=TokenState.HOME,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -292,7 +294,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=5,
                 current_state="active",
                 target_position=10,
-                move_type="advance_main_board",
+                move_type=TokenState.ACTIVE,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -313,7 +315,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=-1,
                 current_state="home",
                 target_position=0,
-                move_type="exit_home",
+                move_type=TokenState.HOME,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -325,7 +327,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=5,
                 current_state="active",
                 target_position=10,
-                move_type="advance_main_board",
+                move_type=TokenState.ACTIVE,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -346,7 +348,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=-1,
                 current_state="home",
                 target_position=0,
-                move_type="exit_home",
+                move_type=TokenState.HOME,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -358,7 +360,7 @@ class TestStrategyBase(unittest.TestCase):
                 current_position=5,
                 current_state="active",
                 target_position=10,
-                move_type="advance_main_board",
+                move_type=TokenState.ACTIVE,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -459,7 +461,7 @@ class TestRandomStrategy(unittest.TestCase):
                     current_position=-1,
                     current_state="home",
                     target_position=0,
-                    move_type="exit_home",
+                    move_type=TokenState.HOME,
                     is_safe_move=True,
                     captures_opponent=False,
                     captured_tokens=[],
@@ -471,7 +473,7 @@ class TestRandomStrategy(unittest.TestCase):
                     current_position=-1,
                     current_state="home",
                     target_position=0,
-                    move_type="exit_home",
+                    move_type=TokenState.HOME,
                     is_safe_move=True,
                     captures_opponent=False,
                     captured_tokens=[],
@@ -516,7 +518,7 @@ class TestKillerStrategy(unittest.TestCase):
                     current_position=5,
                     current_state="active",
                     target_position=10,
-                    move_type="advance_main_board",
+                    move_type=TokenState.ACTIVE,
                     is_safe_move=False,
                     captures_opponent=True,
                     captured_tokens=[],
@@ -528,7 +530,7 @@ class TestKillerStrategy(unittest.TestCase):
                     current_position=5,
                     current_state="active",
                     target_position=15,
-                    move_type="advance_main_board",
+                    move_type=TokenState.ACTIVE,
                     is_safe_move=False,
                     captures_opponent=False,
                     captured_tokens=[],
@@ -564,7 +566,7 @@ class TestWinnerStrategy(unittest.TestCase):
                     current_position=104,
                     current_state="home_column",
                     target_position=105,
-                    move_type="finish",
+                    move_type=TokenState.FINISHED,
                     is_safe_move=True,
                     captures_opponent=False,
                     captured_tokens=[],
@@ -576,7 +578,7 @@ class TestWinnerStrategy(unittest.TestCase):
                     current_position=5,
                     current_state="active",
                     target_position=10,
-                    move_type="advance_main_board",
+                    move_type=TokenState.ACTIVE,
                     is_safe_move=False,
                     captures_opponent=True,
                     captured_tokens=[],

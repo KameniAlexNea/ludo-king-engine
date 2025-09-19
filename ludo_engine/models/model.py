@@ -4,7 +4,26 @@ Contains all dataclasses used throughout the game system.
 """
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Dict, List, Optional
+
+
+class PlayerColor(Enum):
+    """Available player colors in Ludo."""
+
+    RED = "red"
+    BLUE = "blue"
+    GREEN = "green"
+    YELLOW = "yellow"
+
+
+class TokenState(Enum):
+    """Possible states of a token."""
+
+    HOME = "home"  # Token is in starting home area
+    ACTIVE = "active"  # Token is on the main board path
+    HOME_COLUMN = "home_column"  # Token is in the final home column
+    FINISHED = "finished"  # Token has reached the center
 
 
 @dataclass
@@ -12,7 +31,7 @@ class TokenInfo:
     """Information about a token."""
 
     token_id: int
-    player_color: str
+    player_color: PlayerColor
     state: str
     position: int
     is_in_home: bool
@@ -25,7 +44,7 @@ class TokenInfo:
 class CapturedToken:
     """Information about a captured token."""
 
-    player_color: str
+    player_color: PlayerColor
     token_id: int
 
 
@@ -34,7 +53,7 @@ class MoveResult:
     """Result of executing a move."""
 
     success: bool
-    player_color: str
+    player_color: PlayerColor
     token_id: int
     dice_value: int
     old_position: int
@@ -54,7 +73,7 @@ class ValidMove:
     current_position: int
     current_state: str
     target_position: int
-    move_type: str
+    move_type: TokenState
     is_safe_move: bool
     captures_opponent: bool
     captured_tokens: List[CapturedToken]
@@ -66,7 +85,7 @@ class ValidMove:
 class TurnResult:
     """Result of playing a complete turn."""
 
-    player_color: str
+    player_color: PlayerColor
     dice_value: int
     consecutive_sixes: int
     moves: List[MoveResult]
@@ -96,7 +115,7 @@ class PlayerState:
 class OpponentInfo:
     """Information about an opponent player."""
 
-    color: str
+    color: PlayerColor
     finished_tokens: int
     tokens_active: int
     threat_level: float
@@ -119,7 +138,7 @@ class StrategicAnalysis:
 class CurrentSituation:
     """Current game situation."""
 
-    player_color: str
+    player_color: PlayerColor
     dice_value: int
     consecutive_sixes: int
     turn_count: int
@@ -140,7 +159,7 @@ class AIDecisionContext:
 class PlayerConfiguration:
     """Configuration information for a player."""
 
-    color: str
+    color: PlayerColor
     player_id: int
     strategy_name: str
     strategy_description: str
@@ -154,7 +173,7 @@ class PlayerConfiguration:
 class BoardPositionInfo:
     """Information about tokens at a board position."""
 
-    player_color: str
+    player_color: PlayerColor
     token_id: int
     state: str
 
@@ -163,7 +182,7 @@ class BoardPositionInfo:
 class BoardState:
     """Complete board state for AI analysis."""
 
-    current_player: str
+    current_player: PlayerColor
     board_positions: Dict[int, List[BoardPositionInfo]]
     safe_positions: List[int]
     star_positions: List[int]
@@ -179,7 +198,7 @@ class PositionInfo:
     position: int
     is_safe: bool
     is_star: Optional[bool] = None
-    color: Optional[str] = None
+    color: Optional[PlayerColor] = None
     tokens: List[TokenInfo] = None
 
 

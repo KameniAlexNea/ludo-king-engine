@@ -2,10 +2,12 @@
 Base strategy classes and interfaces for Ludo AI.
 """
 
-from abc import ABC, abstractmethod
-from typing import List, Optional
+from __future__ import annotations
 
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from abc import ABC, abstractmethod
+from typing import List, Optional, Union
+
+from ludo_engine.models.model import AIDecisionContext, TokenState, ValidMove
 
 
 class Strategy(ABC):
@@ -36,19 +38,34 @@ class Strategy(ABC):
         return game_context.valid_moves
 
     def _get_move_by_type(
-        self, valid_moves: List[ValidMove], move_type: str
+        self, valid_moves: List[ValidMove], move_type: Union[str, TokenState]
     ) -> Optional[ValidMove]:
-        """Get first move of specified type."""
+        """Get first move of specified type.
+
+        Supports both legacy string names ("finish", "advance_home_column", "exit_home")
+        and TokenState enum members. Legacy names are mapped:
+          TokenState.FINISHED -> TokenState.FINISHED
+          TokenState.HOME_COLUMN -> TokenState.HOME_COLUMN
+          TokenState.HOME -> TokenState.HOME (with current_state == HOME)
+          TokenState.ACTIVE -> TokenState.ACTIVE
+        """
+        target_state = self._normalize_move_type(move_type)
         for move in valid_moves:
-            if move.move_type == move_type:
+            if move.move_type == target_state:
                 return move
         return None
 
     def _get_moves_by_type(
-        self, valid_moves: List[ValidMove], move_type: str
+        self, valid_moves: List[ValidMove], move_type: Union[str, TokenState]
     ) -> List[ValidMove]:
-        """Get all moves of specified type."""
-        return [move for move in valid_moves if move.move_type == move_type]
+        """Get all moves of specified type (see mapping in _get_move_by_type)."""
+        target_state = self._normalize_move_type(move_type)
+        return [move for move in valid_moves if move.move_type == target_state]
+
+    def _normalize_move_type(self, move_type: Union[str, TokenState]) -> TokenState:
+        if isinstance(move_type, TokenState):
+            return move_type
+        raise ValueError("move_type must be a TokenState enum member")
 
     def _get_capture_moves(self, valid_moves: List[ValidMove]) -> List[ValidMove]:
         """Get all moves that capture opponents."""

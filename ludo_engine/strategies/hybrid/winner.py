@@ -12,7 +12,7 @@ from ludo_engine.models.constants import (
     GameConstants,
     StrategyConstants,
 )
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, TokenState, ValidMove
 from ludo_engine.strategies.base import Strategy
 
 
@@ -34,12 +34,12 @@ class WinnerStrategy(Strategy):
         active_tokens = player_state.active_tokens
 
         # 1. Finish immediately if possible
-        finish_move = self._get_move_by_type(moves, "finish")
+        finish_move = self._get_move_by_type(moves, TokenState.FINISHED)
         if finish_move:
             return finish_move.token_id
 
         # 2. Home column depth advancement (closest to finish first)
-        home_moves = self._get_moves_by_type(moves, "advance_home_column")
+        home_moves = self._get_moves_by_type(moves, TokenState.HOME_COLUMN)
         if home_moves:
             best_home = max(
                 home_moves,
@@ -65,7 +65,7 @@ class WinnerStrategy(Strategy):
 
         # 5. Exit home (only to maintain board presence)
         if active_tokens < StrategyConstants.WINNER_EXIT_MIN_ACTIVE:
-            exit_move = self._get_move_by_type(moves, "exit_home")
+            exit_move = self._get_move_by_type(moves, TokenState.HOME)
             if exit_move:
                 return exit_move.token_id
 

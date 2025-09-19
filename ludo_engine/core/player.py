@@ -3,29 +3,21 @@ Player representation for Ludo game.
 Each player has a color and controls 4 tokens.
 """
 
-from enum import Enum
 from typing import List, Optional, Tuple
 
-from ludo_engine.core.token import Token, TokenState
+from ludo_engine.core.token import Token
 from ludo_engine.models import (
     AIDecisionContext,
     BoardConstants,
     GameConstants,
+    PlayerColor,
     PlayerState,
     StrategicComponents,
     StrategyConstants,
+    TokenState,
     ValidMove,
 )
 from ludo_engine.strategies import Strategy
-
-
-class PlayerColor(Enum):
-    """Available player colors in Ludo."""
-
-    RED = "red"
-    BLUE = "blue"
-    GREEN = "green"
-    YELLOW = "yellow"
 
 
 class Player:
@@ -49,12 +41,12 @@ class Player:
 
         # Create 4 tokens for this player
         for i in range(4):
-            token = Token(token_id=i, player_color=color.value, state=TokenState.HOME)
+            token = Token(token_id=i, player_color=color, state=TokenState.HOME)
             self.tokens.append(token)
 
         # Starting positions for each color on the board
         self.start_positions = BoardConstants.START_POSITIONS
-        self.start_position = self.start_positions[color.value]
+        self.start_position = self.start_positions[color]
 
     def player_positions(self) -> List[int]:
         """Get current positions of all tokens for this player."""
@@ -197,20 +189,27 @@ class Player:
 
         return possible_moves
 
-    def _get_move_type(self, token: Token, dice_value: int) -> str:
-        """Determine the type of move being made."""
+    def _get_move_type(self, token: Token, dice_value: int) -> TokenState:
+        """Determine the current token state for this move.
+
+        Mapping:
+          - exit_home: current state HOME
+          - advance_main_board: current state ACTIVE
+          - advance_home_column: current state HOME_COLUMN
+          - finish: resulting state FINISHED
+        """
         if token.is_in_home() and dice_value == GameConstants.EXIT_HOME_ROLL:
-            return "exit_home"
+            return TokenState.HOME
         if token.is_in_home_column():
             target = token.get_target_position(dice_value, self.start_position)
             if target == GameConstants.FINISH_POSITION:
-                return "finish"
-            return "advance_home_column"
-        return "advance_main_board"
+                return TokenState.FINISHED
+            return TokenState.HOME_COLUMN
+        return TokenState.ACTIVE
 
     def _is_safe_move(self, token: Token, target_position: int) -> bool:
         """Check if the target position is a safe square."""
-        return BoardConstants.is_safe_position(target_position, self.color.value)
+        return BoardConstants.is_safe_position(target_position, self.color)
 
     def _calculate_strategic_value(
         self, token: Token, dice_value: int, target_position: Optional[int] = None
@@ -269,13 +268,13 @@ class Player:
             components.acceleration = advantage * StrategyConstants.ACCELERATION_WEIGHT
 
         # 5: Safety bonus for landing square
-        if BoardConstants.is_safe_position(target_position, self.color.value):
+        if BoardConstants.is_safe_position(target_position, self.color):
             components.safety = StrategyConstants.SAFETY_BONUS
 
         # 6: Vulnerability penalty (simple placeholder): if not safe and token is active
         # and not entering home column and not finishing, apply penalty.
         if (
-            not BoardConstants.is_safe_position(target_position, self.color.value)
+            not BoardConstants.is_safe_position(target_position, self.color)
             and not BoardConstants.is_home_column_position(target_position)
             and token.is_active()
         ):
@@ -306,7 +305,7 @@ class Player:
 
         # Path: distance to home entry + home column size
         # Find this player's home entry square
-        entry = BoardConstants.HOME_COLUMN_ENTRIES[self.color.value]
+        entry = BoardConstants.HOME_COLUMN_ENTRIES[self.color]
         if position <= entry:
             to_entry = entry - position
         else:
@@ -350,7 +349,7 @@ class Player:
 
         # Simple priority: finish > capture > exit > highest value
         for move in valid_moves:
-            if move.move_type == "finish":
+            if move.move_type == TokenState.FINISHED:
                 return move.token_id
 
         for move in valid_moves:
@@ -358,7 +357,11 @@ class Player:
                 return move.token_id
 
         for move in valid_moves:
-            if move.move_type == "exit_home":
+            # exit_home semantic: move results in ACTIVE and current state was HOME
+            if (
+                move.move_type == TokenState.ACTIVE
+                and move.current_state == TokenState.HOME.value
+            ):
                 return move.token_id
 
         # Choose highest strategic value

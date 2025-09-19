@@ -42,7 +42,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence
 
 from ludo_engine.models.constants import BoardConstants, GameConstants
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, TokenState, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     get_my_main_positions,
@@ -182,7 +182,7 @@ class ProbabilisticV3Strategy(Strategy):
         scored_moves: List[V3MoveEvaluation] = []
 
         for mv in moves:
-            if mv.move_type == "finish":
+            if mv.move_type == TokenState.FINISHED:
                 # Immediate finish trump
                 return mv.token_id
 
@@ -298,7 +298,7 @@ class ProbabilisticV3Strategy(Strategy):
         if not isinstance(tgt, int):
             return 0.0
         if (
-            move.move_type == "finish"
+            move.move_type == TokenState.FINISHED
             or (isinstance(tgt, int) and tgt >= BoardConstants.HOME_COLUMN_START)
             or move.is_safe_move
         ):
@@ -319,7 +319,7 @@ class ProbabilisticV3Strategy(Strategy):
         if not isinstance(tgt, int):
             return 0.0
         if (
-            move.move_type == "finish"
+            move.move_type == TokenState.FINISHED
             or move.is_safe_move
             or (isinstance(tgt, int) and tgt >= BoardConstants.HOME_COLUMN_START)
         ):
@@ -430,7 +430,7 @@ class ProbabilisticV3Strategy(Strategy):
         captured = move.captured_tokens
         total_scale = 0.0
         for c in captured:
-            prog = opp_token_progress_map.get(c.player_color, 0.5)
+            prog = opp_token_progress_map.get(c.player_color.value, 0.5)
             total_scale += 1.0 + prog if self.cfg.use_capture_progress_scaling else 1.0
         return self.cfg.base_capture_value * max(1.0, total_scale)
 
@@ -461,9 +461,9 @@ class ProbabilisticV3Strategy(Strategy):
 
     def _home_column_value(self, move: ValidMove) -> float:
         mt = move.move_type
-        if mt == "finish":
+        if mt == TokenState.FINISHED:
             return self.cfg.finish_bonus
-        if mt == "advance_home_column":
+        if mt == TokenState.HOME_COLUMN:
             if self.cfg.use_home_column_nonlinear:
                 tgt = move.target_position
                 if isinstance(tgt, int) and tgt >= BoardConstants.HOME_COLUMN_START:
@@ -473,7 +473,7 @@ class ProbabilisticV3Strategy(Strategy):
                         + depth * self.cfg.home_column_depth_factor
                     )
             return self.cfg.advance_home_bonus
-        if mt == "exit_home":
+        if mt == TokenState.HOME:
             return self.cfg.exit_home_bonus
         return 0.0
 
@@ -506,7 +506,7 @@ class ProbabilisticV3Strategy(Strategy):
 
     def _spread_bonus(self, move: ValidMove, baseline_active: int) -> float:
         # If exiting home increases number of active tokens
-        if move.move_type == "exit_home" and baseline_active == 0:
+        if move.move_type == TokenState.HOME and baseline_active == 0:
             return self.cfg.spread_bonus_value
         return 0.0
 

@@ -6,8 +6,8 @@ Tests cover full game scenarios, multi-player interactions, and end-to-end game 
 import unittest
 from unittest.mock import patch
 
-from ludo_engine.core import LudoGame, Player, PlayerColor, TokenState
-from ludo_engine.models import TurnResult
+from ludo_engine.core import LudoGame, Player
+from ludo_engine.models import PlayerColor, TokenState, TurnResult
 from ludo_engine.strategies import KillerStrategy, RandomStrategy, WinnerStrategy
 
 
@@ -245,7 +245,7 @@ class TestGameIntegration(unittest.TestCase):
         self.assertEqual(context.current_situation.dice_value, 4)
         self.assertEqual(
             context.current_situation.player_color,
-            game.get_current_player().color.value,
+            game.get_current_player().color,
         )
         self.assertIsInstance(context.valid_moves, list)
         from ludo_engine.models.model import PlayerState

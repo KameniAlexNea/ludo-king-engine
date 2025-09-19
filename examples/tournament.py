@@ -11,7 +11,8 @@ from typing import Dict, List, Optional
 
 from config import TournamentConfig
 
-from ludo_engine.core import LudoGame, PlayerColor
+from ludo_engine.core import LudoGame
+from ludo_engine.models import PlayerColor
 from ludo_engine.strategies.strategy import StrategyFactory
 
 
@@ -200,16 +201,21 @@ class LudoTournament:
             is_draw=is_draw,
         )
 
-    def run_tournament(self, verbose: bool = True) -> Dict[str, TeamStats]:
+    def run_tournament(
+        self, seed: int = None, verbose: bool = True
+    ) -> Dict[str, TeamStats]:
         """
         Run the complete tournament.
 
         Args:
+            seed: Random seed for reproducibility (overrides config seed)
             verbose: Whether to print match results
 
         Returns:
             Final team statistics
         """
+        if seed is not None:
+            random.seed(seed)
         if verbose:
             print("🏆 Ludo Strategy Tournament")
             print(f"📊 {len(self.strategies)} teams competing")

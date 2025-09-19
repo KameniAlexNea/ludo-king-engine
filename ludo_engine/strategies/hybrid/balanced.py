@@ -13,7 +13,7 @@ from ludo_engine.models.constants import (
     GameConstants,
     StrategyConstants,
 )
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, TokenState, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     LARGE_THREAT_COUNT,
@@ -62,12 +62,12 @@ class BalancedStrategy(Strategy):
         my_positions = get_my_main_positions(game_context)
 
         # Priority 1: Immediate finish
-        finish_move = self._get_move_by_type(moves, "finish")
+        finish_move = self._get_move_by_type(moves, TokenState.FINISHED)
         if finish_move:
             return finish_move.token_id
 
         # Priority 2: Deep home column (weighted more under late-game pressure)
-        home_moves = self._get_moves_by_type(moves, "advance_home_column")
+        home_moves = self._get_moves_by_type(moves, TokenState.HOME_COLUMN)
         if home_moves:
             home_weight = StrategyConstants.BALANCED_HOME_PRIORITY * (
                 1.2 if late_game_pressure else 1.0
@@ -106,7 +106,7 @@ class BalancedStrategy(Strategy):
 
         # Priority 6: Exit home to maintain presence if needed
         if active < StrategyConstants.BALANCED_MIN_ACTIVE_TARGET or behind:
-            exit_move = self._get_move_by_type(moves, "exit_home")
+            exit_move = self._get_move_by_type(moves, TokenState.HOME)
             if exit_move:
                 return exit_move.token_id
 

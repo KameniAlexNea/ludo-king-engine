@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 
-from ludo_engine.core import LudoGame, PlayerColor, Token
-from ludo_engine.models import MoveResult
+from ludo_engine.core import LudoGame, Token
+from ludo_engine.models import MoveResult, PlayerColor
 from ludo_engine.strategies import HumanStrategy
 from ludo_engine.strategies.strategy import StrategyFactory
 
@@ -21,12 +21,12 @@ class GameManager:
             player.set_strategy(strat)
         return game
 
-    def game_state_tokens(self, game: LudoGame) -> Dict[str, List[Token]]:
+    def game_state_tokens(self, game: LudoGame) -> Dict[PlayerColor, List[Token]]:
         """Extracts token information from the game state."""
-        token_map: Dict[str, List[Dict]] = {c.value: [] for c in PlayerColor}
+        token_map: Dict[PlayerColor, List[Token]] = {c: [] for c in PlayerColor}
         for p in game.players:
             for t in p.tokens:
-                token_map[p.color.value].append(t)
+                token_map[p.color].append(t)
         return token_map
 
     def get_human_strategy(self, game: LudoGame) -> Optional[HumanStrategy]:

@@ -32,9 +32,9 @@ class Position:
             self.is_safe = True
 
         # Colored safe squares for each player
-        for color, safe_positions in BoardConstants.COLORED_SAFE_SQUARES.items():
+        for color_enum, safe_positions in BoardConstants.COLORED_SAFE_SQUARES.items():
             if self.index in safe_positions:
-                self.color = color
+                self.color = color_enum
                 self.is_safe = True
                 break
 
@@ -59,15 +59,15 @@ class Board:
             self.positions[i] = Position(i)
 
         # Optimized blocking positions tracking (initialize before reset_token_positions)
-        self._blocking_positions_cache: Dict[str, Set[int]] = {}
+        self._blocking_positions_cache: Dict[PlayerColor, Set[int]] = {}
         self._cache_valid = False
 
         # Track positions with multiple tokens by color for faster lookup
-        self._multi_token_positions: Dict[str, Set[int]] = {
-            PlayerColor.RED.value: set(),
-            PlayerColor.GREEN.value: set(),
-            PlayerColor.YELLOW.value: set(),
-            PlayerColor.BLUE.value: set(),
+        self._multi_token_positions: Dict[PlayerColor, Set[int]] = {
+            PlayerColor.RED: set(),
+            PlayerColor.GREEN: set(),
+            PlayerColor.YELLOW: set(),
+            PlayerColor.BLUE: set(),
         }
 
         # Track which tokens are at each position
@@ -139,7 +139,7 @@ class Board:
         """Get all tokens at a specific position."""
         return self.token_positions.get(position, [])
 
-    def is_position_safe(self, position: int, player_color: str) -> bool:
+    def is_position_safe(self, position: int, player_color: PlayerColor) -> bool:
         """Check if a position is safe for a given player color."""
         return BoardConstants.is_safe_position(position, player_color)
 
@@ -288,7 +288,7 @@ class Board:
                 star_positions.append(pos_idx)
 
         return BoardState(
-            current_player=current_player.color.value,
+            current_player=current_player.color,
             board_positions=board_positions,
             safe_positions=safe_positions,
             star_positions=star_positions,
@@ -343,10 +343,10 @@ class Board:
         self._blocking_positions_cache.clear()
 
         for color in [
-            PlayerColor.RED.value,
-            PlayerColor.GREEN.value,
-            PlayerColor.YELLOW.value,
-            PlayerColor.BLUE.value,
+            PlayerColor.RED,
+            PlayerColor.GREEN,
+            PlayerColor.YELLOW,
+            PlayerColor.BLUE,
         ]:
             self._blocking_positions_cache[color] = self._calculate_blocking_positions(
                 color
@@ -354,7 +354,7 @@ class Board:
 
         self._cache_valid = True
 
-    def _calculate_blocking_positions(self, player_color: str) -> Set[int]:
+    def _calculate_blocking_positions(self, player_color: PlayerColor) -> Set[int]:
         """
         Calculate blocking positions for a specific player.
         Optimized version that only checks positions with multiple tokens.
@@ -383,7 +383,7 @@ class Board:
 
         return blocking_positions
 
-    def get_blocking_positions(self, player_color: str) -> Set[int]:
+    def get_blocking_positions(self, player_color: PlayerColor) -> Set[int]:
         """
         Get positions where this player is blocking opponents.
 
@@ -406,7 +406,7 @@ class Board:
 
         return blocking_positions.copy()
 
-    def get_all_blocking_positions(self) -> Dict[str, Set[int]]:
+    def get_all_blocking_positions(self) -> Dict[PlayerColor, Set[int]]:
         """
         Get blocking positions for all players at once.
         More efficient than calling get_blocking_positions for each player separately.
@@ -419,7 +419,7 @@ class Board:
             for color, positions in self._blocking_positions_cache.items()
         }
 
-    def has_blocking_position(self, player_color: str, position: int) -> bool:
+    def has_blocking_position(self, player_color: PlayerColor, position: int) -> bool:
         """
         Quick check if a specific position is blocking for a player.
         More efficient than getting all blocking positions when you only need one.

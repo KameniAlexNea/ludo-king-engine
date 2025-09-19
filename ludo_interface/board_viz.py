@@ -2,8 +2,14 @@ from typing import Dict, List, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
-from ludo_engine.core import Token, TokenState
-from ludo_engine.models import BoardConstants, Colors, GameConstants
+from ludo_engine.core import Token
+from ludo_engine.models import (
+    BoardConstants,
+    Colors,
+    GameConstants,
+    PlayerColor,
+    TokenState,
+)
 
 # Enhanced Styling with gradients and better colors
 COLOR_MAP = {
@@ -301,7 +307,7 @@ def _token_home_grid_position(color: str, token_id: int) -> Tuple[int, int]:
     return col, row
 
 
-def _home_column_positions_for_color(color: str) -> Dict[int, Tuple[int, int]]:
+def _home_column_positions_for_color(color: PlayerColor) -> Dict[int, Tuple[int, int]]:
     """
     Map home column indices (100..104) to board coordinates; 105 is final finish.
 
@@ -470,7 +476,9 @@ def get_board_template() -> Image.Image:
     return _BOARD_TEMPLATE.copy()
 
 
-def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.Image:
+def draw_board(
+    tokens: Dict[PlayerColor, List[Token]], show_ids: bool = True
+) -> Image.Image:
     """
     Optimized board drawing that uses a cached template and only draws tokens.
     This significantly improves performance by avoiding regenerating the board layout.
@@ -492,7 +500,7 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
 
     # Enhanced token rendering with proper stacking
     # First, collect all tokens by position and state for stacking
-    position_groups = {}
+    position_groups: dict[str, list[Token]] = {}
 
     for color, tlist in tokens.items():
         for tk in tlist:
@@ -513,14 +521,14 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
                 # Home column tokens
                 coord_map = HOME_COLUMN_COORDS[color]
                 if pos in coord_map:
-                    key = f"home_column_{color}_{pos}"
+                    key = f"home_column_{color.value}_{pos}"
                     if key not in position_groups:
                         position_groups[key] = []
                     position_groups[key].append((color, tk))
 
             elif state == TokenState.FINISHED.value:
                 # Finished tokens - stack at finish anchor
-                key = f"finished_{color}"
+                key = f"finished_{color.value}"
                 if key not in position_groups:
                     position_groups[key] = []
                 position_groups[key].append((color, tk))
@@ -536,7 +544,7 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
     for key, token_group in position_groups.items():
         if key.startswith("home_column_"):
             parts = key.split("_")
-            color = parts[2]
+            color = PlayerColor(parts[2])
             pos = int(parts[3])
             coord_map = HOME_COLUMN_COORDS[color]
             if pos in coord_map:
@@ -546,7 +554,7 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
                 _draw_stacked_tokens(d, token_group, cx, cy, CELL // 2 - 4, show_ids)
 
         elif key.startswith("finished_"):
-            color = key.split("_")[1]
+            color = PlayerColor(key.split("_")[1])
             ax, ay = finish_anchor[color]
             _draw_stacked_tokens(d, token_group, ax, ay, CELL // 2 - 4, show_ids)
 
