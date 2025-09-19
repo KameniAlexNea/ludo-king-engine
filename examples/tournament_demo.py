@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import TournamentConfig
 from tournament import LudoTournament
+import random
 
 
 def main():
@@ -34,7 +35,7 @@ def main():
     tournament = LudoTournament(strategies=config.default_strategies, config=config)
 
     print("🚀 Starting tournament...")
-    tournament.run_tournament(verbose=True)
+    tournament.run_tournament(seed=42, verbose=True)
 
 
 if __name__ == "__main__":

@@ -153,7 +153,7 @@ class TestStrategyBase(unittest.TestCase):
             ),
         ]
 
-        exit_move = self.strategy._get_move_by_type(moves, "exit_home")
+        exit_move = self.strategy._get_move_by_type(moves, TokenState.HOME)
         self.assertIsNotNone(exit_move)
         self.assertEqual(exit_move.move_type, TokenState.HOME)
 

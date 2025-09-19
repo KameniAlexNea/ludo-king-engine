@@ -41,7 +41,7 @@ class StrategyFactory:
     def get_available_strategies(cls, avoid_llm=True) -> List[str]:
         """Get list of available strategy names."""
         if avoid_llm:
-            return [name for name in cls._strategies.keys() if "llm" not in name]
+            return [name for name in cls._strategies.keys() if "llm" not in name and "human" not in name]
         return list(cls._strategies.keys())
 
     @classmethod

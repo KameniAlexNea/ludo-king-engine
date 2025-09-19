@@ -22,7 +22,7 @@ from ludo_engine.models.constants import (
     GameConstants,
     StrategyConstants,
 )
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, TokenState, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     LARGE_THREAT_COUNT,
@@ -61,12 +61,12 @@ class DefensiveStrategy(Strategy):
         my_positions = get_my_main_positions(game_context)
 
         # 1. Finish immediately
-        fin = self._get_move_by_type(moves, "finish")
+        fin = self._get_move_by_type(moves, TokenState.FINISHED)
         if fin:
             return fin.token_id
 
         # 2. Deep home column advancement (prefer depth)
-        home_moves = self._get_moves_by_type(moves, "advance_home_column")
+        home_moves = self._get_moves_by_type(moves, TokenState.HOME_COLUMN)
         if home_moves:
             best_home = max(
                 home_moves,
@@ -107,7 +107,7 @@ class DefensiveStrategy(Strategy):
 
         # 6. Exit home to maintain presence (only if below target active or under pressure)
         if active < StrategyConstants.DEFENSIVE_MIN_ACTIVE_TOKENS or pressure:
-            exit_move = self._get_move_by_type(moves, "exit_home")
+            exit_move = self._get_move_by_type(moves, TokenState.HOME)
             if exit_move and self._is_within_defensive_threat(
                 threat_map.get(exit_move.token_id, (0, NO_THREAT_DISTANCE))
             ):

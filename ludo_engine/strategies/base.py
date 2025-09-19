@@ -42,10 +42,10 @@ class Strategy(ABC):
 
         Supports both legacy string names ("finish", "advance_home_column", "exit_home")
         and TokenState enum members. Legacy names are mapped:
-          finish -> TokenState.FINISHED
-          advance_home_column -> TokenState.HOME_COLUMN
-          exit_home -> TokenState.ACTIVE (with current_state == HOME)
-          advance_main_board -> TokenState.ACTIVE
+          TokenState.FINISHED -> TokenState.FINISHED
+          TokenState.HOME_COLUMN -> TokenState.HOME_COLUMN
+          TokenState.HOME -> TokenState.HOME (with current_state == HOME)
+          TokenState.ACTIVE -> TokenState.ACTIVE
         """
         target_state = self._normalize_move_type(move_type)
         for move in valid_moves:
@@ -63,6 +63,7 @@ class Strategy(ABC):
     def _normalize_move_type(self, move_type: str | TokenState) -> TokenState:
         if isinstance(move_type, TokenState):
             return move_type
+        raise ValueError("move_type must be a TokenState enum member")
         mapping = {
             "finish": TokenState.FINISHED,
             "advance_home_column": TokenState.HOME_COLUMN,
