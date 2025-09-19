@@ -1,8 +1,7 @@
 from typing import Dict, List, Optional
 
 from ludo_engine.core import LudoGame, Token
-from ludo_engine.models import PlayerColor
-from ludo_engine.models import MoveResult
+from ludo_engine.models import MoveResult, PlayerColor
 from ludo_engine.strategies import HumanStrategy
 from ludo_engine.strategies.strategy import StrategyFactory
 

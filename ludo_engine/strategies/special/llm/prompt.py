@@ -72,13 +72,15 @@ def create_prompt(game_context: AIDecisionContext, valid_moves: List[ValidMove])
             # Map TokenState back to legacy string names for LLM compatibility
             type_mapping = {
                 TokenState.HOME: "exit_home",
-                TokenState.ACTIVE: "advance_main_board", 
+                TokenState.ACTIVE: "advance_main_board",
                 TokenState.HOME_COLUMN: "advance_home_column",
                 TokenState.FINISHED: "finish",
             }
             move_type_str = type_mapping.get(move_type, str(move_type))
 
-        move_desc = f"Token {token_id}: {move_type_str} (value: {strategic_value:.2f})"  #
+        move_desc = (
+            f"Token {token_id}: {move_type_str} (value: {strategic_value:.2f})"  #
+        )
 
         if move.captures_opponent:
             move_desc += " [CAPTURES OPPONENT]"

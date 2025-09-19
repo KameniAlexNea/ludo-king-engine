@@ -24,7 +24,7 @@ from ludo_engine.models.constants import (
     GameConstants,
     StrategyConstants,
 )
-from ludo_engine.models.model import AIDecisionContext, ValidMove, TokenState
+from ludo_engine.models.model import AIDecisionContext, TokenState, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import get_opponent_main_positions
 

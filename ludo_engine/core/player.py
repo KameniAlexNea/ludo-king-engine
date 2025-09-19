@@ -3,20 +3,19 @@ Player representation for Ludo game.
 Each player has a color and controls 4 tokens.
 """
 
-from enum import Enum
 from typing import List, Optional, Tuple
 
-from ludo_engine.core.token import Token, TokenState
+from ludo_engine.core.token import Token
 from ludo_engine.models import (
     AIDecisionContext,
     BoardConstants,
     GameConstants,
+    PlayerColor,
     PlayerState,
     StrategicComponents,
     StrategyConstants,
-    ValidMove,
     TokenState,
-    PlayerColor
+    ValidMove,
 )
 from ludo_engine.strategies import Strategy
 
@@ -359,7 +358,10 @@ class Player:
 
         for move in valid_moves:
             # exit_home semantic: move results in ACTIVE and current state was HOME
-            if move.move_type == TokenState.ACTIVE and move.current_state == TokenState.HOME.value:
+            if (
+                move.move_type == TokenState.ACTIVE
+                and move.current_state == TokenState.HOME.value
+            ):
                 return move.token_id
 
         # Choose highest strategic value

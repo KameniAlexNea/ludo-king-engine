@@ -7,8 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from ludo_engine.core import LudoGame, Player
-from ludo_engine.models import PlayerColor, TokenState
-from ludo_engine.models import TurnResult
+from ludo_engine.models import PlayerColor, TokenState, TurnResult
 from ludo_engine.strategies import KillerStrategy, RandomStrategy, WinnerStrategy
 
 

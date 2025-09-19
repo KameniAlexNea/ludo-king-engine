@@ -42,7 +42,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence
 
 from ludo_engine.models.constants import BoardConstants, GameConstants
-from ludo_engine.models.model import AIDecisionContext, ValidMove, TokenState
+from ludo_engine.models.model import AIDecisionContext, TokenState, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     get_my_main_positions,

@@ -4,8 +4,9 @@ Contains all dataclasses used throughout the game system.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 from enum import Enum
+from typing import Dict, List, Optional
+
 
 class PlayerColor(Enum):
     """Available player colors in Ludo."""
@@ -15,6 +16,7 @@ class PlayerColor(Enum):
     GREEN = "green"
     YELLOW = "yellow"
 
+
 class TokenState(Enum):
     """Possible states of a token."""
 
@@ -22,6 +24,7 @@ class TokenState(Enum):
     ACTIVE = "active"  # Token is on the main board path
     HOME_COLUMN = "home_column"  # Token is in the final home column
     FINISHED = "finished"  # Token has reached the center
+
 
 @dataclass
 class TokenInfo:

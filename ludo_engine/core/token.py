@@ -5,10 +5,8 @@ Each player has 4 tokens that move around the board.
 
 from dataclasses import dataclass
 
-
 from ludo_engine.models.constants import BoardConstants, GameConstants
-from ludo_engine.models.model import TokenInfo, PlayerColor
-from ludo_engine.models.model import TokenState
+from ludo_engine.models.model import PlayerColor, TokenInfo, TokenState
 
 
 @dataclass

@@ -13,11 +13,11 @@ from ludo_engine.models import (
     CurrentSituation,
     GameConstants,
     OpponentInfo,
+    PlayerColor,
     PlayerState,
     StrategicAnalysis,
-    ValidMove,
     TokenState,
-    PlayerColor
+    ValidMove,
 )
 from ludo_engine.strategies import RandomStrategy
 

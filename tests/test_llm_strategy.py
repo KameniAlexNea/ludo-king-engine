@@ -15,8 +15,8 @@ from ludo_engine.models import (
     PlayerColor,
     PlayerState,
     StrategicAnalysis,
+    TokenState,
     ValidMove,
-    TokenState
 )
 from ludo_engine.strategies import LLMStrategy
 from ludo_engine.strategies.special.llm.prompt import create_prompt

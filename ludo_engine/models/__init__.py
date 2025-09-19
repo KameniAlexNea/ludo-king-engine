@@ -17,16 +17,16 @@ from ludo_engine.models.model import (
     CurrentSituation,
     MoveResult,
     OpponentInfo,
+    PlayerColor,
     PlayerConfiguration,
     PlayerState,
     PositionInfo,
     StrategicAnalysis,
     StrategicComponents,
     TokenInfo,
+    TokenState,
     TurnResult,
     ValidMove,
-    TokenState,
-    PlayerColor
 )
 
 __all__ = [
@@ -50,5 +50,5 @@ __all__ = [
     "TurnResult",
     "ValidMove",
     "TokenState",
-    "PlayerColor"
+    "PlayerColor",
 ]

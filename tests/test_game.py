@@ -8,8 +8,14 @@ import unittest
 from unittest.mock import patch
 
 from ludo_engine.core import LudoGame, Player
-from ludo_engine.models import PlayerColor, TokenState
-from ludo_engine.models import AIDecisionContext, BoardConstants, TurnResult, ValidMove
+from ludo_engine.models import (
+    AIDecisionContext,
+    BoardConstants,
+    PlayerColor,
+    TokenState,
+    TurnResult,
+    ValidMove,
+)
 from ludo_engine.strategies import RandomStrategy
 
 

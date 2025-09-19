@@ -4,7 +4,12 @@ import math
 from typing import Dict, List, Optional
 
 from ludo_engine.models.constants import BoardConstants, GameConstants
-from ludo_engine.models.model import AIDecisionContext, ValidMove, TokenState, PlayerColor
+from ludo_engine.models.model import (
+    AIDecisionContext,
+    PlayerColor,
+    TokenState,
+    ValidMove,
+)
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import get_opponent_main_positions
 

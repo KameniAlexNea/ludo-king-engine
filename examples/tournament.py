@@ -201,7 +201,9 @@ class LudoTournament:
             is_draw=is_draw,
         )
 
-    def run_tournament(self, seed: int = None, verbose: bool = True) -> Dict[str, TeamStats]:
+    def run_tournament(
+        self, seed: int = None, verbose: bool = True
+    ) -> Dict[str, TeamStats]:
         """
         Run the complete tournament.
 
