@@ -5,7 +5,7 @@ Base strategy classes and interfaces for Ludo AI.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from ludo_engine.models.model import AIDecisionContext, TokenState, ValidMove
 
@@ -38,7 +38,7 @@ class Strategy(ABC):
         return game_context.valid_moves
 
     def _get_move_by_type(
-        self, valid_moves: List[ValidMove], move_type: str | TokenState
+        self, valid_moves: List[ValidMove], move_type: Union[str, TokenState]
     ) -> Optional[ValidMove]:
         """Get first move of specified type.
 
@@ -56,13 +56,13 @@ class Strategy(ABC):
         return None
 
     def _get_moves_by_type(
-        self, valid_moves: List[ValidMove], move_type: str | TokenState
+        self, valid_moves: List[ValidMove], move_type: Union[str, TokenState]
     ) -> List[ValidMove]:
         """Get all moves of specified type (see mapping in _get_move_by_type)."""
         target_state = self._normalize_move_type(move_type)
         return [move for move in valid_moves if move.move_type == target_state]
 
-    def _normalize_move_type(self, move_type: str | TokenState) -> TokenState:
+    def _normalize_move_type(self, move_type: Union[str, TokenState]) -> TokenState:
         if isinstance(move_type, TokenState):
             return move_type
         raise ValueError("move_type must be a TokenState enum member")
