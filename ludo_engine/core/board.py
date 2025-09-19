@@ -273,7 +273,7 @@ class Board:
             if tokens:  # Only include positions with tokens
                 board_positions[position] = [
                     BoardPositionInfo(
-                        player_color=token.player_color.value,
+                        player_color=token.player_color,
                         token_id=token.token_id,
                         state=token.state.value,
                     )
@@ -288,7 +288,7 @@ class Board:
                 star_positions.append(pos_idx)
 
         return BoardState(
-            current_player=current_player.color.value,
+            current_player=current_player.color,
             board_positions=board_positions,
             safe_positions=safe_positions,
             star_positions=star_positions,

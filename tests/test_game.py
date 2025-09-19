@@ -523,7 +523,7 @@ class TestLudoGame(unittest.TestCase):
 
         self.assertEqual(len(configs), 4)
         for i, config in enumerate(configs):
-            self.assertEqual(config.color, self.game.players[i].color.value)
+            self.assertEqual(config.color, self.game.players[i].color)
             self.assertEqual(config.player_id, i)
             self.assertEqual(config.finished_tokens, 0)
             self.assertEqual(config.tokens_active, 0)

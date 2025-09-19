@@ -505,17 +505,17 @@ class EventHandler:
 
         return summary, detailed_text, status_html, chart_html
 
-    def _create_win_rate_chart(self, win_counts, total, strategies):
+    def _create_win_rate_chart(self, win_counts: dict, total, strategies):
         """Create a simple HTML/CSS bar chart for win rates."""
         if total == 0:
             return "<div style='text-align:center;padding:40px;color:#666;'>No data to display</div>"
 
         # Color scheme for players
         colors = {
-            "red": "#dc3545",
-            "green": "#28a745",
-            "yellow": "#ffc107",
-            "blue": "#007bff",
+            PlayerColor.RED: "#dc3545",
+            PlayerColor.GREEN: "#28a745",
+            PlayerColor.YELLOW: "#ffc107",
+            PlayerColor.BLUE: "#007bff",
         }
 
         chart_html = """

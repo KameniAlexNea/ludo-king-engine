@@ -223,7 +223,7 @@ class TestBoard(unittest.TestCase):
 
         board_state = self.board.get_board_state_for_ai(self.player_red)
 
-        self.assertEqual(board_state.current_player, PlayerColor.RED.value)
+        self.assertEqual(board_state.current_player, PlayerColor.RED)
         self.assertIn(5, board_state.board_positions)
         self.assertIn(10, board_state.board_positions)
         self.assertEqual(len(board_state.board_positions[5]), 1)
