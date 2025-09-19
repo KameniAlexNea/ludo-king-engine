@@ -97,7 +97,7 @@ class Token:
         # Active on main board - unified logic
         current = self.position
         new_position = current + dice_value
-        home_entry = BoardConstants.HOME_COLUMN_ENTRIES[self.player_color.value]
+        home_entry = BoardConstants.HOME_COLUMN_ENTRIES[self.player_color]
 
         # Normalize potential wrap for crossing beyond last board index
         # We need to detect crossing the home_entry square moving forward (circular path)

@@ -178,7 +178,7 @@ class BalancedStrategy(Strategy):
                 continue  # too close to danger when not pushing
             progress_value = 0.0
             for ct in mv.captured_tokens:
-                entry = BoardConstants.HOME_COLUMN_ENTRIES[ct.player_color.value]
+                entry = BoardConstants.HOME_COLUMN_ENTRIES[ct.player_color]
                 remaining = self._distance_to_finish_proxy(mv.target_position, entry)
                 progress_value += (60 - remaining) * 0.01
             score = (

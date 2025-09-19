@@ -15,7 +15,7 @@ class TestToken(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.token = Token(token_id=0, player_color=PlayerColor.RED)
-        self.start_position = BoardConstants.START_POSITIONS["red"]
+        self.start_position = BoardConstants.START_POSITIONS[PlayerColor.RED]
 
     def test_initialization(self):
         """Test token initialization."""

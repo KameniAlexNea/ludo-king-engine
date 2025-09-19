@@ -48,27 +48,27 @@ class BoardConstants:
     STAR_SQUARES: Set[int] = {8, 21, 34, 47}
 
     # Starting positions for each color
-    START_POSITIONS: Dict[str, int] = {
-        "red": 1,
-        "green": 14,
-        "yellow": 27,
-        "blue": 40,
+    START_POSITIONS: Dict[PlayerColor, int] = {
+        PlayerColor.RED: 1,
+        PlayerColor.GREEN: 14,
+        PlayerColor.YELLOW: 27,
+        PlayerColor.BLUE: 40,
     }
 
     # Last position before entering home column for each color
-    HOME_COLUMN_ENTRIES: Dict[str, int] = {
-        "red": 51,  # Red enters home after position 51
-        "green": 12,  # Green enters home after position 12
-        "yellow": 25,  # Yellow enters home after position 25
-        "blue": 38,  # Blue enters home after position 38
+    HOME_COLUMN_ENTRIES: Dict[PlayerColor, int] = {
+        PlayerColor.RED: 51,  # Red enters home after position 51
+        PlayerColor.GREEN: 12,  # Green enters home after position 12
+        PlayerColor.YELLOW: 25,  # Yellow enters home after position 25
+        PlayerColor.BLUE: 38,  # Blue enters home after position 38
     }
 
     # Starting positions are safe for everyone (all starting squares are safe)
-    COLORED_SAFE_SQUARES: Dict[str, Set[int]] = {
-        "red": {1},  # Only starting position (safe for everyone)
-        "green": {14},  # Only starting position (safe for everyone)
-        "yellow": {27},  # Only starting position (safe for everyone)
-        "blue": {40},  # Only starting position (safe for everyone)
+    COLORED_SAFE_SQUARES: Dict[PlayerColor, Set[int]] = {
+        PlayerColor.RED: {1},  # Only starting position (safe for everyone)
+        PlayerColor.GREEN: {14},  # Only starting position (safe for everyone)
+        PlayerColor.YELLOW: {27},  # Only starting position (safe for everyone)
+        PlayerColor.BLUE: {40},  # Only starting position (safe for everyone)
     }
 
     # Home column positions (100 to 105)
@@ -91,7 +91,7 @@ class BoardConstants:
         return cls.HOME_COLUMN_START <= position <= cls.HOME_COLUMN_END
 
     @classmethod
-    def is_safe_position(cls, position: int, player_color: str = None) -> bool:
+    def is_safe_position(cls, position: int, player_color: PlayerColor = None) -> bool:
         """
         Check if a position is safe.
 

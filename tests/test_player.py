@@ -48,7 +48,7 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
         ),
         player_state=PlayerState(
             player_id=0,
-            color="red",
+            color=PlayerColor.RED,
             start_position=0,
             tokens=[],
             tokens_in_home=4,
@@ -60,7 +60,7 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
         ),
         opponents=[
             OpponentInfo(
-                color="blue",
+                color=PlayerColor.BLUE,
                 finished_tokens=0,
                 tokens_active=1,
                 threat_level=0.2,

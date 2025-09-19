@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 from PIL import Image, ImageDraw, ImageFont
 
 from ludo_engine.core import Token, TokenState
-from ludo_engine.models import BoardConstants, Colors, GameConstants
+from ludo_engine.models import BoardConstants, Colors, GameConstants, PlayerColor
 
 # Enhanced Styling with gradients and better colors
 COLOR_MAP = {
@@ -301,7 +301,7 @@ def _token_home_grid_position(color: str, token_id: int) -> Tuple[int, int]:
     return col, row
 
 
-def _home_column_positions_for_color(color: str) -> Dict[int, Tuple[int, int]]:
+def _home_column_positions_for_color(color: PlayerColor) -> Dict[int, Tuple[int, int]]:
     """
     Map home column indices (100..104) to board coordinates; 105 is final finish.
 

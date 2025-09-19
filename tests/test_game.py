@@ -329,7 +329,7 @@ class TestLudoGame(unittest.TestCase):
         # Get player to home column entry
         current_player = self.game.get_current_player()
 
-        home_entry = BoardConstants.HOME_COLUMN_ENTRIES[current_player.color.value]
+        home_entry = BoardConstants.HOME_COLUMN_ENTRIES[current_player.color]
 
         # Move token to just before home entry (6 spaces before)
         self.game.execute_move(current_player, 0, 6)  # Exit home to position 1
@@ -427,8 +427,8 @@ class TestLudoGame(unittest.TestCase):
         self.assertEqual(player, self.game.players[0])
         self.assertEqual(player.color, PlayerColor.RED)
 
-        # Test with string
-        player = self.game.get_player_from_color("red")
+        # Test with string (for backward compatibility)
+        player = self.game.get_player_from_color(PlayerColor.RED.value)
         self.assertEqual(player, self.game.players[0])
 
     def test_can_player_move(self):

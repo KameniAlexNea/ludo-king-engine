@@ -47,7 +47,7 @@ class Player:
 
         # Starting positions for each color on the board
         self.start_positions = BoardConstants.START_POSITIONS
-        self.start_position = self.start_positions[color.value]
+        self.start_position = self.start_positions[color]
 
     def player_positions(self) -> List[int]:
         """Get current positions of all tokens for this player."""
@@ -210,7 +210,7 @@ class Player:
 
     def _is_safe_move(self, token: Token, target_position: int) -> bool:
         """Check if the target position is a safe square."""
-        return BoardConstants.is_safe_position(target_position, self.color.value)
+        return BoardConstants.is_safe_position(target_position, self.color)
 
     def _calculate_strategic_value(
         self, token: Token, dice_value: int, target_position: Optional[int] = None
@@ -269,13 +269,13 @@ class Player:
             components.acceleration = advantage * StrategyConstants.ACCELERATION_WEIGHT
 
         # 5: Safety bonus for landing square
-        if BoardConstants.is_safe_position(target_position, self.color.value):
+        if BoardConstants.is_safe_position(target_position, self.color):
             components.safety = StrategyConstants.SAFETY_BONUS
 
         # 6: Vulnerability penalty (simple placeholder): if not safe and token is active
         # and not entering home column and not finishing, apply penalty.
         if (
-            not BoardConstants.is_safe_position(target_position, self.color.value)
+            not BoardConstants.is_safe_position(target_position, self.color)
             and not BoardConstants.is_home_column_position(target_position)
             and token.is_active()
         ):
@@ -306,7 +306,7 @@ class Player:
 
         # Path: distance to home entry + home column size
         # Find this player's home entry square
-        entry = BoardConstants.HOME_COLUMN_ENTRIES[self.color.value]
+        entry = BoardConstants.HOME_COLUMN_ENTRIES[self.color]
         if position <= entry:
             to_entry = entry - position
         else:
