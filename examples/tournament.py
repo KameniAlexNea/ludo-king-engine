@@ -11,7 +11,8 @@ from typing import Dict, List, Optional
 
 from config import TournamentConfig
 
-from ludo_engine.core import LudoGame, PlayerColor
+from ludo_engine.core import LudoGame
+from ludo_engine.models import PlayerColor
 from ludo_engine.strategies.strategy import StrategyFactory
 
 

@@ -5,8 +5,8 @@ Tests cover movement logic, state transitions, position calculations, and edge c
 
 import unittest
 
-from ludo_engine.core import Token, TokenState
-from ludo_engine.models import BoardConstants, GameConstants, PlayerColor
+from ludo_engine.core import Token
+from ludo_engine.models import BoardConstants, GameConstants, PlayerColor, TokenState
 
 
 class TestToken(unittest.TestCase):

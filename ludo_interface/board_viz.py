@@ -2,8 +2,8 @@ from typing import Dict, List, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
-from ludo_engine.core import Token, TokenState
-from ludo_engine.models import BoardConstants, Colors, GameConstants, PlayerColor
+from ludo_engine.core import Token
+from ludo_engine.models import BoardConstants, Colors, GameConstants, PlayerColor, TokenState
 
 # Enhanced Styling with gradients and better colors
 COLOR_MAP = {

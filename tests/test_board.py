@@ -6,7 +6,8 @@ and board state representation.
 
 import unittest
 
-from ludo_engine.core import Board, Player, PlayerColor, Position, TokenState
+from ludo_engine.core import Board, Player, Position
+from ludo_engine.models import PlayerColor, TokenState
 from ludo_engine.models import BoardConstants
 
 

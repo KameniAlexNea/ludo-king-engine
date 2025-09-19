@@ -6,7 +6,8 @@ from typing import List
 
 import gradio as gr
 
-from ludo_engine.core import LudoGame, PlayerColor
+from ludo_engine.core import LudoGame
+from ludo_engine.models import PlayerColor
 from ludo_interface.board_viz import draw_board
 
 from .game_manager import GameManager
