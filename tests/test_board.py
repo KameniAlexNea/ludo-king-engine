@@ -69,19 +69,19 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(token_red2, 5)
 
         # Should be tracked as multi-token position
-        self.assertIn(5, self.board._multi_token_positions[PlayerColor.RED.value])
+        self.assertIn(5, self.board._multi_token_positions[PlayerColor.RED])
 
         # Remove one token
         self.board.remove_token(self.token_red, 5)
 
         # Should no longer be tracked (now has only 1 token)
-        self.assertNotIn(5, self.board._multi_token_positions[PlayerColor.RED.value])
+        self.assertNotIn(5, self.board._multi_token_positions[PlayerColor.RED])
 
         # Remove second token
         self.board.remove_token(token_red2, 5)
 
         # Should still not be tracked
-        self.assertNotIn(5, self.board._multi_token_positions[PlayerColor.RED.value])
+        self.assertNotIn(5, self.board._multi_token_positions[PlayerColor.RED])
 
     def test_is_position_safe(self):
         """Test safe position detection."""
@@ -285,7 +285,7 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(self.token_red, 5)
         self.board.add_token(token_red2, 5)
 
-        blocking = self.board.get_blocking_positions("red")
+        blocking = self.board.get_blocking_positions(PlayerColor.RED)
         self.assertIn(5, blocking)
 
         # Add another blocking position
@@ -294,7 +294,7 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(token_red3, 15)
         self.board.add_token(token_red4, 15)
 
-        blocking = self.board.get_blocking_positions("red")
+        blocking = self.board.get_blocking_positions(PlayerColor.RED)
         self.assertIn(5, blocking)
         self.assertIn(15, blocking)
 
@@ -304,7 +304,7 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(self.token_red, 8)  # Star position
         self.board.add_token(self.player_red.tokens[1], 8)
 
-        blocking = self.board.get_blocking_positions("red")
+        blocking = self.board.get_blocking_positions(PlayerColor.RED)
         self.assertNotIn(8, blocking)  # Safe squares don't block
 
     def test_get_all_blocking_positions(self):

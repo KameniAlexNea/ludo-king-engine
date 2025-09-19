@@ -42,7 +42,7 @@ class Player:
 
         # Create 4 tokens for this player
         for i in range(4):
-            token = Token(token_id=i, player_color=color.value, state=TokenState.HOME)
+            token = Token(token_id=i, player_color=color, state=TokenState.HOME)
             self.tokens.append(token)
 
         # Starting positions for each color on the board

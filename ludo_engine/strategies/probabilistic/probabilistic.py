@@ -29,7 +29,7 @@ from __future__ import annotations
 from typing import List
 
 from ludo_engine.models.constants import BoardConstants, GameConstants
-from ludo_engine.models.model import AIDecisionContext, ValidMove, TokenState
+from ludo_engine.models.model import AIDecisionContext, ValidMove, TokenState, PlayerColor
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import get_opponent_main_positions
 
@@ -113,7 +113,7 @@ class ProbabilisticStrategy(Strategy):
         return GameConstants.MAIN_BOARD_SIZE - (opp_pos - from_pos)
 
     def _estimate_risk(
-        self, move: ValidMove, opponent_positions: List[int], player_color: str
+        self, move: ValidMove, opponent_positions: List[int], player_color: PlayerColor
     ) -> float:
         target = move.target_position
         move_type = move.move_type

@@ -430,7 +430,7 @@ class ProbabilisticV3Strategy(Strategy):
         captured = move.captured_tokens
         total_scale = 0.0
         for c in captured:
-            prog = opp_token_progress_map.get(c.player_color, 0.5)
+            prog = opp_token_progress_map.get(c.player_color.value, 0.5)
             total_scale += 1.0 + prog if self.cfg.use_capture_progress_scaling else 1.0
         return self.cfg.base_capture_value * max(1.0, total_scale)
 

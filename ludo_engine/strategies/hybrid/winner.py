@@ -88,7 +88,7 @@ class WinnerStrategy(Strategy):
             progress_value = 0.0
             for ct in mv.captured_tokens:
                 remaining = self._distance_to_finish_proxy(
-                    mv.target_position, entries[ct.player_color]
+                    mv.target_position, entries[ct.player_color.value]
                 )
                 progress_value += (
                     (60 - remaining)

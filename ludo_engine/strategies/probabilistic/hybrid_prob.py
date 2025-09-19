@@ -334,7 +334,7 @@ class HybridProbStrategy(Strategy):
         captured = move.captured_tokens
         total_scale = 0.0
         for c in captured:
-            prog = opp_token_progress_map.get(c.player_color, 0.5)
+            prog = opp_token_progress_map.get(c.player_color.value, 0.5)
             total_scale += 1.0 + prog
         return StrategyConstants.HYBRID_CAPTURE_BASE * max(1.0, total_scale)
 

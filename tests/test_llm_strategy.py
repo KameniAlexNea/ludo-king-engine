@@ -12,6 +12,7 @@ from ludo_engine.models import (
     AIDecisionContext,
     CurrentSituation,
     OpponentInfo,
+    PlayerColor,
     PlayerState,
     StrategicAnalysis,
     ValidMove,
@@ -53,7 +54,7 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
 
     return AIDecisionContext(
         current_situation=CurrentSituation(
-            player_color="red",
+            player_color=PlayerColor.RED,
             dice_value=dice_value,
             consecutive_sixes=0,
             turn_count=1,

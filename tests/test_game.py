@@ -213,7 +213,7 @@ class TestLudoGame(unittest.TestCase):
         self.assertIsInstance(context, AIDecisionContext)
         self.assertEqual(context.current_situation.dice_value, 6)
         self.assertEqual(
-            context.current_situation.player_color, self.game.players[0].color.value
+            context.current_situation.player_color, self.game.players[0].color
         )
         self.assertIsInstance(context.valid_moves, list)
         from ludo_engine.models.model import PlayerState
@@ -287,7 +287,7 @@ class TestLudoGame(unittest.TestCase):
         # Only blue token should remain at position 10
         tokens_at_pos = game.board.get_tokens_at_position(10)
         self.assertEqual(len(tokens_at_pos), 1)
-        self.assertEqual(tokens_at_pos[0].player_color, PlayerColor.BLUE.value)
+        self.assertEqual(tokens_at_pos[0].player_color, PlayerColor.BLUE)
 
         # Red token should be back in home
         self.assertEqual(red_token.state, TokenState.HOME)
@@ -322,7 +322,7 @@ class TestLudoGame(unittest.TestCase):
 
         # Verify both tokens are there
         token_colors = {token.player_color for token in tokens_at_pos}
-        self.assertEqual(token_colors, {"red", "blue"})
+        self.assertEqual(token_colors, {PlayerColor.RED, PlayerColor.BLUE})
 
     def test_home_column_movement(self):
         """Test movement within home column."""

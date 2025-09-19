@@ -5,6 +5,8 @@ Centralized location for all game rules and board layout constants.
 
 from typing import Dict, Set
 
+from ludo_engine.models.model import PlayerColor
+
 
 class GameConstants:
     """Core game constants and rules."""
@@ -265,14 +267,14 @@ class StrategyConstants:
 class Colors:
     """Player color constants."""
 
-    RED = "red"
-    GREEN = "green"
-    YELLOW = "yellow"
-    BLUE = "blue"
+    RED = PlayerColor.RED
+    GREEN = PlayerColor.GREEN
+    YELLOW = PlayerColor.YELLOW
+    BLUE = PlayerColor.BLUE
 
     ALL_COLORS = [RED, GREEN, YELLOW, BLUE]
 
     @classmethod
-    def is_valid_color(cls, color: str) -> bool:
+    def is_valid_color(cls, color: PlayerColor) -> bool:
         """Check if a color is valid."""
         return color in cls.ALL_COLORS

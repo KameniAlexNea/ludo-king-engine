@@ -59,15 +59,15 @@ class Board:
             self.positions[i] = Position(i)
 
         # Optimized blocking positions tracking (initialize before reset_token_positions)
-        self._blocking_positions_cache: Dict[str, Set[int]] = {}
+        self._blocking_positions_cache: Dict[PlayerColor, Set[int]] = {}
         self._cache_valid = False
 
         # Track positions with multiple tokens by color for faster lookup
-        self._multi_token_positions: Dict[str, Set[int]] = {
-            PlayerColor.RED.value: set(),
-            PlayerColor.GREEN.value: set(),
-            PlayerColor.YELLOW.value: set(),
-            PlayerColor.BLUE.value: set(),
+        self._multi_token_positions: Dict[PlayerColor, Set[int]] = {
+            PlayerColor.RED: set(),
+            PlayerColor.GREEN: set(),
+            PlayerColor.YELLOW: set(),
+            PlayerColor.BLUE: set(),
         }
 
         # Track which tokens are at each position
@@ -273,7 +273,7 @@ class Board:
             if tokens:  # Only include positions with tokens
                 board_positions[position] = [
                     BoardPositionInfo(
-                        player_color=token.player_color,
+                        player_color=token.player_color.value,
                         token_id=token.token_id,
                         state=token.state.value,
                     )
@@ -343,10 +343,10 @@ class Board:
         self._blocking_positions_cache.clear()
 
         for color in [
-            PlayerColor.RED.value,
-            PlayerColor.GREEN.value,
-            PlayerColor.YELLOW.value,
-            PlayerColor.BLUE.value,
+            PlayerColor.RED,
+            PlayerColor.GREEN,
+            PlayerColor.YELLOW,
+            PlayerColor.BLUE,
         ]:
             self._blocking_positions_cache[color] = self._calculate_blocking_positions(
                 color
@@ -354,7 +354,7 @@ class Board:
 
         self._cache_valid = True
 
-    def _calculate_blocking_positions(self, player_color: str) -> Set[int]:
+    def _calculate_blocking_positions(self, player_color: PlayerColor) -> Set[int]:
         """
         Calculate blocking positions for a specific player.
         Optimized version that only checks positions with multiple tokens.
@@ -415,7 +415,7 @@ class Board:
             self._rebuild_blocking_cache()
 
         return {
-            color: positions.copy()
+            color.value: positions.copy()
             for color, positions in self._blocking_positions_cache.items()
         }
 
@@ -434,7 +434,7 @@ class Board:
         player_tokens = [
             t
             for t in self.token_positions.get(position, [])
-            if t.player_color == player_color
+            if t.player_color.value == player_color
         ]
 
         return len(player_tokens) >= 2

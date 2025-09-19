@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 
 from ludo_engine.models.constants import BoardConstants, GameConstants
-from ludo_engine.models.model import TokenInfo
+from ludo_engine.models.model import TokenInfo, PlayerColor
 from ludo_engine.models.model import TokenState
 
 
@@ -18,7 +18,7 @@ class Token:
     """
 
     token_id: int  # 0, 1, 2, 3 for each player
-    player_color: str
+    player_color: PlayerColor
     state: TokenState = TokenState.HOME
     position: int = (
         -1
@@ -97,7 +97,7 @@ class Token:
         # Active on main board - unified logic
         current = self.position
         new_position = current + dice_value
-        home_entry = BoardConstants.HOME_COLUMN_ENTRIES[self.player_color]
+        home_entry = BoardConstants.HOME_COLUMN_ENTRIES[self.player_color.value]
 
         # Normalize potential wrap for crossing beyond last board index
         # We need to detect crossing the home_entry square moving forward (circular path)
@@ -212,4 +212,4 @@ class Token:
 
     def __str__(self) -> str:
         """String representation of the token."""
-        return f"Token({self.player_color}_{self.token_id}: {self.state.value} at {self.position})"
+        return f"Token({self.player_color.value}_{self.token_id}: {self.state.value} at {self.position})"
