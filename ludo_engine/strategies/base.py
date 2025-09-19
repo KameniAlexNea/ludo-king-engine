@@ -66,13 +66,6 @@ class Strategy(ABC):
         if isinstance(move_type, TokenState):
             return move_type
         raise ValueError("move_type must be a TokenState enum member")
-        mapping = {
-            "finish": TokenState.FINISHED,
-            "advance_home_column": TokenState.HOME_COLUMN,
-            "exit_home": TokenState.HOME,
-            "advance_main_board": TokenState.ACTIVE,
-        }
-        return mapping.get(move_type, TokenState.ACTIVE)
 
     def _get_capture_moves(self, valid_moves: List[ValidMove]) -> List[ValidMove]:
         """Get all moves that capture opponents."""
