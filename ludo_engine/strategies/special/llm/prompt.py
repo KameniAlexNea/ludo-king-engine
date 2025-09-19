@@ -1,6 +1,6 @@
 from typing import List
 
-from ludo_engine.models import AIDecisionContext, ValidMove
+from ludo_engine.models import AIDecisionContext, TokenState, ValidMove
 
 PROMPT = """You are playing Ludo. Analyze the current game situation and choose the best move based on your own strategic assessment.
 
@@ -65,7 +65,20 @@ def create_prompt(game_context: AIDecisionContext, valid_moves: List[ValidMove])
         move_type = move.move_type
         strategic_value = move.strategic_value
 
-        move_desc = f"Token {token_id}: {move_type} (value: {strategic_value:.2f})"  #
+        # Convert TokenState to readable string for prompt
+        if isinstance(move_type, str):
+            move_type_str = move_type
+        else:
+            # Map TokenState back to legacy string names for LLM compatibility
+            type_mapping = {
+                TokenState.HOME: "exit_home",
+                TokenState.ACTIVE: "advance_main_board", 
+                TokenState.HOME_COLUMN: "advance_home_column",
+                TokenState.FINISHED: "finish",
+            }
+            move_type_str = type_mapping.get(move_type, str(move_type))
+
+        move_desc = f"Token {token_id}: {move_type_str} (value: {strategic_value:.2f})"  #
 
         if move.captures_opponent:
             move_desc += " [CAPTURES OPPONENT]"

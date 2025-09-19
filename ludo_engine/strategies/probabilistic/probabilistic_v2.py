@@ -4,7 +4,7 @@ import math
 from typing import Dict, List, Optional
 
 from ludo_engine.models.constants import BoardConstants, GameConstants
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, ValidMove, TokenState
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import get_opponent_main_positions
 
@@ -80,7 +80,7 @@ class ProbabilisticV2Strategy(Strategy):
 
         for move in valid_moves:
             # immediate finish takes precedence
-            if move.move_type == "finish":
+            if move.move_type == TokenState.FINISHED:
                 return move.token_id
 
             # compute probabilistic multi turn risk
@@ -238,11 +238,11 @@ class ProbabilisticV2Strategy(Strategy):
 
         # finishing and home column
         mt = move.move_type
-        if mt == "finish":
+        if mt == TokenState.FINISHED:
             opportunity += 4.0
-        elif mt == "advance_home_column":
+        elif mt == TokenState.HOME_COLUMN:
             opportunity += 2.0
-        elif mt == "exit_home":
+        elif mt == TokenState.HOME:
             opportunity += 1.2
 
         # safety

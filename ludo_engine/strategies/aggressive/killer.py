@@ -19,7 +19,7 @@ from ludo_engine.models.constants import (
     GameConstants,
     StrategyConstants,
 )
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, ValidMove, TokenState
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     forward_distance,
@@ -99,7 +99,7 @@ class KillerStrategy(Strategy):
             return 0
 
         # 1. Immediate finish (always take finishing over routine captures)
-        finish_moves = [m for m in moves if m.move_type == "finish"]
+        finish_moves = [m for m in moves if m.move_type == TokenState.FINISHED]
         if finish_moves:
             best_finish = max(finish_moves, key=lambda m: m.strategic_value)
             return best_finish.token_id
@@ -232,7 +232,7 @@ class KillerStrategy(Strategy):
 
         scored: List[Tuple[float, ValidMove]] = []
         for mv in moves:
-            if mv.move_type == "finish":
+            if mv.move_type == TokenState.FINISHED:
                 continue  # finishing handled later
             landing = mv.target_position
             if is_safe_or_home(landing):

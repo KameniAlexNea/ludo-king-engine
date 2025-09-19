@@ -25,6 +25,8 @@ from ludo_engine.models.model import (
     TokenInfo,
     TurnResult,
     ValidMove,
+    TokenState,
+    PlayerColor
 )
 
 __all__ = [
@@ -47,4 +49,6 @@ __all__ = [
     "TokenInfo",
     "TurnResult",
     "ValidMove",
+    "TokenState",
+    "PlayerColor"
 ]

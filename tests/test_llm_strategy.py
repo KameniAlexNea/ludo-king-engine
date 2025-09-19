@@ -15,6 +15,7 @@ from ludo_engine.models import (
     PlayerState,
     StrategicAnalysis,
     ValidMove,
+    TokenState
 )
 from ludo_engine.strategies import LLMStrategy
 from ludo_engine.strategies.special.llm.prompt import create_prompt
@@ -29,7 +30,7 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
                 current_position=5,
                 current_state="active",
                 target_position=9,
-                move_type="advance_main_board",
+                move_type=TokenState.ACTIVE,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -41,7 +42,7 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
                 current_position=10,
                 current_state="active",
                 target_position=14,
-                move_type="advance_main_board",
+                move_type=TokenState.ACTIVE,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -275,7 +276,7 @@ class TestLLMStrategy(unittest.TestCase):
             current_position=5,
             current_state="active",
             target_position=10,
-            move_type="advance_main_board",
+            move_type=TokenState.ACTIVE,
             is_safe_move=False,
             captures_opponent=True,
             captured_tokens=[],
@@ -297,7 +298,7 @@ class TestLLMStrategy(unittest.TestCase):
             current_position=100,
             current_state="home_column",
             target_position=102,
-            move_type="advance_home_column",
+            move_type=TokenState.HOME_COLUMN,
             is_safe_move=True,
             captures_opponent=False,
             captured_tokens=[],

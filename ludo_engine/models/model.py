@@ -5,7 +5,23 @@ Contains all dataclasses used throughout the game system.
 
 from dataclasses import dataclass
 from typing import Dict, List, Optional
+from enum import Enum
 
+class PlayerColor(Enum):
+    """Available player colors in Ludo."""
+
+    RED = "red"
+    BLUE = "blue"
+    GREEN = "green"
+    YELLOW = "yellow"
+
+class TokenState(Enum):
+    """Possible states of a token."""
+
+    HOME = "home"  # Token is in starting home area
+    ACTIVE = "active"  # Token is on the main board path
+    HOME_COLUMN = "home_column"  # Token is in the final home column
+    FINISHED = "finished"  # Token has reached the center
 
 @dataclass
 class TokenInfo:
@@ -54,7 +70,7 @@ class ValidMove:
     current_position: int
     current_state: str
     target_position: int
-    move_type: str
+    move_type: TokenState
     is_safe_move: bool
     captures_opponent: bool
     captured_tokens: List[CapturedToken]

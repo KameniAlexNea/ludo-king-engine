@@ -5,7 +5,7 @@ Base strategy classes and interfaces for Ludo AI.
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, ValidMove, TokenState
 
 
 class Strategy(ABC):
@@ -36,19 +36,40 @@ class Strategy(ABC):
         return game_context.valid_moves
 
     def _get_move_by_type(
-        self, valid_moves: List[ValidMove], move_type: str
+        self, valid_moves: List[ValidMove], move_type: str | TokenState
     ) -> Optional[ValidMove]:
-        """Get first move of specified type."""
+        """Get first move of specified type.
+
+        Supports both legacy string names ("finish", "advance_home_column", "exit_home")
+        and TokenState enum members. Legacy names are mapped:
+          finish -> TokenState.FINISHED
+          advance_home_column -> TokenState.HOME_COLUMN
+          exit_home -> TokenState.ACTIVE (with current_state == HOME)
+          advance_main_board -> TokenState.ACTIVE
+        """
+        target_state = self._normalize_move_type(move_type)
         for move in valid_moves:
-            if move.move_type == move_type:
+            if move.move_type == target_state:
                 return move
         return None
 
     def _get_moves_by_type(
-        self, valid_moves: List[ValidMove], move_type: str
+        self, valid_moves: List[ValidMove], move_type: str | TokenState
     ) -> List[ValidMove]:
-        """Get all moves of specified type."""
-        return [move for move in valid_moves if move.move_type == move_type]
+        """Get all moves of specified type (see mapping in _get_move_by_type)."""
+        target_state = self._normalize_move_type(move_type)
+        return [move for move in valid_moves if move.move_type == target_state]
+
+    def _normalize_move_type(self, move_type: str | TokenState) -> TokenState:
+        if isinstance(move_type, TokenState):
+            return move_type
+        mapping = {
+            "finish": TokenState.FINISHED,
+            "advance_home_column": TokenState.HOME_COLUMN,
+            "exit_home": TokenState.HOME,
+            "advance_main_board": TokenState.ACTIVE,
+        }
+        return mapping.get(move_type, TokenState.ACTIVE)
 
     def _get_capture_moves(self, valid_moves: List[ValidMove]) -> List[ValidMove]:
         """Get all moves that capture opponents."""

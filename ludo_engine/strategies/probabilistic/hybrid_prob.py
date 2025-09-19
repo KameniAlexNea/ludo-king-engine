@@ -58,7 +58,7 @@ from ludo_engine.models.constants import (
     GameConstants,
     StrategyConstants,
 )
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, ValidMove, TokenState
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import get_opponent_main_positions
 
@@ -149,7 +149,7 @@ class HybridProbStrategy(Strategy):
 
         for mv in moves:
             # Finish priority
-            if mv.move_type == "finish":
+            if mv.move_type == TokenState.FINISHED:
                 return mv.token_id
 
             immediate_risk = self._immediate_risk(mv, opponent_positions)
@@ -244,7 +244,7 @@ class HybridProbStrategy(Strategy):
             return 0.0
         if (
             move.is_safe_move
-            or move.move_type in {"finish", "advance_home_column"}
+            or move.move_type in {TokenState.FINISHED, TokenState.HOME_COLUMN}
             or tgt >= BoardConstants.HOME_COLUMN_START
         ):
             return 0.0
@@ -265,7 +265,7 @@ class HybridProbStrategy(Strategy):
             return 0.0
         if (
             move.is_safe_move
-            or move.move_type in {"finish", "advance_home_column"}
+            or move.move_type in {TokenState.FINISHED, TokenState.HOME_COLUMN}
             or tgt >= BoardConstants.HOME_COLUMN_START
         ):
             return 0.0
@@ -364,9 +364,9 @@ class HybridProbStrategy(Strategy):
 
     def _home_column_value(self, move: ValidMove) -> float:
         mt = move.move_type
-        if mt == "finish":
+        if mt == TokenState.FINISHED:
             return StrategyConstants.HYBRID_FINISH_BONUS
-        if mt == "advance_home_column":
+        if mt == TokenState.HOME_COLUMN:
             pos = move.target_position
             if isinstance(pos, int):
                 depth = pos - GameConstants.HOME_COLUMN_START
@@ -375,7 +375,7 @@ class HybridProbStrategy(Strategy):
                     + depth * StrategyConstants.HYBRID_HOME_DEPTH_FACTOR * 0.1
                 )
             return StrategyConstants.HYBRID_ADVANCE_HOME_BONUS
-        if mt == "exit_home":
+        if mt == TokenState.HOME:
             return StrategyConstants.HYBRID_EXIT_HOME_BONUS
         return 0.0
 
@@ -408,7 +408,7 @@ class HybridProbStrategy(Strategy):
 
     def _spread_bonus(self, move: ValidMove, baseline_active: int) -> float:
         if (
-            move.move_type == "exit_home"
+            move.move_type == TokenState.HOME
             and baseline_active < StrategyConstants.HYBRID_SPREAD_ACTIVE_TARGET
         ):
             return StrategyConstants.HYBRID_SPREAD_BONUS

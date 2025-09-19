@@ -29,7 +29,7 @@ from __future__ import annotations
 from typing import List
 
 from ludo_engine.models.constants import BoardConstants, GameConstants
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, ValidMove, TokenState
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import get_opponent_main_positions
 
@@ -81,7 +81,7 @@ class ProbabilisticStrategy(Strategy):
             composite = opportunity - risk_weight * risk
 
             # Hard priority: always finish immediately
-            if move.move_type == "finish":
+            if move.move_type == TokenState.FINISHED:
                 return move.token_id
 
             if composite > best_score:
@@ -120,7 +120,7 @@ class ProbabilisticStrategy(Strategy):
         # Safe contexts eliminate immediate capture risk
         if (
             move.is_safe_move
-            or move_type == "finish"
+            or move_type == TokenState.FINISHED
             or (isinstance(target, int) and target >= BoardConstants.HOME_COLUMN_START)
         ):
             return 0.0
@@ -148,11 +148,11 @@ class ProbabilisticStrategy(Strategy):
             opportunity += 2.0 * max(1, len(captured))
 
         # Finishing / home column progression
-        if move_type == "finish":
+        if move_type == TokenState.FINISHED:
             opportunity += 3.0
-        elif move_type == "advance_home_column":
+        elif move_type == TokenState.HOME_COLUMN:
             opportunity += 1.5
-        elif move_type == "exit_home":
+        elif move_type == TokenState.HOME:
             opportunity += 1.2
 
         # Safe landing

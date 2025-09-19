@@ -15,17 +15,10 @@ from ludo_engine.models import (
     StrategicComponents,
     StrategyConstants,
     ValidMove,
+    TokenState,
+    PlayerColor
 )
 from ludo_engine.strategies import Strategy
-
-
-class PlayerColor(Enum):
-    """Available player colors in Ludo."""
-
-    RED = "red"
-    BLUE = "blue"
-    GREEN = "green"
-    YELLOW = "yellow"
 
 
 class Player:
@@ -197,16 +190,23 @@ class Player:
 
         return possible_moves
 
-    def _get_move_type(self, token: Token, dice_value: int) -> str:
-        """Determine the type of move being made."""
+    def _get_move_type(self, token: Token, dice_value: int) -> TokenState:
+        """Determine the current token state for this move.
+
+        Mapping:
+          - exit_home: current state HOME
+          - advance_main_board: current state ACTIVE
+          - advance_home_column: current state HOME_COLUMN
+          - finish: resulting state FINISHED
+        """
         if token.is_in_home() and dice_value == GameConstants.EXIT_HOME_ROLL:
-            return "exit_home"
+            return TokenState.HOME
         if token.is_in_home_column():
             target = token.get_target_position(dice_value, self.start_position)
             if target == GameConstants.FINISH_POSITION:
-                return "finish"
-            return "advance_home_column"
-        return "advance_main_board"
+                return TokenState.FINISHED
+            return TokenState.HOME_COLUMN
+        return TokenState.ACTIVE
 
     def _is_safe_move(self, token: Token, target_position: int) -> bool:
         """Check if the target position is a safe square."""
@@ -350,7 +350,7 @@ class Player:
 
         # Simple priority: finish > capture > exit > highest value
         for move in valid_moves:
-            if move.move_type == "finish":
+            if move.move_type == TokenState.FINISHED:
                 return move.token_id
 
         for move in valid_moves:
@@ -358,7 +358,8 @@ class Player:
                 return move.token_id
 
         for move in valid_moves:
-            if move.move_type == "exit_home":
+            # exit_home semantic: move results in ACTIVE and current state was HOME
+            if move.move_type == TokenState.ACTIVE and move.current_state == TokenState.HOME.value:
                 return move.token_id
 
         # Choose highest strategic value

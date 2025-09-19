@@ -464,8 +464,12 @@ class LudoGame:
     ) -> StrategicAnalysis:
         """Analyze the strategic situation for AI decision making."""
         can_capture = any(move.captures_opponent for move in valid_moves)
-        can_finish_token = any(move.move_type == "finish" for move in valid_moves)
-        can_exit_home = any(move.move_type == "exit_home" for move in valid_moves)
+        from ludo_engine.models.model import TokenState
+        can_finish_token = any(move.move_type == TokenState.FINISHED for move in valid_moves)
+        can_exit_home = any(
+            move.move_type == TokenState.ACTIVE and move.current_state == TokenState.HOME.value
+            for move in valid_moves
+        )
         safe_moves = [move for move in valid_moves if move.is_safe_move]
         risky_moves = [move for move in valid_moves if not move.is_safe_move]
 
