@@ -12,6 +12,7 @@ from typing import Dict, List, Optional
 from config import TournamentConfig
 
 from ludo_engine.core import LudoGame, PlayerColor
+from ludo_engine.core.exceptions import InvalidStrategyError, InvalidTournamentConfigurationError, TournamentStrategyError
 from ludo_engine.strategies.strategy import StrategyFactory
 
 
@@ -122,10 +123,10 @@ class LudoTournament:
         available_strategies = StrategyFactory.get_available_strategies()
         for strategy in strategies:
             if strategy not in available_strategies:
-                raise ValueError(f"Unknown strategy: {strategy}")
+                raise InvalidStrategyError(strategy, available_strategies)
 
         if len(strategies) < 2:
-            raise ValueError("At least 2 strategies required for tournament")
+            raise InvalidTournamentConfigurationError("At least 2 strategies required for tournament")
 
         # Initialize tournament data
         self.team_stats: Dict[str, TeamStats] = {
@@ -332,7 +333,7 @@ class LudoTournament:
     def get_head_to_head(self, strategy1: str, strategy2: str) -> Dict:
         """Get head-to-head record between two strategies."""
         if strategy1 not in self.strategies or strategy2 not in self.strategies:
-            raise ValueError("Both strategies must be in the tournament")
+            raise TournamentStrategyError(f"{strategy1} or {strategy2}", self.strategies)
 
         relevant_matches = [
             result

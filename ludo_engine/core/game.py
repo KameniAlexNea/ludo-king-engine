@@ -7,7 +7,27 @@ import random
 from typing import List, Optional, Union
 
 from ludo_engine.core.board import Board
+from ludo_engine.core.exceptions import (
+    GameAlreadyOverError,
+    InvalidDiceRollError,
+    InvalidMoveError,
+    InvalidPlayerColorError,
+    InvalidPlayerCountError,
+    InvalidTokenSelectionError,
+    NoValidMovesError,
+)
 from ludo_engine.core.player import Player, PlayerColor
+from ludo_engine.core.types import (
+    DiceValue,
+    GameConfig,
+    GameState,
+    MoveList,
+    PlayerList,
+    TokenId,
+    is_valid_dice_value,
+    is_valid_player_count,
+    is_valid_token_id,
+)
 from ludo_engine.models import (
     AIDecisionContext,
     CapturedToken,
@@ -35,18 +55,23 @@ class LudoGame:
     - Flexible reset options that preserve player configurations
     """
 
-    def __init__(self, player_colors: List[PlayerColor]):
+    def __init__(self, player_colors: List[PlayerColor], config: Optional[GameConfig] = None):
         """
         Initialize a new Ludo game.
 
         Args:
             player_colors: List of colors for players (2-4 players)
-        """
-        if len(player_colors) < 2 or len(player_colors) > 4:
-            raise ValueError("Ludo requires 2-4 players")
+            config: Optional game configuration
 
+        Raises:
+            InvalidPlayerCountError: If number of players is not between 2-4
+        """
+        if not is_valid_player_count(len(player_colors)):
+            raise InvalidPlayerCountError(len(player_colors))
+
+        self.config = config or GameConfig(player_colors=player_colors)
         self.board = Board()
-        self.players: List[Player] = []
+        self.players: PlayerList = []
 
         # Create players
         for i, color in enumerate(player_colors):
@@ -60,17 +85,52 @@ class LudoGame:
 
         # Game state tracking
         self.consecutive_sixes = 0
-        self.last_dice_value = 0
+        self.last_dice_value: DiceValue = 1
         self.move_history: List[MoveResult] = []
 
         # Initialize board with all tokens in home
         self._initialize_board()
 
     def get_player_from_color(self, color: Union[PlayerColor, str]) -> Player:
-        if isinstance(color, str):
-            # Convert string to PlayerColor enum
-            color = PlayerColor(color)
+        """
+        Get a player by their color.
+
+        Args:
+            color: Player color (PlayerColor enum or string)
+
+        Returns:
+            Player: The player with the specified color
+
+        Raises:
+            InvalidPlayerColorError: If the color is invalid or not in the game
+        """
+        try:
+            if isinstance(color, str):
+                # Convert string to PlayerColor enum
+                color = PlayerColor(color)
+        except ValueError as e:
+            raise InvalidPlayerColorError(color) from e
+
+        if color not in self._player_map:
+            raise InvalidPlayerColorError(color)
+
         return self._player_map[color]
+
+    def get_game_state(self) -> GameState:
+        """
+        Get the current game state.
+
+        Returns:
+            GameState: Current snapshot of the game state
+        """
+        return GameState(
+            current_player_index=self.current_player_index,
+            consecutive_sixes=self.consecutive_sixes,
+            game_over=self.game_over,
+            winner=self.winner.color if self.winner else None,
+            turn_count=self.turn_count,
+            last_dice_value=self.last_dice_value,
+        )
 
     def _initialize_board(self):
         """Place all tokens in their starting home positions."""
@@ -84,9 +144,9 @@ class LudoGame:
         """Get the player whose turn it is."""
         return self.players[self.current_player_index]
 
-    def roll_dice(self) -> int:
+    def roll_dice(self) -> DiceValue:
         """Roll a six-sided die and return the result."""
-        dice_value = random.randint(1, 6)
+        dice_value: DiceValue = random.randint(1, 6)
         self.last_dice_value = dice_value
 
         # Track consecutive sixes
@@ -97,11 +157,11 @@ class LudoGame:
 
         return dice_value
 
-    def can_player_move(self, player: Player, dice_value: int) -> bool:
+    def can_player_move(self, player: Player, dice_value: DiceValue) -> bool:
         """Check if a player can make any move with the given dice value."""
         return player.can_move_any_token(dice_value)
 
-    def get_valid_moves(self, player: Player, dice_value: int) -> List[ValidMove]:
+    def get_valid_moves(self, player: Player, dice_value: DiceValue) -> MoveList:
         """
         Get all valid moves for a player with the given dice value.
 
@@ -148,7 +208,7 @@ class LudoGame:
         return valid_moves
 
     def execute_move(
-        self, player: Player, token_id: int, dice_value: int
+        self, player: Player, token_id: TokenId, dice_value: DiceValue
     ) -> MoveResult:
         """
         Execute a move for a player.
@@ -161,8 +221,7 @@ class LudoGame:
         Returns:
             MoveResult: Result of the move including any captures, extra turns, etc.
         """
-        if token_id < 0 or token_id >= 4:
-            # @TODO: Log warning about invalid token ID
+        if not is_valid_token_id(token_id):
             return MoveResult(
                 success=False,
                 player_color=player.color,
@@ -174,6 +233,20 @@ class LudoGame:
                 finished_token=False,
                 extra_turn=False,
                 error="Invalid token ID",
+            )
+
+        if not is_valid_dice_value(dice_value):
+            return MoveResult(
+                success=False,
+                player_color=player.color,
+                token_id=token_id,
+                dice_value=dice_value,
+                old_position=-1,
+                new_position=-1,
+                captured_tokens=[],
+                finished_token=False,
+                extra_turn=False,
+                error="Invalid dice value",
             )
 
         token = player.tokens[token_id]

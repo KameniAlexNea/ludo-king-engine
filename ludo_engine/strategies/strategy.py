@@ -5,6 +5,7 @@ Strategy factory and main interface.
 
 from typing import Dict, List
 
+from ludo_engine.core.exceptions import InvalidStrategyError
 from ludo_engine.strategies import STRATEGIES, Strategy
 
 
@@ -26,14 +27,12 @@ class StrategyFactory:
             Strategy: Instance of the requested strategy
 
         Raises:
-            ValueError: If strategy name is not recognized
+            InvalidStrategyError: If strategy name is not recognized
         """
         strategy_name = strategy_name.lower()
         if strategy_name not in cls._strategies:
             available = list(cls._strategies.keys())
-            raise ValueError(
-                f"Unknown strategy '{strategy_name}'. Available: {available}"
-            )
+            raise InvalidStrategyError(strategy_name, available)
 
         return cls._strategies[strategy_name]()
 
