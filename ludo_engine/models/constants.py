@@ -126,7 +126,6 @@ class StrategyConstants:
     EXIT_HOME_VALUE = 15.0
     CAPTURE_BONUS = 25.0
     SAFE_MOVE_BONUS = 5.0
-    RISKY_MOVE_PENALTY = 10.0
 
     # Threat levels
     HIGH_THREAT_THRESHOLD = 0.7
