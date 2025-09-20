@@ -206,7 +206,9 @@ class TestStrategyBase(unittest.TestCase):
         exit_moves = self.strategy._get_moves_by_type(moves, MoveType.EXIT_HOME)
         self.assertEqual(len(exit_moves), 2)
 
-        advance_moves = self.strategy._get_moves_by_type(moves, MoveType.ADVANCE_MAIN_BOARD)
+        advance_moves = self.strategy._get_moves_by_type(
+            moves, MoveType.ADVANCE_MAIN_BOARD
+        )
         self.assertEqual(len(advance_moves), 1)
 
     def test_get_capture_moves(self):
