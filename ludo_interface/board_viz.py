@@ -3,29 +3,34 @@ from typing import Dict, List, Tuple
 from PIL import Image, ImageDraw, ImageFont
 
 from ludo_engine.core import Token, TokenState
-from ludo_engine.models import BoardConstants, GameConstants, PlayerColor
+from ludo_engine.models import (
+    BoardConstants,
+    GameConstants,
+    PlayerColor,
+    ALL_COLORS
+)
 
 # Enhanced Styling with gradients and better colors
 COLOR_MAP = {
-    PlayerColor.RED.value: (220, 53, 69),
-    PlayerColor.GREEN.value: (40, 167, 69),
-    PlayerColor.YELLOW.value: (255, 193, 7),
-    PlayerColor.BLUE.value: (13, 110, 253),
+    PlayerColor.RED: (220, 53, 69),
+    PlayerColor.GREEN: (40, 167, 69),
+    PlayerColor.YELLOW: (255, 193, 7),
+    PlayerColor.BLUE: (13, 110, 253),
 }
 
 # Additional color variations for better visuals
 COLOR_LIGHT = {
-    PlayerColor.RED.value: (248, 215, 218),
-    PlayerColor.GREEN.value: (209, 231, 221),
-    PlayerColor.YELLOW.value: (255, 243, 205),
-    PlayerColor.BLUE.value: (204, 229, 255),
+    PlayerColor.RED: (248, 215, 218),
+    PlayerColor.GREEN: (209, 231, 221),
+    PlayerColor.YELLOW: (255, 243, 205),
+    PlayerColor.BLUE: (204, 229, 255),
 }
 
 COLOR_DARK = {
-    PlayerColor.RED.value: (176, 42, 55),
-    PlayerColor.GREEN.value: (32, 134, 55),
-    PlayerColor.YELLOW.value: (204, 154, 6),
-    PlayerColor.BLUE.value: (10, 88, 202),
+    PlayerColor.RED: (176, 42, 55),
+    PlayerColor.GREEN: (32, 134, 55),
+    PlayerColor.YELLOW: (204, 154, 6),
+    PlayerColor.BLUE: (10, 88, 202),
 }
 
 BG_COLOR = (248, 249, 250)
@@ -108,10 +113,10 @@ PATH_INDEX_TO_COORD = {i: coord for i, coord in enumerate(PATH_LIST)}
 # Home quadrants bounding boxes (col range inclusive)
 HOME_QUADRANTS = {
     # Reordered to follow counter-clockwise Red -> Green -> Yellow -> Blue
-    PlayerColor.RED.value: ((0, 5), (0, 5)),  # top-left
-    PlayerColor.GREEN.value: ((0, 5), (9, 14)),  # bottom-left
-    PlayerColor.YELLOW.value: ((9, 14), (9, 14)),  # bottom-right
-    PlayerColor.BLUE.value: ((9, 14), (0, 5)),  # top-right
+    PlayerColor.RED: ((0, 5), (0, 5)),  # top-left
+    PlayerColor.GREEN: ((0, 5), (9, 14)),  # bottom-left
+    PlayerColor.YELLOW: ((9, 14), (9, 14)),  # bottom-right
+    PlayerColor.BLUE: ((9, 14), (0, 5)),  # top-right
 }
 
 
@@ -326,7 +331,7 @@ def _home_column_positions_for_color(color: PlayerColor) -> Dict[int, Tuple[int,
 
 
 HOME_COLUMN_COORDS = {
-    color.value: _home_column_positions_for_color(color) for color in [PlayerColor.RED, PlayerColor.GREEN, PlayerColor.YELLOW, PlayerColor.BLUE]
+    color: _home_column_positions_for_color(color) for color in ALL_COLORS
 }
 
 
@@ -438,7 +443,7 @@ def _generate_board_template() -> Image.Image:
     d.rectangle((cx0, cy0, cx1, cy1), fill=CENTER_COLOR, outline=(60, 60, 60), width=4)
 
     # Enhanced triangles with gradients
-    colors_order = [PlayerColor.RED.value, PlayerColor.BLUE.value, PlayerColor.YELLOW.value, PlayerColor.GREEN.value]
+    colors_order = ALL_COLORS
     triangle_coords = [
         [(cx0, cy0), (cx1, cy0), (midx, midy)],  # top
         [(cx1, cy0), (cx1, cy1), (midx, midy)],  # right
@@ -470,7 +475,9 @@ def get_board_template() -> Image.Image:
     return _BOARD_TEMPLATE.copy()
 
 
-def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.Image:
+def draw_board(
+    tokens: Dict[PlayerColor, List[Token]], show_ids: bool = True
+) -> Image.Image:
     """
     Optimized board drawing that uses a cached template and only draws tokens.
     This significantly improves performance by avoiding regenerating the board layout.
@@ -484,15 +491,15 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
     midx = (cx0 + cx1) // 2
     midy = (cy0 + cy1) // 2
     finish_anchor = {
-        Colors.RED: (midx, cy0 + (midy - cy0) // 2),
-        Colors.BLUE: (cx1 - (cx1 - midx) // 2, midy),
-        Colors.YELLOW: (midx, cy1 - (cy1 - midy) // 2),
-        Colors.GREEN: (cx0 + (midx - cx0) // 2, midy),
+        PlayerColor.RED: (midx, cy0 + (midy - cy0) // 2),
+        PlayerColor.BLUE: (cx1 - (cx1 - midx) // 2, midy),
+        PlayerColor.YELLOW: (midx, cy1 - (cy1 - midy) // 2),
+        PlayerColor.GREEN: (cx0 + (midx - cx0) // 2, midy),
     }
 
     # Enhanced token rendering with proper stacking
     # First, collect all tokens by position and state for stacking
-    position_groups = {}
+    position_groups: dict[str, list[Token]] = {}
 
     for color, tlist in tokens.items():
         for tk in tlist:
@@ -513,14 +520,14 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
                 # Home column tokens
                 coord_map = HOME_COLUMN_COORDS[color]
                 if pos in coord_map:
-                    key = f"home_column_{color}_{pos}"
+                    key = f"home_column_{color.value}_{pos}"
                     if key not in position_groups:
                         position_groups[key] = []
                     position_groups[key].append((color, tk))
 
             elif state == TokenState.FINISHED.value:
                 # Finished tokens - stack at finish anchor
-                key = f"finished_{color}"
+                key = f"finished_{color.value}"
                 if key not in position_groups:
                     position_groups[key] = []
                 position_groups[key].append((color, tk))
@@ -536,7 +543,7 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
     for key, token_group in position_groups.items():
         if key.startswith("home_column_"):
             parts = key.split("_")
-            color = parts[2]
+            color = PlayerColor(parts[2])
             pos = int(parts[3])
             coord_map = HOME_COLUMN_COORDS[color]
             if pos in coord_map:
@@ -546,7 +553,7 @@ def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.I
                 _draw_stacked_tokens(d, token_group, cx, cy, CELL // 2 - 4, show_ids)
 
         elif key.startswith("finished_"):
-            color = key.split("_")[1]
+            color = PlayerColor(key.split("_")[1])
             ax, ay = finish_anchor[color]
             _draw_stacked_tokens(d, token_group, ax, ay, CELL // 2 - 4, show_ids)
 

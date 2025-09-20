@@ -16,6 +16,8 @@ class PlayerColor(Enum):
     GREEN = "green"
     YELLOW = "yellow"
 
+ALL_COLORS = [PlayerColor.RED, PlayerColor.BLUE, PlayerColor.GREEN, PlayerColor.YELLOW]
+
 @dataclass
 class TokenInfo:
     """Information about a token."""

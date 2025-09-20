@@ -68,7 +68,6 @@ __all__ = [
     "GameConstants",
     "BoardConstants",
     "StrategyConstants",
-    "Colors",
     "AIDecisionContext",
     "BoardPositionInfo",
     "BoardState",
