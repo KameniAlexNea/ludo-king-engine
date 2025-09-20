@@ -59,7 +59,7 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
         ),
         opponents=[
             OpponentInfo(
-                color="blue",
+                color=PlayerColor.BLUE,
                 finished_tokens=0,
                 tokens_active=1,
                 threat_level=0.2,
@@ -366,7 +366,7 @@ class TestPlayer(unittest.TestCase):
         """Test string representation of player."""
         str_repr = str(self.player)
         self.assertIn("Player", str_repr)
-        self.assertIn("red", str_repr)
+        self.assertIn("PlayerColor.RED", str_repr)
         self.assertIn("Random", str_repr)
 
     def test_move_type_detection(self):

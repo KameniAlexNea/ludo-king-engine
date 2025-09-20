@@ -260,7 +260,7 @@ class TestToken(unittest.TestCase):
         """Test string representation of token."""
         str_repr = str(self.token)
         self.assertIn("Token", str_repr)
-        self.assertIn("red", str_repr)
+        self.assertIn("PlayerColor.RED", str_repr)
         self.assertIn("0", str_repr)
         self.assertIn("home", str_repr)
 

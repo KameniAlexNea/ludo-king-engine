@@ -220,4 +220,4 @@ class Token:
 
     def __str__(self) -> str:
         """String representation of the token."""
-        return f"Token({self.player_color.value}_{self.token_id}: {self.state.value} at {self.position})"
+        return f"Token({self.player_color}_{self.token_id}: {self.state.value} at {self.position})"

@@ -289,7 +289,7 @@ class Board:
                 star_positions.append(pos_idx)
 
         return BoardState(
-            current_player=current_player.color.value,
+            current_player=current_player.color,
             board_positions=board_positions,
             safe_positions=safe_positions,
             star_positions=star_positions,
@@ -407,7 +407,7 @@ class Board:
 
         return blocking_positions.copy()
 
-    def get_all_blocking_positions(self) -> Dict[str, Set[int]]:
+    def get_all_blocking_positions(self) -> Dict[PlayerColor, Set[int]]:
         """
         Get blocking positions for all players at once.
         More efficient than calling get_blocking_positions for each player separately.
@@ -416,7 +416,7 @@ class Board:
             self._rebuild_blocking_cache()
 
         return {
-            color.value: positions.copy()
+            color: positions.copy()
             for color, positions in self._blocking_positions_cache.items()
         }
 

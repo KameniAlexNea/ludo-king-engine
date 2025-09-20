@@ -223,7 +223,7 @@ class TestBoard(unittest.TestCase):
 
         board_state = self.board.get_board_state_for_ai(self.player_red)
 
-        self.assertEqual(board_state.current_player, "red")
+        self.assertEqual(board_state.current_player, PlayerColor.RED)
         self.assertIn(5, board_state.board_positions)
         self.assertIn(10, board_state.board_positions)
         self.assertEqual(len(board_state.board_positions[5]), 1)
@@ -304,7 +304,7 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(self.token_red, 8)  # Star position
         self.board.add_token(self.player_red.tokens[1], 8)
 
-        blocking = self.board.get_blocking_positions("red")
+        blocking = self.board.get_blocking_positions(PlayerColor.RED)
         self.assertNotIn(8, blocking)  # Safe squares don't block
 
     def test_get_all_blocking_positions(self):
@@ -319,10 +319,10 @@ class TestBoard(unittest.TestCase):
 
         all_blocking = self.board.get_all_blocking_positions()
 
-        self.assertIn(5, all_blocking[PlayerColor.RED.value])
-        self.assertIn(10, all_blocking[PlayerColor.BLUE.value])
-        self.assertNotIn(5, all_blocking[PlayerColor.BLUE.value])
-        self.assertNotIn(10, all_blocking[PlayerColor.RED.value])
+        self.assertIn(5, all_blocking[PlayerColor.RED])
+        self.assertIn(10, all_blocking[PlayerColor.BLUE])
+        self.assertNotIn(5, all_blocking[PlayerColor.BLUE])
+        self.assertNotIn(10, all_blocking[PlayerColor.RED])
 
     def test_has_blocking_position(self):
         """Test checking if specific position is blocking."""
@@ -340,12 +340,12 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(self.token_red, 8)  # Star position
         self.board.add_token(self.player_red.tokens[1], 8)
 
-        self.assertFalse(self.board.has_blocking_position("red", 8))
+        self.assertFalse(self.board.has_blocking_position(PlayerColor.RED, 8))
 
     def test_has_blocking_position_invalid_position(self):
         """Test invalid positions are not blocking."""
-        self.assertFalse(self.board.has_blocking_position("red", -1))
-        self.assertFalse(self.board.has_blocking_position("red", 60))
+        self.assertFalse(self.board.has_blocking_position(PlayerColor.RED, -1))
+        self.assertFalse(self.board.has_blocking_position(PlayerColor.RED, 60))
 
     def test_blocking_cache_invalidation(self):
         """Test blocking cache invalidation."""
@@ -353,7 +353,7 @@ class TestBoard(unittest.TestCase):
         self.assertFalse(self.board._cache_valid)
 
         # Getting blocking positions should build cache
-        self.board.get_blocking_positions("red")
+        self.board.get_blocking_positions(PlayerColor.RED)
         self.assertTrue(self.board._cache_valid)
 
         # Adding token should invalidate cache

@@ -213,7 +213,7 @@ class TestLudoGame(unittest.TestCase):
         self.assertIsInstance(context, AIDecisionContext)
         self.assertEqual(context.current_situation.dice_value, 6)
         self.assertEqual(
-            context.current_situation.player_color, self.game.players[0].color.value
+            context.current_situation.player_color, self.game.players[0].color
         )
         self.assertIsInstance(context.valid_moves, list)
         from ludo_engine.models.model import PlayerState
@@ -523,7 +523,7 @@ class TestLudoGame(unittest.TestCase):
 
         self.assertEqual(len(configs), 4)
         for i, config in enumerate(configs):
-            self.assertEqual(config.color, self.game.players[i].color.value)
+            self.assertEqual(config.color, self.game.players[i].color)
             self.assertEqual(config.player_id, i)
             self.assertEqual(config.finished_tokens, 0)
             self.assertEqual(config.tokens_active, 0)

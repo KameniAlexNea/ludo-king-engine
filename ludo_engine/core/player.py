@@ -261,13 +261,13 @@ class Player:
             components.acceleration = advantage * StrategyConstants.ACCELERATION_WEIGHT
 
         # 5: Safety bonus for landing square
-        if BoardConstants.is_safe_position(target_position, self.color.value):
+        if BoardConstants.is_safe_position(target_position, self.color):
             components.safety = StrategyConstants.SAFETY_BONUS
 
         # 6: Vulnerability penalty (simple placeholder): if not safe and token is active
         # and not entering home column and not finishing, apply penalty.
         if (
-            not BoardConstants.is_safe_position(target_position, self.color.value)
+            not BoardConstants.is_safe_position(target_position, self.color)
             and not BoardConstants.is_home_column_position(target_position)
             and token.is_active()
         ):
@@ -372,4 +372,4 @@ class Player:
     def __str__(self) -> str:
         """String representation of the player."""
         strategy_name = self.get_strategy_name()
-        return f"Player({self.color.value}, strategy: {strategy_name}, tokens: {len([t for t in self.tokens if not t.is_in_home()])} active)"
+        return f"Player({self.color}, strategy: {strategy_name}, tokens: {len([t for t in self.tokens if not t.is_in_home()])} active)"

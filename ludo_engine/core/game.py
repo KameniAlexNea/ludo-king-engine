@@ -418,7 +418,7 @@ class LudoGame:
         valid_moves = self.get_valid_moves(current_player, dice_value)
 
         current_situation = CurrentSituation(
-            player_color=current_player.color.value,
+            player_color=current_player.color,
             dice_value=dice_value,
             consecutive_sixes=self.consecutive_sixes,
             turn_count=self.turn_count,
@@ -493,7 +493,7 @@ class LudoGame:
         configs = []
         for player in self.players:
             config = PlayerConfiguration(
-                color=player.color.value,
+                color=player.color,
                 player_id=player.player_id,
                 strategy_name=player.get_strategy_name(),
                 strategy_description=player.get_strategy_description(),
