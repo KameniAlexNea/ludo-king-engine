@@ -363,7 +363,7 @@ class Board:
         blocking_positions = set()
 
         # Only check positions that potentially have multiple tokens of this color
-        candidate_positions = self._multi_token_positions.get(player_color, set())
+        candidate_positions = self._multi_token_positions.get(player_color, set()).copy()
 
         for position in candidate_positions:
             # Double-check that position is still valid and has multiple tokens
@@ -373,7 +373,7 @@ class Board:
                 player_tokens = [
                     t
                     for t in self.token_positions.get(position, [])
-                    if t.player_color == player_color.value
+                    if t.player_color == player_color
                 ]
 
                 if len(player_tokens) >= 2:
@@ -416,7 +416,7 @@ class Board:
             self._rebuild_blocking_cache()
 
         return {
-            color: positions.copy()
+            color.value: positions.copy()
             for color, positions in self._blocking_positions_cache.items()
         }
 

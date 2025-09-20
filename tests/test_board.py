@@ -285,7 +285,7 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(self.token_red, 5)
         self.board.add_token(token_red2, 5)
 
-        blocking = self.board.get_blocking_positions("red")
+        blocking = self.board.get_blocking_positions(PlayerColor.RED)
         self.assertIn(5, blocking)
 
         # Add another blocking position
@@ -294,7 +294,7 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(token_red3, 15)
         self.board.add_token(token_red4, 15)
 
-        blocking = self.board.get_blocking_positions("red")
+        blocking = self.board.get_blocking_positions(PlayerColor.RED)
         self.assertIn(5, blocking)
         self.assertIn(15, blocking)
 
@@ -319,10 +319,10 @@ class TestBoard(unittest.TestCase):
 
         all_blocking = self.board.get_all_blocking_positions()
 
-        self.assertIn(5, all_blocking["red"])
-        self.assertIn(10, all_blocking["blue"])
-        self.assertNotIn(5, all_blocking["blue"])
-        self.assertNotIn(10, all_blocking["red"])
+        self.assertIn(5, all_blocking[PlayerColor.RED.value])
+        self.assertIn(10, all_blocking[PlayerColor.BLUE.value])
+        self.assertNotIn(5, all_blocking[PlayerColor.BLUE.value])
+        self.assertNotIn(10, all_blocking[PlayerColor.RED.value])
 
     def test_has_blocking_position(self):
         """Test checking if specific position is blocking."""
@@ -330,9 +330,9 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(self.token_red, 5)
         self.board.add_token(self.player_red.tokens[1], 5)
 
-        self.assertTrue(self.board.has_blocking_position("red", 5))
-        self.assertFalse(self.board.has_blocking_position("red", 10))
-        self.assertFalse(self.board.has_blocking_position("blue", 5))
+        self.assertTrue(self.board.has_blocking_position(PlayerColor.RED, 5))
+        self.assertFalse(self.board.has_blocking_position(PlayerColor.RED, 10))
+        self.assertFalse(self.board.has_blocking_position(PlayerColor.BLUE, 5))
 
     def test_has_blocking_position_safe_square(self):
         """Test that safe squares are not considered blocking."""

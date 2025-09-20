@@ -3,29 +3,29 @@ from typing import Dict, List, Tuple
 from PIL import Image, ImageDraw, ImageFont
 
 from ludo_engine.core import Token, TokenState
-from ludo_engine.models import BoardConstants, Colors, GameConstants
+from ludo_engine.models import BoardConstants, GameConstants, PlayerColor
 
 # Enhanced Styling with gradients and better colors
 COLOR_MAP = {
-    Colors.RED: (220, 53, 69),
-    Colors.GREEN: (40, 167, 69),
-    Colors.YELLOW: (255, 193, 7),
-    Colors.BLUE: (13, 110, 253),
+    PlayerColor.RED.value: (220, 53, 69),
+    PlayerColor.GREEN.value: (40, 167, 69),
+    PlayerColor.YELLOW.value: (255, 193, 7),
+    PlayerColor.BLUE.value: (13, 110, 253),
 }
 
 # Additional color variations for better visuals
 COLOR_LIGHT = {
-    Colors.RED: (248, 215, 218),
-    Colors.GREEN: (209, 231, 221),
-    Colors.YELLOW: (255, 243, 205),
-    Colors.BLUE: (204, 229, 255),
+    PlayerColor.RED.value: (248, 215, 218),
+    PlayerColor.GREEN.value: (209, 231, 221),
+    PlayerColor.YELLOW.value: (255, 243, 205),
+    PlayerColor.BLUE.value: (204, 229, 255),
 }
 
 COLOR_DARK = {
-    Colors.RED: (176, 42, 55),
-    Colors.GREEN: (32, 134, 55),
-    Colors.YELLOW: (204, 154, 6),
-    Colors.BLUE: (10, 88, 202),
+    PlayerColor.RED.value: (176, 42, 55),
+    PlayerColor.GREEN.value: (32, 134, 55),
+    PlayerColor.YELLOW.value: (204, 154, 6),
+    PlayerColor.BLUE.value: (10, 88, 202),
 }
 
 BG_COLOR = (248, 249, 250)
@@ -108,10 +108,10 @@ PATH_INDEX_TO_COORD = {i: coord for i, coord in enumerate(PATH_LIST)}
 # Home quadrants bounding boxes (col range inclusive)
 HOME_QUADRANTS = {
     # Reordered to follow counter-clockwise Red -> Green -> Yellow -> Blue
-    Colors.RED: ((0, 5), (0, 5)),  # top-left
-    Colors.GREEN: ((0, 5), (9, 14)),  # bottom-left
-    Colors.YELLOW: ((9, 14), (9, 14)),  # bottom-right
-    Colors.BLUE: ((9, 14), (0, 5)),  # top-right
+    PlayerColor.RED.value: ((0, 5), (0, 5)),  # top-left
+    PlayerColor.GREEN.value: ((0, 5), (9, 14)),  # bottom-left
+    PlayerColor.YELLOW.value: ((9, 14), (9, 14)),  # bottom-right
+    PlayerColor.BLUE.value: ((9, 14), (0, 5)),  # top-right
 }
 
 
@@ -301,7 +301,7 @@ def _token_home_grid_position(color: str, token_id: int) -> Tuple[int, int]:
     return col, row
 
 
-def _home_column_positions_for_color(color: str) -> Dict[int, Tuple[int, int]]:
+def _home_column_positions_for_color(color: PlayerColor) -> Dict[int, Tuple[int, int]]:
     """
     Map home column indices (100..104) to board coordinates; 105 is final finish.
 
@@ -326,7 +326,7 @@ def _home_column_positions_for_color(color: str) -> Dict[int, Tuple[int, int]]:
 
 
 HOME_COLUMN_COORDS = {
-    color: _home_column_positions_for_color(color) for color in Colors.ALL_COLORS
+    color.value: _home_column_positions_for_color(color) for color in [PlayerColor.RED, PlayerColor.GREEN, PlayerColor.YELLOW, PlayerColor.BLUE]
 }
 
 
@@ -438,7 +438,7 @@ def _generate_board_template() -> Image.Image:
     d.rectangle((cx0, cy0, cx1, cy1), fill=CENTER_COLOR, outline=(60, 60, 60), width=4)
 
     # Enhanced triangles with gradients
-    colors_order = [Colors.RED, Colors.BLUE, Colors.YELLOW, Colors.GREEN]
+    colors_order = [PlayerColor.RED.value, PlayerColor.BLUE.value, PlayerColor.YELLOW.value, PlayerColor.GREEN.value]
     triangle_coords = [
         [(cx0, cy0), (cx1, cy0), (midx, midy)],  # top
         [(cx1, cy0), (cx1, cy1), (midx, midy)],  # right

@@ -298,7 +298,7 @@ class Player:
 
         # Path: distance to home entry + home column size
         # Find this player's home entry square
-        entry = BoardConstants.HOME_COLUMN_ENTRIES[self.color.value]
+        entry = BoardConstants.HOME_COLUMN_ENTRIES[self.color]
         if position <= entry:
             to_entry = entry - position
         else:

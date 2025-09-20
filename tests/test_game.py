@@ -322,14 +322,14 @@ class TestLudoGame(unittest.TestCase):
 
         # Verify both tokens are there
         token_colors = {token.player_color for token in tokens_at_pos}
-        self.assertEqual(token_colors, {"red", "blue"})
+        self.assertEqual(token_colors, {PlayerColor.RED, PlayerColor.BLUE})
 
     def test_home_column_movement(self):
         """Test movement within home column."""
         # Get player to home column entry
         current_player = self.game.get_current_player()
 
-        home_entry = BoardConstants.HOME_COLUMN_ENTRIES[current_player.color.value]
+        home_entry = BoardConstants.HOME_COLUMN_ENTRIES[current_player.color]
 
         # Move token to just before home entry (6 spaces before)
         self.game.execute_move(current_player, 0, 6)  # Exit home to position 1

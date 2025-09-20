@@ -248,7 +248,7 @@ class TestToken(unittest.TestCase):
         token_dict = self.token.to_dict()
 
         self.assertEqual(token_dict.token_id, 0)
-        self.assertEqual(token_dict.player_color, "red")
+        self.assertEqual(token_dict.player_color, PlayerColor.RED)
         self.assertEqual(token_dict.state, "home")
         self.assertEqual(token_dict.position, -1)
         self.assertTrue(token_dict.is_in_home)
