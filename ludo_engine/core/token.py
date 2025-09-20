@@ -7,16 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from ludo_engine.models.constants import BoardConstants, GameConstants
-from ludo_engine.models.model import PlayerColor, TokenInfo
-
-
-class TokenState(Enum):
-    """Possible states of a token."""
-
-    HOME = "home"  # Token is in starting home area
-    ACTIVE = "active"  # Token is on the main board path
-    HOME_COLUMN = "home_column"  # Token is in the final home column
-    FINISHED = "finished"  # Token has reached the center
+from ludo_engine.models.model import PlayerColor, TokenInfo, TokenState
 
 
 @dataclass

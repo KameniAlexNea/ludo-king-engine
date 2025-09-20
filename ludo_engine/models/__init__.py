@@ -23,6 +23,7 @@ from ludo_engine.models.model import (
     StrategicAnalysis,
     StrategicComponents,
     TokenInfo,
+    TokenState,
     TurnResult,
     ValidMove,
     ALL_COLORS
@@ -45,6 +46,7 @@ __all__ = [
     "StrategicAnalysis",
     "StrategicComponents",
     "TokenInfo",
+    "TokenState",
     "TurnResult",
     "ValidMove",
     "PlayerColor",

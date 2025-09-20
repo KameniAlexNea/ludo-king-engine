@@ -16,6 +16,16 @@ class PlayerColor(Enum):
     GREEN = "green"
     YELLOW = "yellow"
 
+
+class TokenState(Enum):
+    """Possible states of a token."""
+
+    HOME = "home"  # Token is in starting home area
+    ACTIVE = "active"  # Token is on the main board path
+    HOME_COLUMN = "home_column"  # Token is in the final home column
+    FINISHED = "finished"  # Token has reached the center
+
+
 ALL_COLORS = [PlayerColor.RED, PlayerColor.BLUE, PlayerColor.GREEN, PlayerColor.YELLOW]
 
 @dataclass

@@ -2,11 +2,12 @@ from typing import Dict, List, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
-from ludo_engine.core import Token, TokenState
+from ludo_engine.core import Token
 from ludo_engine.models import (
     BoardConstants,
     GameConstants,
     PlayerColor,
+    TokenState,
     ALL_COLORS
 )
 

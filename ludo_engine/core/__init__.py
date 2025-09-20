@@ -6,7 +6,8 @@ Contains the main game logic, board management, players, and tokens.
 from ludo_engine.core.board import Board, Position
 from ludo_engine.core.game import LudoGame
 from ludo_engine.core.player import Player, PlayerColor
-from ludo_engine.core.token import Token, TokenState
+from ludo_engine.core.token import Token
+from ludo_engine.models.model import TokenState
 
 __all__ = [
     "Board",

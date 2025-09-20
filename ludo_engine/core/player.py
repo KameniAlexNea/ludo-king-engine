@@ -6,13 +6,14 @@ Each player has a color and controls 4 tokens.
 from enum import Enum
 from typing import List, Optional, Tuple
 
-from ludo_engine.core.token import Token, TokenState
+from ludo_engine.core.token import Token
 from ludo_engine.models import (
     AIDecisionContext,
     BoardConstants,
     GameConstants,
     PlayerColor,
     PlayerState,
+    TokenState,
     StrategicComponents,
     StrategyConstants,
     ValidMove,
@@ -39,8 +40,8 @@ class Player:
         self.tokens: List[Token] = []
         self.strategy: Strategy = strategy
 
-        # Create 4 tokens for this player
-        for i in range(4):
+        # Create tokens for this player
+        for i in range(GameConstants.TOKENS_TO_WIN):
             token = Token(token_id=i, player_color=color, state=TokenState.HOME)
             self.tokens.append(token)
 
