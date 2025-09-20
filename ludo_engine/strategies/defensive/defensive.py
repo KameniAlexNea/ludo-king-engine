@@ -22,7 +22,7 @@ from ludo_engine.models.constants import (
     GameConstants,
     StrategyConstants,
 )
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, MoveType, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     LARGE_THREAT_COUNT,
@@ -61,12 +61,12 @@ class DefensiveStrategy(Strategy):
         my_positions = get_my_main_positions(game_context)
 
         # 1. Finish immediately
-        fin = self._get_move_by_type(moves, "finish")
+        fin = self._get_move_by_type(moves, MoveType.FINISH)
         if fin:
             return fin.token_id
 
         # 2. Deep home column advancement (prefer depth)
-        home_moves = self._get_moves_by_type(moves, "advance_home_column")
+        home_moves = self._get_moves_by_type(moves, MoveType.ADVANCE_HOME_COLUMN)
         if home_moves:
             best_home = max(
                 home_moves,

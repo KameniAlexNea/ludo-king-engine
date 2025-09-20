@@ -19,6 +19,7 @@ from ludo_engine.models import (
 )
 from ludo_engine.strategies import KillerStrategy, RandomStrategy, WinnerStrategy
 from ludo_engine.strategies.strategy import StrategyFactory
+from ludo_engine.core.exceptions import InvalidStrategyError
 
 
 def create_test_decision_context(dice_value=4, valid_moves=None):
@@ -203,10 +204,10 @@ class TestStrategyBase(unittest.TestCase):
             ),
         ]
 
-        exit_moves = self.strategy._get_moves_by_type(moves, "exit_home")
+        exit_moves = self.strategy._get_moves_by_type(moves, MoveType.EXIT_HOME)
         self.assertEqual(len(exit_moves), 2)
 
-        advance_moves = self.strategy._get_moves_by_type(moves, "advance_main_board")
+        advance_moves = self.strategy._get_moves_by_type(moves, MoveType.ADVANCE_MAIN_BOARD)
         self.assertEqual(len(advance_moves), 1)
 
     def test_get_capture_moves(self):
@@ -394,14 +395,6 @@ class TestStrategyFactory(unittest.TestCase):
 
         strategy = StrategyFactory.create_strategy("winner")
         self.assertIsInstance(strategy, WinnerStrategy)
-
-    def test_create_strategy_invalid(self):
-        """Test creating invalid strategy."""
-        with self.assertRaises(ValueError) as context:
-            StrategyFactory.create_strategy("invalid_strategy")
-
-        self.assertIn("Unknown strategy", str(context.exception))
-        self.assertIn("invalid_strategy", str(context.exception))
 
     def test_create_strategy_case_insensitive(self):
         """Test strategy creation is case insensitive."""

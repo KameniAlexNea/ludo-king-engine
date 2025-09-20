@@ -238,11 +238,11 @@ class ProbabilisticV2Strategy(Strategy):
 
         # finishing and home column
         mt = move.move_type
-        if mt == "finish":
+        if mt == MoveType.FINISH:
             opportunity += 4.0
-        elif mt == "advance_home_column":
+        elif mt == MoveType.ADVANCE_HOME_COLUMN:
             opportunity += 2.0
-        elif mt == "exit_home":
+        elif mt == MoveType.EXIT_HOME:
             opportunity += 1.2
 
         # safety

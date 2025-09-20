@@ -8,7 +8,7 @@ behind late game.
 from typing import List, Set
 
 from ludo_engine.models.constants import BoardConstants, StrategyConstants
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, MoveType, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     LARGE_THREAT_COUNT,
@@ -49,12 +49,12 @@ class CautiousStrategy(Strategy):
         threat_info = compute_threats_for_moves(moves, game_context)
 
         # 1. Finish
-        finish_move = self._get_move_by_type(moves, "finish")
+        finish_move = self._get_move_by_type(moves, MoveType.FINISH)
         if finish_move:
             return finish_move.token_id
 
         # 2. Advance in home column (depth preference)
-        home_moves = self._get_moves_by_type(moves, "advance_home_column")
+        home_moves = self._get_moves_by_type(moves, MoveType.ADVANCE_HOME_COLUMN)
         if home_moves:
             # deeper (target_position larger) is safer
             best_home = max(home_moves, key=lambda m: m.target_position)
