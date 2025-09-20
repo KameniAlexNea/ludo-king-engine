@@ -6,9 +6,11 @@ Improved aggressive strategy that now:
     * Uses a unified distance helper for opponent progress estimation
     * Applies graded (not binary) recapture risk based on number of nearby threats
     * Retains predictive positioning as a secondary heuristic
+    * Adds subtle killer personality: bonus for follow-up attack positioning
+    * Includes minor preference for disrupting opponent block coordination
 
 This is an incremental refactor (not a full rewrite) keeping the external
-API and existing detail fields while correcting previous priority inversions.
+API and existing detail fields while adding killer personality traits.
 """
 
 from dataclasses import dataclass
@@ -221,6 +223,11 @@ class KillerStrategy(Strategy):
             penalty2 = StrategyConstants.KILLER_WEAK_PREY_PENALTY
             score -= penalty2
 
+        # Killer instinct: Small bonus for positioning to strike again
+        if not mv.is_safe_move and threat_count <= 1:
+            killer_bonus = min(3.0, mv.strategic_value * 0.1)  # Very small bonus
+            score += killer_bonus
+
         return score
 
     # --- Predictive positioning ---
@@ -249,7 +256,16 @@ class KillerStrategy(Strategy):
             stack_bonus = (
                 0.5 if (mv.strategic_value > 10 and not mv.is_safe_move) else 0.0
             )
-            score = count * StrategyConstants.KILLER_FUTURE_CAPTURE_WEIGHT + stack_bonus
+            # Killer bonus: Tiny preference for disrupting opponent blocks
+            killer_bonus = 0.0
+            if not mv.is_safe_move:
+                # Check if this disrupts opponent coordination
+                from collections import Counter
+                position_counts = Counter(opponent_positions)
+                if landing in [pos for pos, count in position_counts.items() if count >= 2]:
+                    killer_bonus = 1.0  # Very small disruption bonus
+
+            score = count * StrategyConstants.KILLER_FUTURE_CAPTURE_WEIGHT + stack_bonus + killer_bonus
             if score > 0:
                 scored.append((score, mv))
 

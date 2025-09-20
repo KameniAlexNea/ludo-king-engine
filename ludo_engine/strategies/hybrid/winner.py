@@ -51,7 +51,7 @@ class WinnerStrategy(Strategy):
             return best_home.token_id
 
         # 3. Safe capture of meaningful progress (avoid jeopardizing tokens)
-        capture = self._choose_safe_capture(moves)
+        capture = self._choose_best_capture(moves, game_context)
         if capture is not None:
             return capture
 
@@ -74,30 +74,67 @@ class WinnerStrategy(Strategy):
         return best_move.token_id if best_move else 0
 
     # --- Helpers ---
-    def _choose_safe_capture(self, moves: List[ValidMove]) -> Optional[int]:
+    def _choose_best_capture(self, moves: List[ValidMove], game_context: AIDecisionContext) -> Optional[int]:
+        """Choose best capture considering both safety and progress value."""
         capture_moves = self._get_capture_moves(moves)
         if not capture_moves:
             return None
-        # Only consider safe captures
-        safe_caps = [m for m in capture_moves if m.is_safe_move]
-        if not safe_caps:
-            return None
+
         entries = BoardConstants.HOME_COLUMN_ENTRIES
         scored: List[Tuple[float, ValidMove]] = []
-        for mv in safe_caps:
+
+        for mv in capture_moves:
+            # Calculate progress value from captured tokens
             progress_value = 0.0
+            max_progress = 0.0
             for ct in mv.captured_tokens:
                 remaining = self._distance_to_finish_proxy(
                     mv.target_position, entries[ct.player_color]
                 )
-                progress_value += (
-                    (60 - remaining)
-                    * StrategyConstants.WINNER_SAFE_CAPTURE_PROGRESS_WEIGHT
-                    * 0.01
-                )
-            scored.append((progress_value, mv))
+                token_progress = (60 - remaining) * 0.01
+                progress_value += token_progress
+                max_progress = max(max_progress, token_progress)
+
+            # Base score from progress
+            base_score = progress_value * StrategyConstants.WINNER_SAFE_CAPTURE_PROGRESS_WEIGHT
+
+            # Risk assessment for non-safe moves
+            risk_penalty = 0.0
+            if not mv.is_safe_move:
+                # Estimate risk based on opponent proximity
+                opponent_positions = []
+                for opp in game_context.opponents:
+                    opponent_positions.extend(opp.positions_occupied)
+
+                threatening_opponents = 0
+                target_pos = mv.target_position
+                if isinstance(target_pos, int):
+                    for opp_pos in opponent_positions:
+                        if isinstance(opp_pos, int) and 0 <= opp_pos < GameConstants.MAIN_BOARD_SIZE:
+                            # Distance backward from target to opponent
+                            if opp_pos < target_pos:
+                                dist = target_pos - opp_pos
+                            else:
+                                dist = (GameConstants.MAIN_BOARD_SIZE - opp_pos) + target_pos
+
+                            if 1 <= dist <= 6:  # Opponent can reach in 1-6 rolls
+                                threatening_opponents += 1
+
+                # Risk penalty based on threat count
+                if threatening_opponents > 0:
+                    risk_penalty = threatening_opponents * 8.0  # Significant penalty per threat
+
+                # Only accept risky captures if progress value is very high
+                if max_progress < 0.4:  # Less than 40% progress toward finish
+                    risk_penalty += 100.0  # Effectively disqualify low-value risky captures
+
+            final_score = base_score - risk_penalty
+            scored.append((final_score, mv))
+
         if not scored:
             return None
+
+        # Return the highest scoring capture
         best = max(scored, key=lambda x: x[0])[1]
         return best.token_id
 
