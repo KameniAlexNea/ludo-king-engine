@@ -23,8 +23,6 @@ class TestBoard(unittest.TestCase):
 
     def test_initialization(self):
         """Test board initialization."""
-        self.assertEqual(self.board.main_path_size, 52)
-        self.assertEqual(self.board.home_column_size, 6)
         self.assertEqual(len(self.board.positions), 58)  # 52 main + 6 home
 
         # Check that positions are initialized

@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from ludo_engine.core import LudoGame, Player, PlayerColor, TokenState
-from ludo_engine.models import AIDecisionContext, BoardConstants, TurnResult, ValidMove
+from ludo_engine.models import AIDecisionContext, BoardConstants, MoveType, TurnResult, ValidMove
 from ludo_engine.strategies import RandomStrategy
 
 
@@ -109,7 +109,7 @@ class TestLudoGame(unittest.TestCase):
         self.assertEqual(len(valid_moves), 4)
 
         for move in valid_moves:
-            self.assertEqual(move.move_type, "exit_home")
+            self.assertEqual(move.move_type, MoveType.EXIT_HOME)
             self.assertEqual(move.current_position, -1)
             self.assertEqual(move.target_position, current_player.start_position)
 
@@ -229,7 +229,7 @@ class TestLudoGame(unittest.TestCase):
 
         for move in context.valid_moves:
             self.assertIsInstance(move, ValidMove)
-            self.assertEqual(move.move_type, "exit_home")
+            self.assertEqual(move.move_type, MoveType.EXIT_HOME)
 
     def test_play_turn_with_ai_player(self):
         """Test playing turn with AI player."""

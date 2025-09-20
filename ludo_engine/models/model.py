@@ -26,6 +26,15 @@ class TokenState(Enum):
     FINISHED = "finished"  # Token has reached the center
 
 
+class MoveType(Enum):
+    """Possible types of moves in the Ludo game."""
+
+    EXIT_HOME = "exit_home"  # Token leaving home area
+    ADVANCE_MAIN_BOARD = "advance_main_board"  # Token moving on main board
+    ADVANCE_HOME_COLUMN = "advance_home_column"  # Token moving in home column
+    FINISH = "finish"  # Token reaching the center
+
+
 ALL_COLORS = [PlayerColor.RED, PlayerColor.BLUE, PlayerColor.GREEN, PlayerColor.YELLOW]
 
 @dataclass
@@ -75,7 +84,7 @@ class ValidMove:
     current_position: int
     current_state: str
     target_position: int
-    move_type: str
+    move_type: MoveType
     is_safe_move: bool
     captures_opponent: bool
     captured_tokens: List[CapturedToken]

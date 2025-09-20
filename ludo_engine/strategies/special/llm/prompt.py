@@ -62,7 +62,7 @@ def create_prompt(game_context: AIDecisionContext, valid_moves: List[ValidMove])
     moves_info = []
     for i, move in enumerate(valid_moves):
         token_id = move.token_id
-        move_type = move.move_type
+        move_type = move.move_type.value
         strategic_value = move.strategic_value
 
         move_desc = f"Token {token_id}: {move_type} (value: {strategic_value:.2f})"  #

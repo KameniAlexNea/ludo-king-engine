@@ -14,6 +14,7 @@ from ludo_engine.models import (
     CurrentSituation,
     GameConstants,
     MoveResult,
+    MoveType,
     OpponentInfo,
     PlayerConfiguration,
     StrategicAnalysis,
@@ -466,8 +467,8 @@ class LudoGame:
     ) -> StrategicAnalysis:
         """Analyze the strategic situation for AI decision making."""
         can_capture = any(move.captures_opponent for move in valid_moves)
-        can_finish_token = any(move.move_type == "finish" for move in valid_moves)
-        can_exit_home = any(move.move_type == "exit_home" for move in valid_moves)
+        can_finish_token = any(move.move_type == MoveType.FINISH for move in valid_moves)
+        can_exit_home = any(move.move_type == MoveType.EXIT_HOME for move in valid_moves)
         safe_moves = [move for move in valid_moves if move.is_safe_move]
         risky_moves = [move for move in valid_moves if not move.is_safe_move]
 

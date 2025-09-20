@@ -12,6 +12,7 @@ from ludo_engine.models import (
     AIDecisionContext,
     CurrentSituation,
     GameConstants,
+    MoveType,
     OpponentInfo,
     PlayerState,
     StrategicAnalysis,
@@ -29,7 +30,7 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
                 current_position=5,
                 current_state="active",
                 target_position=9,
-                move_type="advance_main_board",
+                move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -226,7 +227,7 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual(len(moves), 4)
         for move in moves:
             self.assertIsInstance(move, ValidMove)
-            self.assertEqual(move.move_type, "exit_home")
+            self.assertEqual(move.move_type, MoveType.EXIT_HOME)
             self.assertEqual(move.current_position, -1)
             self.assertEqual(move.target_position, self.player.start_position)
 
@@ -243,7 +244,7 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual(move.token_id, 0)
         self.assertEqual(move.current_position, 5)
         self.assertEqual(move.target_position, 9)
-        self.assertEqual(move.move_type, "advance_main_board")
+        self.assertEqual(move.move_type, MoveType.ADVANCE_MAIN_BOARD)
 
     def test_calculate_strategic_value_exit_home(self):
         """Test strategic value calculation for exiting home."""
@@ -330,7 +331,7 @@ class TestPlayer(unittest.TestCase):
                     current_position=-1,
                     current_state="home",
                     target_position=0,
-                    move_type="exit_home",
+                    move_type=MoveType.EXIT_HOME,
                     is_safe_move=True,
                     captures_opponent=False,
                     captured_tokens=[],
@@ -373,22 +374,22 @@ class TestPlayer(unittest.TestCase):
         """Test move type detection for different scenarios."""
         # Exit home
         move_type = self.player._get_move_type(self.player.tokens[0], 6)
-        self.assertEqual(move_type, "exit_home")
+        self.assertEqual(move_type, MoveType.EXIT_HOME)
 
         # Active token
         self.player.tokens[0].state = TokenState.ACTIVE
         move_type = self.player._get_move_type(self.player.tokens[0], 4)
-        self.assertEqual(move_type, "advance_main_board")
+        self.assertEqual(move_type, MoveType.ADVANCE_MAIN_BOARD)
 
         # Home column
         self.player.tokens[0].state = TokenState.HOME_COLUMN
         move_type = self.player._get_move_type(self.player.tokens[0], 3)
-        self.assertEqual(move_type, "advance_home_column")
+        self.assertEqual(move_type, MoveType.ADVANCE_HOME_COLUMN)
 
         # Finish
         self.player.tokens[0].position = GameConstants.FINISH_POSITION - 1
         move_type = self.player._get_move_type(self.player.tokens[0], 1)
-        self.assertEqual(move_type, "finish")
+        self.assertEqual(move_type, MoveType.FINISH)
 
     def test_safe_move_detection(self):
         """Test safe move detection."""

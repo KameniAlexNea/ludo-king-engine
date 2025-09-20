@@ -11,6 +11,7 @@ from ludo_engine.models import (
     AIDecisionContext,
     BoardConstants,
     GameConstants,
+    MoveType,
     PlayerColor,
     PlayerState,
     TokenState,
@@ -190,16 +191,16 @@ class Player:
 
         return possible_moves
 
-    def _get_move_type(self, token: Token, dice_value: int) -> str:
+    def _get_move_type(self, token: Token, dice_value: int) -> MoveType:
         """Determine the type of move being made."""
         if token.is_in_home() and dice_value == GameConstants.EXIT_HOME_ROLL:
-            return "exit_home"
+            return MoveType.EXIT_HOME
         if token.is_in_home_column():
             target = token.get_target_position(dice_value, self.start_position)
             if target == GameConstants.FINISH_POSITION:
-                return "finish"
-            return "advance_home_column"
-        return "advance_main_board"
+                return MoveType.FINISH
+            return MoveType.ADVANCE_HOME_COLUMN
+        return MoveType.ADVANCE_MAIN_BOARD
 
     def _is_safe_move(self, token: Token, target_position: int) -> bool:
         """Check if the target position is a safe square."""
@@ -343,7 +344,7 @@ class Player:
 
         # Simple priority: finish > capture > exit > highest value
         for move in valid_moves:
-            if move.move_type == "finish":
+            if move.move_type == MoveType.FINISH:
                 return move.token_id
 
         for move in valid_moves:
@@ -351,7 +352,7 @@ class Player:
                 return move.token_id
 
         for move in valid_moves:
-            if move.move_type == "exit_home":
+            if move.move_type == MoveType.EXIT_HOME:
                 return move.token_id
 
         # Choose highest strategic value

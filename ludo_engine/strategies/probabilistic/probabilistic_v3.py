@@ -42,7 +42,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence
 
 from ludo_engine.models.constants import BoardConstants, GameConstants
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, MoveType, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
     get_my_main_positions,
@@ -182,7 +182,7 @@ class ProbabilisticV3Strategy(Strategy):
         scored_moves: List[V3MoveEvaluation] = []
 
         for mv in moves:
-            if mv.move_type == "finish":
+            if mv.move_type == MoveType.FINISH:
                 # Immediate finish trump
                 return mv.token_id
 
@@ -298,7 +298,7 @@ class ProbabilisticV3Strategy(Strategy):
         if not isinstance(tgt, int):
             return 0.0
         if (
-            move.move_type == "finish"
+            move.move_type == MoveType.FINISH
             or (isinstance(tgt, int) and tgt >= BoardConstants.HOME_COLUMN_START)
             or move.is_safe_move
         ):
@@ -319,7 +319,7 @@ class ProbabilisticV3Strategy(Strategy):
         if not isinstance(tgt, int):
             return 0.0
         if (
-            move.move_type == "finish"
+            move.move_type == MoveType.FINISH
             or move.is_safe_move
             or (isinstance(tgt, int) and tgt >= BoardConstants.HOME_COLUMN_START)
         ):
@@ -506,7 +506,7 @@ class ProbabilisticV3Strategy(Strategy):
 
     def _spread_bonus(self, move: ValidMove, baseline_active: int) -> float:
         # If exiting home increases number of active tokens
-        if move.move_type == "exit_home" and baseline_active == 0:
+        if move.move_type == MoveType.EXIT_HOME and baseline_active == 0:
             return self.cfg.spread_bonus_value
         return 0.0
 
