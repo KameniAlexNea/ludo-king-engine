@@ -155,11 +155,11 @@ class TestStrategyBase(unittest.TestCase):
             ),
         ]
 
-        exit_move = self.strategy._get_move_by_type(moves, "exit_home")
+        exit_move = self.strategy._get_move_by_type(moves, MoveType.EXIT_HOME)
         self.assertIsNotNone(exit_move)
         self.assertEqual(exit_move.move_type, MoveType.EXIT_HOME)
 
-        capture_move = self.strategy._get_move_by_type(moves, "capture")
+        capture_move = self.strategy._get_move_by_type(moves, MoveType.FINISH)
         self.assertIsNone(capture_move)  # No capture moves
 
     def test_get_moves_by_type(self):
@@ -203,10 +203,10 @@ class TestStrategyBase(unittest.TestCase):
             ),
         ]
 
-        exit_moves = self.strategy._get_moves_by_type(moves, "exit_home")
+        exit_moves = self.strategy._get_moves_by_type(moves, MoveType.EXIT_HOME)
         self.assertEqual(len(exit_moves), 2)
 
-        advance_moves = self.strategy._get_moves_by_type(moves, "advance_main_board")
+        advance_moves = self.strategy._get_moves_by_type(moves, MoveType.ADVANCE_MAIN_BOARD)
         self.assertEqual(len(advance_moves), 1)
 
     def test_get_capture_moves(self):

@@ -115,7 +115,7 @@ class KillerStrategy(Strategy):
             return predictive_choice
 
         # 4. Exit home to increase board presence
-        exit_move = self._get_move_by_type(moves, "exit_home")
+        exit_move = self._get_move_by_type(moves, MoveType.EXIT_HOME)
         if exit_move:
             return exit_move.token_id
 
