@@ -6,7 +6,7 @@ Tests cover movement logic, state transitions, position calculations, and edge c
 import unittest
 
 from ludo_engine.core import Token, TokenState
-from ludo_engine.models import BoardConstants, GameConstants
+from ludo_engine.models import BoardConstants, GameConstants, PlayerColor
 
 
 class TestToken(unittest.TestCase):
@@ -14,13 +14,13 @@ class TestToken(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.token = Token(token_id=0, player_color="red")
-        self.start_position = BoardConstants.START_POSITIONS["red"]
+        self.token = Token(token_id=0, player_color=PlayerColor.RED)
+        self.start_position = BoardConstants.START_POSITIONS[PlayerColor.RED]
 
     def test_initialization(self):
         """Test token initialization."""
         self.assertEqual(self.token.token_id, 0)
-        self.assertEqual(self.token.player_color, "red")
+        self.assertEqual(self.token.player_color, PlayerColor.RED)
         self.assertEqual(self.token.state, TokenState.HOME)
         self.assertEqual(self.token.position, -1)
 

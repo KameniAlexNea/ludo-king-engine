@@ -5,7 +5,6 @@ Contains dataclasses, enums, and game constants.
 
 from ludo_engine.models.constants import (
     BoardConstants,
-    Colors,
     GameConstants,
     StrategyConstants,
 )
@@ -17,6 +16,7 @@ from ludo_engine.models.model import (
     CurrentSituation,
     MoveResult,
     OpponentInfo,
+    PlayerColor,
     PlayerConfiguration,
     PlayerState,
     PositionInfo,

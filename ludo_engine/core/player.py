@@ -11,21 +11,13 @@ from ludo_engine.models import (
     AIDecisionContext,
     BoardConstants,
     GameConstants,
+    PlayerColor,
     PlayerState,
     StrategicComponents,
     StrategyConstants,
     ValidMove,
 )
 from ludo_engine.strategies import Strategy
-
-
-class PlayerColor(Enum):
-    """Available player colors in Ludo."""
-
-    RED = "red"
-    BLUE = "blue"
-    GREEN = "green"
-    YELLOW = "yellow"
 
 
 class Player:
@@ -49,12 +41,12 @@ class Player:
 
         # Create 4 tokens for this player
         for i in range(4):
-            token = Token(token_id=i, player_color=color.value, state=TokenState.HOME)
+            token = Token(token_id=i, player_color=color, state=TokenState.HOME)
             self.tokens.append(token)
 
         # Starting positions for each color on the board
         self.start_positions = BoardConstants.START_POSITIONS
-        self.start_position = self.start_positions[color.value]
+        self.start_position = self.start_positions[color]
 
     def player_positions(self) -> List[int]:
         """Get current positions of all tokens for this player."""
@@ -136,7 +128,7 @@ class Player:
 
         return PlayerState(
             player_id=self.player_id,
-            color=self.color.value,
+            color=self.color,
             start_position=self.start_position,
             tokens=tokens_info,
             tokens_in_home=sum(1 for token in self.tokens if token.is_in_home()),
@@ -210,7 +202,7 @@ class Player:
 
     def _is_safe_move(self, token: Token, target_position: int) -> bool:
         """Check if the target position is a safe square."""
-        return BoardConstants.is_safe_position(target_position, self.color.value)
+        return BoardConstants.is_safe_position(target_position, self.color)
 
     def _calculate_strategic_value(
         self, token: Token, dice_value: int, target_position: Optional[int] = None

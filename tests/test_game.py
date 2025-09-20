@@ -287,7 +287,7 @@ class TestLudoGame(unittest.TestCase):
         # Only blue token should remain at position 10
         tokens_at_pos = game.board.get_tokens_at_position(10)
         self.assertEqual(len(tokens_at_pos), 1)
-        self.assertEqual(tokens_at_pos[0].player_color, PlayerColor.BLUE.value)
+        self.assertEqual(tokens_at_pos[0].player_color, PlayerColor.BLUE)
 
         # Red token should be back in home
         self.assertEqual(red_token.state, TokenState.HOME)

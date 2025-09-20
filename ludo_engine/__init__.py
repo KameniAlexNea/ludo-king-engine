@@ -14,7 +14,6 @@ from ludo_engine.core import (
 )
 from ludo_engine.models.constants import (
     BoardConstants,
-    Colors,
     GameConstants,
     StrategyConstants,
 )

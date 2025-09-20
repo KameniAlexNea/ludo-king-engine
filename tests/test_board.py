@@ -69,40 +69,40 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(token_red2, 5)
 
         # Should be tracked as multi-token position
-        self.assertIn(5, self.board._multi_token_positions[PlayerColor.RED.value])
+        self.assertIn(5, self.board._multi_token_positions[PlayerColor.RED])
 
         # Remove one token
         self.board.remove_token(self.token_red, 5)
 
         # Should no longer be tracked (now has only 1 token)
-        self.assertNotIn(5, self.board._multi_token_positions[PlayerColor.RED.value])
+        self.assertNotIn(5, self.board._multi_token_positions[PlayerColor.RED])
 
         # Remove second token
         self.board.remove_token(token_red2, 5)
 
         # Should still not be tracked
-        self.assertNotIn(5, self.board._multi_token_positions[PlayerColor.RED.value])
+        self.assertNotIn(5, self.board._multi_token_positions[PlayerColor.RED])
 
     def test_is_position_safe(self):
         """Test safe position detection."""
         # Star positions are safe
         for pos in BoardConstants.STAR_SQUARES:
-            self.assertTrue(self.board.is_position_safe(pos, "red"))
-            self.assertTrue(self.board.is_position_safe(pos, "blue"))
+            self.assertTrue(self.board.is_position_safe(pos, PlayerColor.RED))
+            self.assertTrue(self.board.is_position_safe(pos, PlayerColor.BLUE))
 
         # Colored safe squares
-        red_safe = BoardConstants.COLORED_SAFE_SQUARES["red"]
+        red_safe = BoardConstants.COLORED_SAFE_SQUARES[PlayerColor.RED]
         for pos in red_safe:
-            self.assertTrue(self.board.is_position_safe(pos, "red"))
+            self.assertTrue(self.board.is_position_safe(pos, PlayerColor.RED))
             # Starting positions are safe for everyone, not just the owning color
             if pos in BoardConstants.START_POSITIONS.values():
-                self.assertTrue(self.board.is_position_safe(pos, "blue"))
+                self.assertTrue(self.board.is_position_safe(pos, PlayerColor.BLUE))
             else:
-                self.assertFalse(self.board.is_position_safe(pos, "blue"))
+                self.assertFalse(self.board.is_position_safe(pos, PlayerColor.BLUE))
 
         # Regular positions are not safe
-        self.assertFalse(self.board.is_position_safe(5, "red"))
-        self.assertFalse(self.board.is_position_safe(15, "blue"))
+        self.assertFalse(self.board.is_position_safe(5, PlayerColor.RED))
+        self.assertFalse(self.board.is_position_safe(15, PlayerColor.BLUE))
 
     def test_can_move_to_position_empty(self):
         """Test moving to empty position."""

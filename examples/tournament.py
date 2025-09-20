@@ -165,11 +165,11 @@ class LudoTournament:
             turns = list(game.play_game(max_turns=self.max_turns))
             total_turns += len(turns)
 
-            winner = game.winner.color.value if game.winner else None
+            winner = game.winner.color if game.winner else None
 
-            if winner == PlayerColor.RED.value:  # Home team
+            if winner == PlayerColor.RED:  # Home team
                 home_wins += 1
-            elif winner == PlayerColor.GREEN.value:  # Away team
+            elif winner == PlayerColor.GREEN:  # Away team
                 away_wins += 1
             # If no winner, it's a draw (no points added)
 

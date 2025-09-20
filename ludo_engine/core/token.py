@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from ludo_engine.models.constants import BoardConstants, GameConstants
-from ludo_engine.models.model import TokenInfo
+from ludo_engine.models.model import PlayerColor, TokenInfo
 
 
 class TokenState(Enum):
@@ -26,7 +26,7 @@ class Token:
     """
 
     token_id: int  # 0, 1, 2, 3 for each player
-    player_color: str
+    player_color: PlayerColor
     state: TokenState = TokenState.HOME
     position: int = (
         -1
@@ -220,4 +220,4 @@ class Token:
 
     def __str__(self) -> str:
         """String representation of the token."""
-        return f"Token({self.player_color}_{self.token_id}: {self.state.value} at {self.position})"
+        return f"Token({self.player_color.value}_{self.token_id}: {self.state.value} at {self.position})"

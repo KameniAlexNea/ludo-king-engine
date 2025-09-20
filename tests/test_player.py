@@ -40,14 +40,14 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
 
     return AIDecisionContext(
         current_situation=CurrentSituation(
-            player_color="red",
+            player_color=PlayerColor.RED,
             dice_value=dice_value,
             consecutive_sixes=0,
             turn_count=1,
         ),
         player_state=PlayerState(
             player_id=0,
-            color="red",
+            color=PlayerColor.RED,
             start_position=0,
             tokens=[],
             tokens_in_home=4,
@@ -99,7 +99,7 @@ class TestPlayer(unittest.TestCase):
         # Check tokens are properly initialized
         for i, token in enumerate(fresh_player.tokens):
             self.assertEqual(token.token_id, i)
-            self.assertEqual(token.player_color, PlayerColor.RED.value)
+            self.assertEqual(token.player_color, PlayerColor.RED)
             self.assertEqual(token.state, TokenState.HOME)
             self.assertEqual(token.position, -1)
 
@@ -213,7 +213,7 @@ class TestPlayer(unittest.TestCase):
         state = self.player.get_game_state()
 
         self.assertEqual(state.player_id, 0)
-        self.assertEqual(state.color, PlayerColor.RED.value)
+        self.assertEqual(state.color, PlayerColor.RED)
         self.assertEqual(state.tokens_in_home, 4)
         self.assertEqual(state.active_tokens, 0)
         self.assertEqual(state.finished_tokens, 0)
