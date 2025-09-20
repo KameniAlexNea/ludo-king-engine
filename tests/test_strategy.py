@@ -9,9 +9,12 @@ from unittest.mock import patch
 from ludo_engine.models import (
     AIDecisionContext,
     CurrentSituation,
+    MoveType,
     OpponentInfo,
+    PlayerColor,
     PlayerState,
     StrategicAnalysis,
+    TokenState,
     ValidMove,
 )
 from ludo_engine.strategies import KillerStrategy, RandomStrategy, WinnerStrategy
@@ -25,9 +28,9 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
             ValidMove(
                 token_id=0,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=9,
-                move_type="advance_main_board",
+                move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -38,14 +41,14 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
 
     return AIDecisionContext(
         current_situation=CurrentSituation(
-            player_color="red",
+            player_color=PlayerColor.RED,
             dice_value=dice_value,
             consecutive_sixes=0,
             turn_count=1,
         ),
         player_state=PlayerState(
             player_id=0,
-            color="red",
+            color=PlayerColor.RED,
             start_position=0,
             tokens=[],
             tokens_in_home=4,
@@ -57,7 +60,7 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
         ),
         opponents=[
             OpponentInfo(
-                color="blue",
+                color=PlayerColor.BLUE,
                 finished_tokens=0,
                 tokens_active=1,
                 threat_level=0.2,
@@ -96,9 +99,9 @@ class TestStrategyBase(unittest.TestCase):
                 ValidMove(
                     token_id=0,
                     current_position=-1,
-                    current_state="home",
+                    current_state=TokenState.HOME,
                     target_position=0,
-                    move_type="exit_home",
+                    move_type=MoveType.EXIT_HOME,
                     is_safe_move=True,
                     captures_opponent=False,
                     captured_tokens=[],
@@ -108,9 +111,9 @@ class TestStrategyBase(unittest.TestCase):
                 ValidMove(
                     token_id=1,
                     current_position=-1,
-                    current_state="home",
+                    current_state=TokenState.HOME,
                     target_position=0,
-                    move_type="exit_home",
+                    move_type=MoveType.EXIT_HOME,
                     is_safe_move=True,
                     captures_opponent=False,
                     captured_tokens=[],
@@ -129,9 +132,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=0,
                 current_position=-1,
-                current_state="home",
+                current_state=TokenState.HOME,
                 target_position=0,
-                move_type="exit_home",
+                move_type=MoveType.EXIT_HOME,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -141,9 +144,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=1,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=10,
-                move_type="advance_main_board",
+                move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
                 captures_opponent=True,
                 captured_tokens=[],
@@ -152,11 +155,11 @@ class TestStrategyBase(unittest.TestCase):
             ),
         ]
 
-        exit_move = self.strategy._get_move_by_type(moves, "exit_home")
+        exit_move = self.strategy._get_move_by_type(moves, MoveType.EXIT_HOME)
         self.assertIsNotNone(exit_move)
-        self.assertEqual(exit_move.move_type, "exit_home")
+        self.assertEqual(exit_move.move_type, MoveType.EXIT_HOME)
 
-        capture_move = self.strategy._get_move_by_type(moves, "capture")
+        capture_move = self.strategy._get_move_by_type(moves, MoveType.FINISH)
         self.assertIsNone(capture_move)  # No capture moves
 
     def test_get_moves_by_type(self):
@@ -165,9 +168,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=0,
                 current_position=-1,
-                current_state="home",
+                current_state=TokenState.HOME,
                 target_position=0,
-                move_type="exit_home",
+                move_type=MoveType.EXIT_HOME,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -177,9 +180,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=1,
                 current_position=-1,
-                current_state="home",
+                current_state=TokenState.HOME,
                 target_position=0,
-                move_type="exit_home",
+                move_type=MoveType.EXIT_HOME,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -189,9 +192,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=2,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=10,
-                move_type="advance_main_board",
+                move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -200,10 +203,12 @@ class TestStrategyBase(unittest.TestCase):
             ),
         ]
 
-        exit_moves = self.strategy._get_moves_by_type(moves, "exit_home")
+        exit_moves = self.strategy._get_moves_by_type(moves, MoveType.EXIT_HOME)
         self.assertEqual(len(exit_moves), 2)
 
-        advance_moves = self.strategy._get_moves_by_type(moves, "advance_main_board")
+        advance_moves = self.strategy._get_moves_by_type(
+            moves, MoveType.ADVANCE_MAIN_BOARD
+        )
         self.assertEqual(len(advance_moves), 1)
 
     def test_get_capture_moves(self):
@@ -212,9 +217,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=0,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=10,
-                move_type="advance_main_board",
+                move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
                 captures_opponent=True,
                 captured_tokens=[],
@@ -224,9 +229,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=1,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=15,
-                move_type="advance_main_board",
+                move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -245,9 +250,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=0,
                 current_position=-1,
-                current_state="home",
+                current_state=TokenState.HOME,
                 target_position=0,
-                move_type="exit_home",
+                move_type=MoveType.EXIT_HOME,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -257,9 +262,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=1,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=10,
-                move_type="advance_main_board",
+                move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -278,9 +283,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=0,
                 current_position=-1,
-                current_state="home",
+                current_state=TokenState.HOME,
                 target_position=0,
-                move_type="exit_home",
+                move_type=MoveType.EXIT_HOME,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -290,9 +295,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=1,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=10,
-                move_type="advance_main_board",
+                move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -311,9 +316,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=0,
                 current_position=-1,
-                current_state="home",
+                current_state=TokenState.HOME,
                 target_position=0,
-                move_type="exit_home",
+                move_type=MoveType.EXIT_HOME,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -323,9 +328,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=1,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=10,
-                move_type="advance_main_board",
+                move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -344,9 +349,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=0,
                 current_position=-1,
-                current_state="home",
+                current_state=TokenState.HOME,
                 target_position=0,
-                move_type="exit_home",
+                move_type=MoveType.EXIT_HOME,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -356,9 +361,9 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=1,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=10,
-                move_type="advance_main_board",
+                move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -457,9 +462,9 @@ class TestRandomStrategy(unittest.TestCase):
                 ValidMove(
                     token_id=0,
                     current_position=-1,
-                    current_state="home",
+                    current_state=TokenState.HOME,
                     target_position=0,
-                    move_type="exit_home",
+                    move_type=MoveType.EXIT_HOME,
                     is_safe_move=True,
                     captures_opponent=False,
                     captured_tokens=[],
@@ -469,9 +474,9 @@ class TestRandomStrategy(unittest.TestCase):
                 ValidMove(
                     token_id=1,
                     current_position=-1,
-                    current_state="home",
+                    current_state=TokenState.HOME,
                     target_position=0,
-                    move_type="exit_home",
+                    move_type=MoveType.EXIT_HOME,
                     is_safe_move=True,
                     captures_opponent=False,
                     captured_tokens=[],
@@ -514,9 +519,9 @@ class TestKillerStrategy(unittest.TestCase):
                 ValidMove(
                     token_id=0,
                     current_position=5,
-                    current_state="active",
+                    current_state=TokenState.ACTIVE,
                     target_position=10,
-                    move_type="advance_main_board",
+                    move_type=MoveType.ADVANCE_MAIN_BOARD,
                     is_safe_move=False,
                     captures_opponent=True,
                     captured_tokens=[],
@@ -526,9 +531,9 @@ class TestKillerStrategy(unittest.TestCase):
                 ValidMove(
                     token_id=1,
                     current_position=5,
-                    current_state="active",
+                    current_state=TokenState.ACTIVE,
                     target_position=15,
-                    move_type="advance_main_board",
+                    move_type=MoveType.ADVANCE_MAIN_BOARD,
                     is_safe_move=False,
                     captures_opponent=False,
                     captured_tokens=[],
@@ -562,9 +567,9 @@ class TestWinnerStrategy(unittest.TestCase):
                 ValidMove(
                     token_id=0,
                     current_position=104,
-                    current_state="home_column",
+                    current_state=TokenState.HOME_COLUMN,
                     target_position=105,
-                    move_type="finish",
+                    move_type=MoveType.FINISH,
                     is_safe_move=True,
                     captures_opponent=False,
                     captured_tokens=[],
@@ -574,9 +579,9 @@ class TestWinnerStrategy(unittest.TestCase):
                 ValidMove(
                     token_id=1,
                     current_position=5,
-                    current_state="active",
+                    current_state=TokenState.ACTIVE,
                     target_position=10,
-                    move_type="advance_main_board",
+                    move_type=MoveType.ADVANCE_MAIN_BOARD,
                     is_safe_move=False,
                     captures_opponent=True,
                     captured_tokens=[],

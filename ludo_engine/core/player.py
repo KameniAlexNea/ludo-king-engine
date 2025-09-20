@@ -3,29 +3,22 @@ Player representation for Ludo game.
 Each player has a color and controls 4 tokens.
 """
 
-from enum import Enum
 from typing import List, Optional, Tuple
 
-from ludo_engine.core.token import Token, TokenState
+from ludo_engine.core.token import Token
 from ludo_engine.models import (
     AIDecisionContext,
     BoardConstants,
     GameConstants,
+    MoveType,
+    PlayerColor,
     PlayerState,
     StrategicComponents,
     StrategyConstants,
+    TokenState,
     ValidMove,
 )
 from ludo_engine.strategies import Strategy
-
-
-class PlayerColor(Enum):
-    """Available player colors in Ludo."""
-
-    RED = "red"
-    BLUE = "blue"
-    GREEN = "green"
-    YELLOW = "yellow"
 
 
 class Player:
@@ -47,14 +40,14 @@ class Player:
         self.tokens: List[Token] = []
         self.strategy: Strategy = strategy
 
-        # Create 4 tokens for this player
-        for i in range(4):
-            token = Token(token_id=i, player_color=color.value, state=TokenState.HOME)
+        # Create tokens for this player
+        for i in range(GameConstants.TOKENS_TO_WIN):
+            token = Token(token_id=i, player_color=color, state=TokenState.HOME)
             self.tokens.append(token)
 
         # Starting positions for each color on the board
         self.start_positions = BoardConstants.START_POSITIONS
-        self.start_position = self.start_positions[color.value]
+        self.start_position = self.start_positions[color]
 
     def player_positions(self) -> List[int]:
         """Get current positions of all tokens for this player."""
@@ -136,7 +129,7 @@ class Player:
 
         return PlayerState(
             player_id=self.player_id,
-            color=self.color.value,
+            color=self.color,
             start_position=self.start_position,
             tokens=tokens_info,
             tokens_in_home=sum(1 for token in self.tokens if token.is_in_home()),
@@ -175,7 +168,7 @@ class Player:
                 move_info = ValidMove(
                     token_id=token.token_id,
                     current_position=token.position,
-                    current_state=token.state.value,
+                    current_state=token.state,
                     target_position=target_position,
                     move_type=self._get_move_type(token, dice_value),
                     is_safe_move=self._is_safe_move(token, target_position),
@@ -197,20 +190,20 @@ class Player:
 
         return possible_moves
 
-    def _get_move_type(self, token: Token, dice_value: int) -> str:
+    def _get_move_type(self, token: Token, dice_value: int) -> MoveType:
         """Determine the type of move being made."""
         if token.is_in_home() and dice_value == GameConstants.EXIT_HOME_ROLL:
-            return "exit_home"
+            return MoveType.EXIT_HOME
         if token.is_in_home_column():
             target = token.get_target_position(dice_value, self.start_position)
             if target == GameConstants.FINISH_POSITION:
-                return "finish"
-            return "advance_home_column"
-        return "advance_main_board"
+                return MoveType.FINISH
+            return MoveType.ADVANCE_HOME_COLUMN
+        return MoveType.ADVANCE_MAIN_BOARD
 
     def _is_safe_move(self, token: Token, target_position: int) -> bool:
         """Check if the target position is a safe square."""
-        return BoardConstants.is_safe_position(target_position, self.color.value)
+        return BoardConstants.is_safe_position(target_position, self.color)
 
     def _calculate_strategic_value(
         self, token: Token, dice_value: int, target_position: Optional[int] = None
@@ -269,13 +262,13 @@ class Player:
             components.acceleration = advantage * StrategyConstants.ACCELERATION_WEIGHT
 
         # 5: Safety bonus for landing square
-        if BoardConstants.is_safe_position(target_position, self.color.value):
+        if BoardConstants.is_safe_position(target_position, self.color):
             components.safety = StrategyConstants.SAFETY_BONUS
 
         # 6: Vulnerability penalty (simple placeholder): if not safe and token is active
         # and not entering home column and not finishing, apply penalty.
         if (
-            not BoardConstants.is_safe_position(target_position, self.color.value)
+            not BoardConstants.is_safe_position(target_position, self.color)
             and not BoardConstants.is_home_column_position(target_position)
             and token.is_active()
         ):
@@ -306,7 +299,7 @@ class Player:
 
         # Path: distance to home entry + home column size
         # Find this player's home entry square
-        entry = BoardConstants.HOME_COLUMN_ENTRIES[self.color.value]
+        entry = BoardConstants.HOME_COLUMN_ENTRIES[self.color]
         if position <= entry:
             to_entry = entry - position
         else:
@@ -350,7 +343,7 @@ class Player:
 
         # Simple priority: finish > capture > exit > highest value
         for move in valid_moves:
-            if move.move_type == "finish":
+            if move.move_type == MoveType.FINISH:
                 return move.token_id
 
         for move in valid_moves:
@@ -358,7 +351,7 @@ class Player:
                 return move.token_id
 
         for move in valid_moves:
-            if move.move_type == "exit_home":
+            if move.move_type == MoveType.EXIT_HOME:
                 return move.token_id
 
         # Choose highest strategic value
@@ -380,4 +373,4 @@ class Player:
     def __str__(self) -> str:
         """String representation of the player."""
         strategy_name = self.get_strategy_name()
-        return f"Player({self.color.value}, strategy: {strategy_name}, tokens: {len([t for t in self.tokens if not t.is_in_home()])} active)"
+        return f"Player({self.color}, strategy: {strategy_name}, tokens: {len([t for t in self.tokens if not t.is_in_home()])} active)"

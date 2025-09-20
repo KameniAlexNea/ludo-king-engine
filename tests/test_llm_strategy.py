@@ -11,9 +11,12 @@ from unittest.mock import MagicMock, patch
 from ludo_engine.models import (
     AIDecisionContext,
     CurrentSituation,
+    MoveType,
     OpponentInfo,
+    PlayerColor,
     PlayerState,
     StrategicAnalysis,
+    TokenState,
     ValidMove,
 )
 from ludo_engine.strategies import LLMStrategy
@@ -27,9 +30,9 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
             ValidMove(
                 token_id=0,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=9,
-                move_type="advance_main_board",
+                move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -39,9 +42,9 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
             ValidMove(
                 token_id=1,
                 current_position=10,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=14,
-                move_type="advance_main_board",
+                move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=True,
                 captures_opponent=False,
                 captured_tokens=[],
@@ -52,14 +55,14 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
 
     return AIDecisionContext(
         current_situation=CurrentSituation(
-            player_color="red",
+            player_color=PlayerColor.RED,
             dice_value=dice_value,
             consecutive_sixes=0,
             turn_count=1,
         ),
         player_state=PlayerState(
             player_id=0,
-            color="red",
+            color=PlayerColor.RED,
             start_position=0,
             tokens=[],
             tokens_in_home=4,
@@ -71,7 +74,7 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
         ),
         opponents=[
             OpponentInfo(
-                color="blue",
+                color=PlayerColor.BLUE,
                 finished_tokens=0,
                 tokens_active=1,
                 threat_level=0.2,
@@ -273,9 +276,9 @@ class TestLLMStrategy(unittest.TestCase):
         capture_move = ValidMove(
             token_id=0,
             current_position=5,
-            current_state="active",
+            current_state=TokenState.ACTIVE,
             target_position=10,
-            move_type="advance_main_board",
+            move_type=MoveType.ADVANCE_MAIN_BOARD,
             is_safe_move=False,
             captures_opponent=True,
             captured_tokens=[],
@@ -295,9 +298,9 @@ class TestLLMStrategy(unittest.TestCase):
         home_move = ValidMove(
             token_id=0,
             current_position=100,
-            current_state="home_column",
+            current_state=TokenState.HOME_COLUMN,
             target_position=102,
-            move_type="advance_home_column",
+            move_type=MoveType.ADVANCE_HOME_COLUMN,
             is_safe_move=True,
             captures_opponent=False,
             captured_tokens=[],

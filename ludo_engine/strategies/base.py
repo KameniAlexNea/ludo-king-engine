@@ -36,19 +36,29 @@ class Strategy(ABC):
         return game_context.valid_moves
 
     def _get_move_by_type(
-        self, valid_moves: List[ValidMove], move_type: str
+        self, valid_moves: List[ValidMove], move_type
     ) -> Optional[ValidMove]:
         """Get first move of specified type."""
         for move in valid_moves:
             if move.move_type == move_type:
                 return move
+            # Handle string comparison for backward compatibility
+            if isinstance(move_type, str) and move.move_type.value == move_type:
+                return move
         return None
 
     def _get_moves_by_type(
-        self, valid_moves: List[ValidMove], move_type: str
+        self, valid_moves: List[ValidMove], move_type
     ) -> List[ValidMove]:
         """Get all moves of specified type."""
-        return [move for move in valid_moves if move.move_type == move_type]
+        result = []
+        for move in valid_moves:
+            if move.move_type == move_type:
+                result.append(move)
+            # Handle string comparison for backward compatibility
+            elif isinstance(move_type, str) and move.move_type.value == move_type:
+                result.append(move)
+        return result
 
     def _get_capture_moves(self, valid_moves: List[ValidMove]) -> List[ValidMove]:
         """Get all moves that capture opponents."""

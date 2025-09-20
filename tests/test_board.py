@@ -23,8 +23,6 @@ class TestBoard(unittest.TestCase):
 
     def test_initialization(self):
         """Test board initialization."""
-        self.assertEqual(self.board.main_path_size, 52)
-        self.assertEqual(self.board.home_column_size, 6)
         self.assertEqual(len(self.board.positions), 58)  # 52 main + 6 home
 
         # Check that positions are initialized
@@ -69,40 +67,40 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(token_red2, 5)
 
         # Should be tracked as multi-token position
-        self.assertIn(5, self.board._multi_token_positions[PlayerColor.RED.value])
+        self.assertIn(5, self.board._multi_token_positions[PlayerColor.RED])
 
         # Remove one token
         self.board.remove_token(self.token_red, 5)
 
         # Should no longer be tracked (now has only 1 token)
-        self.assertNotIn(5, self.board._multi_token_positions[PlayerColor.RED.value])
+        self.assertNotIn(5, self.board._multi_token_positions[PlayerColor.RED])
 
         # Remove second token
         self.board.remove_token(token_red2, 5)
 
         # Should still not be tracked
-        self.assertNotIn(5, self.board._multi_token_positions[PlayerColor.RED.value])
+        self.assertNotIn(5, self.board._multi_token_positions[PlayerColor.RED])
 
     def test_is_position_safe(self):
         """Test safe position detection."""
         # Star positions are safe
         for pos in BoardConstants.STAR_SQUARES:
-            self.assertTrue(self.board.is_position_safe(pos, "red"))
-            self.assertTrue(self.board.is_position_safe(pos, "blue"))
+            self.assertTrue(self.board.is_position_safe(pos, PlayerColor.RED))
+            self.assertTrue(self.board.is_position_safe(pos, PlayerColor.BLUE))
 
         # Colored safe squares
-        red_safe = BoardConstants.COLORED_SAFE_SQUARES["red"]
+        red_safe = BoardConstants.COLORED_SAFE_SQUARES[PlayerColor.RED]
         for pos in red_safe:
-            self.assertTrue(self.board.is_position_safe(pos, "red"))
+            self.assertTrue(self.board.is_position_safe(pos, PlayerColor.RED))
             # Starting positions are safe for everyone, not just the owning color
             if pos in BoardConstants.START_POSITIONS.values():
-                self.assertTrue(self.board.is_position_safe(pos, "blue"))
+                self.assertTrue(self.board.is_position_safe(pos, PlayerColor.BLUE))
             else:
-                self.assertFalse(self.board.is_position_safe(pos, "blue"))
+                self.assertFalse(self.board.is_position_safe(pos, PlayerColor.BLUE))
 
         # Regular positions are not safe
-        self.assertFalse(self.board.is_position_safe(5, "red"))
-        self.assertFalse(self.board.is_position_safe(15, "blue"))
+        self.assertFalse(self.board.is_position_safe(5, PlayerColor.RED))
+        self.assertFalse(self.board.is_position_safe(15, PlayerColor.BLUE))
 
     def test_can_move_to_position_empty(self):
         """Test moving to empty position."""
@@ -223,7 +221,7 @@ class TestBoard(unittest.TestCase):
 
         board_state = self.board.get_board_state_for_ai(self.player_red)
 
-        self.assertEqual(board_state.current_player, "red")
+        self.assertEqual(board_state.current_player, PlayerColor.RED)
         self.assertIn(5, board_state.board_positions)
         self.assertIn(10, board_state.board_positions)
         self.assertEqual(len(board_state.board_positions[5]), 1)
@@ -285,7 +283,7 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(self.token_red, 5)
         self.board.add_token(token_red2, 5)
 
-        blocking = self.board.get_blocking_positions("red")
+        blocking = self.board.get_blocking_positions(PlayerColor.RED)
         self.assertIn(5, blocking)
 
         # Add another blocking position
@@ -294,7 +292,7 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(token_red3, 15)
         self.board.add_token(token_red4, 15)
 
-        blocking = self.board.get_blocking_positions("red")
+        blocking = self.board.get_blocking_positions(PlayerColor.RED)
         self.assertIn(5, blocking)
         self.assertIn(15, blocking)
 
@@ -304,7 +302,7 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(self.token_red, 8)  # Star position
         self.board.add_token(self.player_red.tokens[1], 8)
 
-        blocking = self.board.get_blocking_positions("red")
+        blocking = self.board.get_blocking_positions(PlayerColor.RED)
         self.assertNotIn(8, blocking)  # Safe squares don't block
 
     def test_get_all_blocking_positions(self):
@@ -319,10 +317,10 @@ class TestBoard(unittest.TestCase):
 
         all_blocking = self.board.get_all_blocking_positions()
 
-        self.assertIn(5, all_blocking["red"])
-        self.assertIn(10, all_blocking["blue"])
-        self.assertNotIn(5, all_blocking["blue"])
-        self.assertNotIn(10, all_blocking["red"])
+        self.assertIn(5, all_blocking[PlayerColor.RED])
+        self.assertIn(10, all_blocking[PlayerColor.BLUE])
+        self.assertNotIn(5, all_blocking[PlayerColor.BLUE])
+        self.assertNotIn(10, all_blocking[PlayerColor.RED])
 
     def test_has_blocking_position(self):
         """Test checking if specific position is blocking."""
@@ -330,9 +328,9 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(self.token_red, 5)
         self.board.add_token(self.player_red.tokens[1], 5)
 
-        self.assertTrue(self.board.has_blocking_position("red", 5))
-        self.assertFalse(self.board.has_blocking_position("red", 10))
-        self.assertFalse(self.board.has_blocking_position("blue", 5))
+        self.assertTrue(self.board.has_blocking_position(PlayerColor.RED, 5))
+        self.assertFalse(self.board.has_blocking_position(PlayerColor.RED, 10))
+        self.assertFalse(self.board.has_blocking_position(PlayerColor.BLUE, 5))
 
     def test_has_blocking_position_safe_square(self):
         """Test that safe squares are not considered blocking."""
@@ -340,12 +338,12 @@ class TestBoard(unittest.TestCase):
         self.board.add_token(self.token_red, 8)  # Star position
         self.board.add_token(self.player_red.tokens[1], 8)
 
-        self.assertFalse(self.board.has_blocking_position("red", 8))
+        self.assertFalse(self.board.has_blocking_position(PlayerColor.RED, 8))
 
     def test_has_blocking_position_invalid_position(self):
         """Test invalid positions are not blocking."""
-        self.assertFalse(self.board.has_blocking_position("red", -1))
-        self.assertFalse(self.board.has_blocking_position("red", 60))
+        self.assertFalse(self.board.has_blocking_position(PlayerColor.RED, -1))
+        self.assertFalse(self.board.has_blocking_position(PlayerColor.RED, 60))
 
     def test_blocking_cache_invalidation(self):
         """Test blocking cache invalidation."""
@@ -353,7 +351,7 @@ class TestBoard(unittest.TestCase):
         self.assertFalse(self.board._cache_valid)
 
         # Getting blocking positions should build cache
-        self.board.get_blocking_positions("red")
+        self.board.get_blocking_positions(PlayerColor.RED)
         self.assertTrue(self.board._cache_valid)
 
         # Adding token should invalidate cache

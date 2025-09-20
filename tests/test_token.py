@@ -5,8 +5,8 @@ Tests cover movement logic, state transitions, position calculations, and edge c
 
 import unittest
 
-from ludo_engine.core import Token, TokenState
-from ludo_engine.models import BoardConstants, GameConstants
+from ludo_engine.core import Token
+from ludo_engine.models import BoardConstants, GameConstants, PlayerColor, TokenState
 
 
 class TestToken(unittest.TestCase):
@@ -14,13 +14,13 @@ class TestToken(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.token = Token(token_id=0, player_color="red")
-        self.start_position = BoardConstants.START_POSITIONS["red"]
+        self.token = Token(token_id=0, player_color=PlayerColor.RED)
+        self.start_position = BoardConstants.START_POSITIONS[PlayerColor.RED]
 
     def test_initialization(self):
         """Test token initialization."""
         self.assertEqual(self.token.token_id, 0)
-        self.assertEqual(self.token.player_color, "red")
+        self.assertEqual(self.token.player_color, PlayerColor.RED)
         self.assertEqual(self.token.state, TokenState.HOME)
         self.assertEqual(self.token.position, -1)
 
@@ -248,8 +248,8 @@ class TestToken(unittest.TestCase):
         token_dict = self.token.to_dict()
 
         self.assertEqual(token_dict.token_id, 0)
-        self.assertEqual(token_dict.player_color, "red")
-        self.assertEqual(token_dict.state, "home")
+        self.assertEqual(token_dict.player_color, PlayerColor.RED)
+        self.assertEqual(token_dict.state, TokenState.HOME)
         self.assertEqual(token_dict.position, -1)
         self.assertTrue(token_dict.is_in_home)
         self.assertFalse(token_dict.is_active)
@@ -260,9 +260,9 @@ class TestToken(unittest.TestCase):
         """Test string representation of token."""
         str_repr = str(self.token)
         self.assertIn("Token", str_repr)
-        self.assertIn("red", str_repr)
+        self.assertIn("PlayerColor.RED", str_repr)
         self.assertIn("0", str_repr)
-        self.assertIn("home", str_repr)
+        self.assertIn("TokenState.HOME", str_repr)
 
     def test_edge_case_position_zero(self):
         """Test movement from position 0."""

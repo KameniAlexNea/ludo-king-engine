@@ -8,7 +8,13 @@ import unittest
 from unittest.mock import patch
 
 from ludo_engine.core import LudoGame, Player, PlayerColor, TokenState
-from ludo_engine.models import AIDecisionContext, BoardConstants, TurnResult, ValidMove
+from ludo_engine.models import (
+    AIDecisionContext,
+    BoardConstants,
+    MoveType,
+    TurnResult,
+    ValidMove,
+)
 from ludo_engine.strategies import RandomStrategy
 
 
@@ -109,7 +115,7 @@ class TestLudoGame(unittest.TestCase):
         self.assertEqual(len(valid_moves), 4)
 
         for move in valid_moves:
-            self.assertEqual(move.move_type, "exit_home")
+            self.assertEqual(move.move_type, MoveType.EXIT_HOME)
             self.assertEqual(move.current_position, -1)
             self.assertEqual(move.target_position, current_player.start_position)
 
@@ -124,7 +130,7 @@ class TestLudoGame(unittest.TestCase):
         self.assertEqual(
             current_player.tokens[0].position, current_player.start_position
         )
-        self.assertEqual(current_player.tokens[0].state.value, "active")
+        self.assertEqual(current_player.tokens[0].state, TokenState.ACTIVE)
 
     def test_execute_move_invalid(self):
         """Test executing invalid moves."""
@@ -213,7 +219,7 @@ class TestLudoGame(unittest.TestCase):
         self.assertIsInstance(context, AIDecisionContext)
         self.assertEqual(context.current_situation.dice_value, 6)
         self.assertEqual(
-            context.current_situation.player_color, self.game.players[0].color.value
+            context.current_situation.player_color, self.game.players[0].color
         )
         self.assertIsInstance(context.valid_moves, list)
         from ludo_engine.models.model import PlayerState
@@ -229,7 +235,7 @@ class TestLudoGame(unittest.TestCase):
 
         for move in context.valid_moves:
             self.assertIsInstance(move, ValidMove)
-            self.assertEqual(move.move_type, "exit_home")
+            self.assertEqual(move.move_type, MoveType.EXIT_HOME)
 
     def test_play_turn_with_ai_player(self):
         """Test playing turn with AI player."""
@@ -287,7 +293,7 @@ class TestLudoGame(unittest.TestCase):
         # Only blue token should remain at position 10
         tokens_at_pos = game.board.get_tokens_at_position(10)
         self.assertEqual(len(tokens_at_pos), 1)
-        self.assertEqual(tokens_at_pos[0].player_color, PlayerColor.BLUE.value)
+        self.assertEqual(tokens_at_pos[0].player_color, PlayerColor.BLUE)
 
         # Red token should be back in home
         self.assertEqual(red_token.state, TokenState.HOME)
@@ -322,14 +328,14 @@ class TestLudoGame(unittest.TestCase):
 
         # Verify both tokens are there
         token_colors = {token.player_color for token in tokens_at_pos}
-        self.assertEqual(token_colors, {"red", "blue"})
+        self.assertEqual(token_colors, {PlayerColor.RED, PlayerColor.BLUE})
 
     def test_home_column_movement(self):
         """Test movement within home column."""
         # Get player to home column entry
         current_player = self.game.get_current_player()
 
-        home_entry = BoardConstants.HOME_COLUMN_ENTRIES[current_player.color.value]
+        home_entry = BoardConstants.HOME_COLUMN_ENTRIES[current_player.color]
 
         # Move token to just before home entry (6 spaces before)
         self.game.execute_move(current_player, 0, 6)  # Exit home to position 1
@@ -523,7 +529,7 @@ class TestLudoGame(unittest.TestCase):
 
         self.assertEqual(len(configs), 4)
         for i, config in enumerate(configs):
-            self.assertEqual(config.color, self.game.players[i].color.value)
+            self.assertEqual(config.color, self.game.players[i].color)
             self.assertEqual(config.player_id, i)
             self.assertEqual(config.finished_tokens, 0)
             self.assertEqual(config.tokens_active, 0)

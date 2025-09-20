@@ -24,7 +24,7 @@ from ludo_engine.models.constants import (
     GameConstants,
     StrategyConstants,
 )
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, MoveType, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import get_opponent_main_positions
 
@@ -43,7 +43,7 @@ class WeightedRandomStrategy(Strategy):
             return 0
 
         # 1. Immediate finish shortcut
-        finish_moves = [m for m in moves if m.move_type == "finish"]
+        finish_moves = [m for m in moves if m.move_type == MoveType.FINISH]
         if finish_moves:
             return random.choice(finish_moves).token_id
 
@@ -82,7 +82,7 @@ class WeightedRandomStrategy(Strategy):
             base = base**1.05 if base > 0 else 0.0
 
             # Heuristic boosts
-            if mv.move_type == "advance_home_column":
+            if mv.move_type == MoveType.ADVANCE_HOME_COLUMN:
                 base += 1.0
             if mv.captures_opponent:
                 captured = mv.captured_tokens

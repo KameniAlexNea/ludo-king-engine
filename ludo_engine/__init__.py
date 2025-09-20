@@ -14,7 +14,6 @@ from ludo_engine.core import (
 )
 from ludo_engine.models.constants import (
     BoardConstants,
-    Colors,
     GameConstants,
     StrategyConstants,
 )
@@ -69,7 +68,6 @@ __all__ = [
     "GameConstants",
     "BoardConstants",
     "StrategyConstants",
-    "Colors",
     "AIDecisionContext",
     "BoardPositionInfo",
     "BoardState",

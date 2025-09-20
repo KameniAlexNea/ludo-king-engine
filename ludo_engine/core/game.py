@@ -14,6 +14,7 @@ from ludo_engine.models import (
     CurrentSituation,
     GameConstants,
     MoveResult,
+    MoveType,
     OpponentInfo,
     PlayerConfiguration,
     StrategicAnalysis,
@@ -66,8 +67,9 @@ class LudoGame:
         self._initialize_board()
 
     def get_player_from_color(self, color: Union[PlayerColor, str]) -> Player:
-        if isinstance(color, PlayerColor):
-            color = color.value
+        if isinstance(color, str):
+            # Convert string to PlayerColor enum
+            color = PlayerColor(color)
         return self._player_map[color]
 
     def _initialize_board(self):
@@ -76,7 +78,7 @@ class LudoGame:
             for token in player.tokens:
                 token.position = GameConstants.HOME_POSITION
 
-        self._player_map = {player.color.value: player for player in self.players}
+        self._player_map = {player.color: player for player in self.players}
 
     def get_current_player(self) -> Player:
         """Get the player whose turn it is."""
@@ -160,9 +162,10 @@ class LudoGame:
             MoveResult: Result of the move including any captures, extra turns, etc.
         """
         if token_id < 0 or token_id >= 4:
+            # @TODO: Log warning about invalid token ID
             return MoveResult(
                 success=False,
-                player_color=player.color.value,
+                player_color=player.color,
                 token_id=token_id,
                 dice_value=dice_value,
                 old_position=-1,
@@ -179,7 +182,7 @@ class LudoGame:
         if not token.can_move(dice_value):
             return MoveResult(
                 success=False,
-                player_color=player.color.value,
+                player_color=player.color,
                 token_id=token_id,
                 dice_value=dice_value,
                 old_position=token.position,
@@ -196,7 +199,7 @@ class LudoGame:
         if target_position == token.position:
             return MoveResult(
                 success=False,
-                player_color=player.color.value,
+                player_color=player.color,
                 token_id=token_id,
                 dice_value=dice_value,
                 old_position=old_position,
@@ -214,7 +217,7 @@ class LudoGame:
         if not can_move:
             return MoveResult(
                 success=False,
-                player_color=player.color.value,
+                player_color=player.color,
                 token_id=token_id,
                 dice_value=dice_value,
                 old_position=old_position,
@@ -258,7 +261,7 @@ class LudoGame:
 
         move_result = MoveResult(
             success=True,
-            player_color=player.color.value,
+            player_color=player.color,
             token_id=token_id,
             dice_value=dice_value,
             old_position=old_position,
@@ -299,7 +302,7 @@ class LudoGame:
         """
         if self.game_over:
             return TurnResult(
-                player_color=self.get_current_player().color.value,
+                player_color=self.get_current_player().color,
                 dice_value=0,
                 consecutive_sixes=0,
                 moves=[],
@@ -313,7 +316,7 @@ class LudoGame:
             dice_value = self.roll_dice()
 
         turn_result = TurnResult(
-            player_color=current_player.color.value,
+            player_color=current_player.color,
             dice_value=dice_value,
             consecutive_sixes=self.consecutive_sixes,
             moves=[],
@@ -418,7 +421,7 @@ class LudoGame:
         valid_moves = self.get_valid_moves(current_player, dice_value)
 
         current_situation = CurrentSituation(
-            player_color=current_player.color.value,
+            player_color=current_player.color,
             dice_value=dice_value,
             consecutive_sixes=self.consecutive_sixes,
             turn_count=self.turn_count,
@@ -428,7 +431,7 @@ class LudoGame:
 
         opponents = [
             OpponentInfo(
-                color=p.color.value,
+                color=p.color,
                 finished_tokens=p.get_finished_tokens_count(),
                 tokens_active=sum(1 for t in p.tokens if t.is_active()),
                 threat_level=self._calculate_threat_level(p),
@@ -464,8 +467,12 @@ class LudoGame:
     ) -> StrategicAnalysis:
         """Analyze the strategic situation for AI decision making."""
         can_capture = any(move.captures_opponent for move in valid_moves)
-        can_finish_token = any(move.move_type == "finish" for move in valid_moves)
-        can_exit_home = any(move.move_type == "exit_home" for move in valid_moves)
+        can_finish_token = any(
+            move.move_type == MoveType.FINISH for move in valid_moves
+        )
+        can_exit_home = any(
+            move.move_type == MoveType.EXIT_HOME for move in valid_moves
+        )
         safe_moves = [move for move in valid_moves if move.is_safe_move]
         risky_moves = [move for move in valid_moves if not move.is_safe_move]
 
@@ -493,7 +500,7 @@ class LudoGame:
         configs = []
         for player in self.players:
             config = PlayerConfiguration(
-                color=player.color.value,
+                color=player.color,
                 player_id=player.player_id,
                 strategy_name=player.get_strategy_name(),
                 strategy_description=player.get_strategy_description(),

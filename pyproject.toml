@@ -1,6 +1,6 @@
 [project]
 name = "ludo-king-engine"
-version = "0.1.2"
+version = "0.1.3"
 description = "A pure Python implementation of the Ludo game, built for reinforcement learning and strategy testing. The engine defines deterministic rules, cleanly separates game mechanics from strategies, and requires no external libraries."
 readme = "README.md"
 requires-python = ">=3.8"

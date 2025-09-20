@@ -58,7 +58,7 @@ from ludo_engine.models.constants import (
     GameConstants,
     StrategyConstants,
 )
-from ludo_engine.models.model import AIDecisionContext, ValidMove
+from ludo_engine.models.model import AIDecisionContext, MoveType, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import get_opponent_main_positions
 
@@ -149,7 +149,7 @@ class HybridProbStrategy(Strategy):
 
         for mv in moves:
             # Finish priority
-            if mv.move_type == "finish":
+            if mv.move_type == MoveType.FINISH:
                 return mv.token_id
 
             immediate_risk = self._immediate_risk(mv, opponent_positions)
@@ -244,7 +244,7 @@ class HybridProbStrategy(Strategy):
             return 0.0
         if (
             move.is_safe_move
-            or move.move_type in {"finish", "advance_home_column"}
+            or move.move_type in {MoveType.FINISH, MoveType.ADVANCE_HOME_COLUMN}
             or tgt >= BoardConstants.HOME_COLUMN_START
         ):
             return 0.0
@@ -265,7 +265,7 @@ class HybridProbStrategy(Strategy):
             return 0.0
         if (
             move.is_safe_move
-            or move.move_type in {"finish", "advance_home_column"}
+            or move.move_type in {MoveType.FINISH, MoveType.ADVANCE_HOME_COLUMN}
             or tgt >= BoardConstants.HOME_COLUMN_START
         ):
             return 0.0
@@ -408,7 +408,7 @@ class HybridProbStrategy(Strategy):
 
     def _spread_bonus(self, move: ValidMove, baseline_active: int) -> float:
         if (
-            move.move_type == "exit_home"
+            move.move_type == MoveType.EXIT_HOME
             and baseline_active < StrategyConstants.HYBRID_SPREAD_ACTIVE_TARGET
         ):
             return StrategyConstants.HYBRID_SPREAD_BONUS

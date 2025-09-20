@@ -245,7 +245,7 @@ class TestGameIntegration(unittest.TestCase):
         self.assertEqual(context.current_situation.dice_value, 4)
         self.assertEqual(
             context.current_situation.player_color,
-            game.get_current_player().color.value,
+            game.get_current_player().color,
         )
         self.assertIsInstance(context.valid_moves, list)
         from ludo_engine.models.model import PlayerState
@@ -335,7 +335,7 @@ class TestGameIntegration(unittest.TestCase):
 
             for j, player in enumerate(game.players):
                 snapshot["token_positions"][j] = [
-                    (token.position, token.state.value) for token in player.tokens
+                    (token.position, token.state) for token in player.tokens
                 ]
 
             snapshots.append(snapshot)

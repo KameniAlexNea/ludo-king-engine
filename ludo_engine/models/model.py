@@ -4,7 +4,38 @@ Contains all dataclasses used throughout the game system.
 """
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Dict, List, Optional
+
+
+class PlayerColor(Enum):
+    """Available player colors in Ludo."""
+
+    RED = "red"
+    BLUE = "blue"
+    GREEN = "green"
+    YELLOW = "yellow"
+
+
+class TokenState(Enum):
+    """Possible states of a token."""
+
+    HOME = "home"  # Token is in starting home area
+    ACTIVE = "active"  # Token is on the main board path
+    HOME_COLUMN = "home_column"  # Token is in the final home column
+    FINISHED = "finished"  # Token has reached the center
+
+
+class MoveType(Enum):
+    """Possible types of moves in the Ludo game."""
+
+    EXIT_HOME = "exit_home"  # Token leaving home area
+    ADVANCE_MAIN_BOARD = "advance_main_board"  # Token moving on main board
+    ADVANCE_HOME_COLUMN = "advance_home_column"  # Token moving in home column
+    FINISH = "finish"  # Token reaching the center
+
+
+ALL_COLORS = [PlayerColor.RED, PlayerColor.BLUE, PlayerColor.GREEN, PlayerColor.YELLOW]
 
 
 @dataclass
@@ -12,8 +43,8 @@ class TokenInfo:
     """Information about a token."""
 
     token_id: int
-    player_color: str
-    state: str
+    player_color: PlayerColor
+    state: TokenState
     position: int
     is_in_home: bool
     is_active: bool
@@ -25,7 +56,7 @@ class TokenInfo:
 class CapturedToken:
     """Information about a captured token."""
 
-    player_color: str
+    player_color: PlayerColor
     token_id: int
 
 
@@ -34,7 +65,7 @@ class MoveResult:
     """Result of executing a move."""
 
     success: bool
-    player_color: str
+    player_color: PlayerColor
     token_id: int
     dice_value: int
     old_position: int
@@ -52,9 +83,9 @@ class ValidMove:
 
     token_id: int
     current_position: int
-    current_state: str
+    current_state: TokenState
     target_position: int
-    move_type: str
+    move_type: MoveType
     is_safe_move: bool
     captures_opponent: bool
     captured_tokens: List[CapturedToken]
@@ -66,7 +97,7 @@ class ValidMove:
 class TurnResult:
     """Result of playing a complete turn."""
 
-    player_color: str
+    player_color: PlayerColor
     dice_value: int
     consecutive_sixes: int
     moves: List[MoveResult]
@@ -81,7 +112,7 @@ class PlayerState:
     """Current state of a player."""
 
     player_id: int
-    color: str
+    color: PlayerColor
     start_position: int
     tokens: List[TokenInfo]
     tokens_in_home: int
@@ -96,7 +127,7 @@ class PlayerState:
 class OpponentInfo:
     """Information about an opponent player."""
 
-    color: str
+    color: PlayerColor
     finished_tokens: int
     tokens_active: int
     threat_level: float
@@ -119,7 +150,7 @@ class StrategicAnalysis:
 class CurrentSituation:
     """Current game situation."""
 
-    player_color: str
+    player_color: PlayerColor
     dice_value: int
     consecutive_sixes: int
     turn_count: int
@@ -140,7 +171,7 @@ class AIDecisionContext:
 class PlayerConfiguration:
     """Configuration information for a player."""
 
-    color: str
+    color: PlayerColor
     player_id: int
     strategy_name: str
     strategy_description: str
@@ -154,7 +185,7 @@ class PlayerConfiguration:
 class BoardPositionInfo:
     """Information about tokens at a board position."""
 
-    player_color: str
+    player_color: PlayerColor
     token_id: int
     state: str
 
@@ -163,12 +194,12 @@ class BoardPositionInfo:
 class BoardState:
     """Complete board state for AI analysis."""
 
-    current_player: str
+    current_player: PlayerColor
     board_positions: Dict[int, List[BoardPositionInfo]]
     safe_positions: List[int]
     star_positions: List[int]
-    player_start_positions: Dict[str, int]
-    home_column_entries: Dict[str, int]
+    player_start_positions: Dict[PlayerColor, int]
+    home_column_entries: Dict[PlayerColor, int]
 
 
 @dataclass
@@ -179,7 +210,7 @@ class PositionInfo:
     position: int
     is_safe: bool
     is_star: Optional[bool] = None
-    color: Optional[str] = None
+    color: Optional[PlayerColor] = None
     tokens: List[TokenInfo] = None
 
 

@@ -4,19 +4,9 @@ Each player has 4 tokens that move around the board.
 """
 
 from dataclasses import dataclass
-from enum import Enum
 
 from ludo_engine.models.constants import BoardConstants, GameConstants
-from ludo_engine.models.model import TokenInfo
-
-
-class TokenState(Enum):
-    """Possible states of a token."""
-
-    HOME = "home"  # Token is in starting home area
-    ACTIVE = "active"  # Token is on the main board path
-    HOME_COLUMN = "home_column"  # Token is in the final home column
-    FINISHED = "finished"  # Token has reached the center
+from ludo_engine.models.model import PlayerColor, TokenInfo, TokenState
 
 
 @dataclass
@@ -26,7 +16,7 @@ class Token:
     """
 
     token_id: int  # 0, 1, 2, 3 for each player
-    player_color: str
+    player_color: PlayerColor
     state: TokenState = TokenState.HOME
     position: int = (
         -1
@@ -210,7 +200,7 @@ class Token:
         return TokenInfo(
             token_id=self.token_id,
             player_color=self.player_color,
-            state=self.state.value,
+            state=self.state,
             position=self.position,
             is_in_home=self.is_in_home(),
             is_active=self.is_active(),
@@ -220,4 +210,4 @@ class Token:
 
     def __str__(self) -> str:
         """String representation of the token."""
-        return f"Token({self.player_color}_{self.token_id}: {self.state.value} at {self.position})"
+        return f"Token({self.player_color}_{self.token_id}: {self.state} at {self.position})"
