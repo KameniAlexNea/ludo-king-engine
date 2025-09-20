@@ -161,6 +161,7 @@ class LudoGame:
             MoveResult: Result of the move including any captures, extra turns, etc.
         """
         if token_id < 0 or token_id >= 4:
+            # @TODO: Log warning about invalid token ID
             return MoveResult(
                 success=False,
                 player_color=player.color,

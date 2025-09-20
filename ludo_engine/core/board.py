@@ -14,6 +14,7 @@ from ludo_engine.models import (
     PlayerColor,
     PositionInfo,
 )
+from ludo_engine.models.constants import GameConstants
 
 
 @dataclass
@@ -47,16 +48,13 @@ class Board:
 
     def __init__(self):
         """Initialize the board with 52 main positions plus home columns."""
-        self.main_path_size = 52
-        self.home_column_size = 6  # Positions 100-105 for home columns
-
         # Initialize main board positions (0-51)
         self.positions: Dict[int, Position] = {}
-        for i in range(self.main_path_size):
+        for i in range(GameConstants.MAIN_BOARD_SIZE):
             self.positions[i] = Position(i)
 
         # Initialize home column positions (100-105)
-        for i in range(100, 106):  # 100, 101, 102, 103, 104, 105
+        for i in range(BoardConstants.HOME_COLUMN_START, BoardConstants.HOME_COLUMN_END + 1):
             self.positions[i] = Position(i)
 
         # Optimized blocking positions tracking (initialize before reset_token_positions)
@@ -86,11 +84,11 @@ class Board:
         self.token_positions.clear()
 
         # Initialize positions for main board (0-51)
-        for i in range(self.main_path_size):
+        for i in range(GameConstants.MAIN_BOARD_SIZE):
             self.token_positions[i] = []
 
         # Initialize positions for home columns (100-105)
-        for i in range(100, 106):
+        for i in range(BoardConstants.HOME_COLUMN_START, BoardConstants.HOME_COLUMN_END + 1):
             self.token_positions[i] = []
 
         # Reset cache and multi-token tracking
@@ -106,7 +104,7 @@ class Board:
         self.token_positions[position].append(token)
 
         # Update multi-token tracking for blocking optimization
-        if 0 <= position < self.main_path_size:
+        if 0 <= position < GameConstants.MAIN_BOARD_SIZE:
             player_tokens_count = sum(
                 1
                 for t in self.token_positions[position]
@@ -124,7 +122,7 @@ class Board:
             self.token_positions[position].remove(token)
 
             # Update multi-token tracking for blocking optimization
-            if 0 <= position < self.main_path_size:
+            if 0 <= position < GameConstants.MAIN_BOARD_SIZE:
                 player_tokens_count = sum(
                     1
                     for t in self.token_positions[position]
@@ -299,9 +297,9 @@ class Board:
 
     def get_position_info(self, position: int) -> PositionInfo:
         """Get detailed information about a specific position."""
-        if position == -1:
+        if position == GameConstants.HOME_POSITION:
             return PositionInfo(type="home", position=position, is_safe=True, tokens=[])
-        elif 100 <= position <= 105:
+        elif BoardConstants.HOME_COLUMN_START <= position <= BoardConstants.HOME_COLUMN_END:
             return PositionInfo(
                 type="home_column",
                 position=position,
@@ -310,7 +308,7 @@ class Board:
                     token.to_dict() for token in self.get_tokens_at_position(position)
                 ],
             )
-        elif 0 <= position < self.main_path_size:
+        elif 0 <= position < GameConstants.MAIN_BOARD_SIZE:
             board_pos = self.positions.get(position, Position(position))
             return PositionInfo(
                 type="main_board",
@@ -323,6 +321,7 @@ class Board:
                 ],
             )
         else:
+            # @TODO: Log warning about invalid position
             return PositionInfo(
                 type="unknown", position=position, is_safe=False, tokens=[]
             )
@@ -367,7 +366,7 @@ class Board:
 
         for position in candidate_positions:
             # Double-check that position is still valid and has multiple tokens
-            if 0 <= position < self.main_path_size and not self.is_position_safe(
+            if 0 <= position < GameConstants.MAIN_BOARD_SIZE and not self.is_position_safe(
                 position, player_color
             ):
                 player_tokens = [
@@ -425,7 +424,7 @@ class Board:
         Quick check if a specific position is blocking for a player.
         More efficient than getting all blocking positions when you only need one.
         """
-        if not (0 <= position < self.main_path_size):
+        if not (0 <= position < GameConstants.MAIN_BOARD_SIZE):
             return False
 
         if self.is_position_safe(position, player_color):
@@ -443,7 +442,7 @@ class Board:
     def __str__(self) -> str:
         """String representation of the board state."""
         result = "Board State:\n"
-        for position in range(self.main_path_size):
+        for position in range(GameConstants.MAIN_BOARD_SIZE):
             tokens = self.get_tokens_at_position(position)
             if tokens:
                 result += f"Position {position}: {[str(token) for token in tokens]}\n"
