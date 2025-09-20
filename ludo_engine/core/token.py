@@ -201,7 +201,7 @@ class Token:
         return TokenInfo(
             token_id=self.token_id,
             player_color=self.player_color,
-            state=self.state.value,
+            state=self.state,
             position=self.position,
             is_in_home=self.is_in_home(),
             is_active=self.is_active(),
@@ -211,4 +211,4 @@ class Token:
 
     def __str__(self) -> str:
         """String representation of the token."""
-        return f"Token({self.player_color}_{self.token_id}: {self.state.value} at {self.position})"
+        return f"Token({self.player_color}_{self.token_id}: {self.state} at {self.position})"

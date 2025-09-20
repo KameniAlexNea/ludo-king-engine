@@ -14,6 +14,7 @@ from ludo_engine.models import (
     PlayerColor,
     PlayerState,
     StrategicAnalysis,
+    TokenState,
     ValidMove,
 )
 from ludo_engine.strategies import KillerStrategy, RandomStrategy, WinnerStrategy
@@ -27,7 +28,7 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
             ValidMove(
                 token_id=0,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=9,
                 move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
@@ -98,7 +99,7 @@ class TestStrategyBase(unittest.TestCase):
                 ValidMove(
                     token_id=0,
                     current_position=-1,
-                    current_state="home",
+                    current_state=TokenState.HOME,
                     target_position=0,
                     move_type=MoveType.EXIT_HOME,
                     is_safe_move=True,
@@ -110,7 +111,7 @@ class TestStrategyBase(unittest.TestCase):
                 ValidMove(
                     token_id=1,
                     current_position=-1,
-                    current_state="home",
+                    current_state=TokenState.HOME,
                     target_position=0,
                     move_type=MoveType.EXIT_HOME,
                     is_safe_move=True,
@@ -131,7 +132,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=0,
                 current_position=-1,
-                current_state="home",
+                current_state=TokenState.HOME,
                 target_position=0,
                 move_type=MoveType.EXIT_HOME,
                 is_safe_move=True,
@@ -143,7 +144,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=1,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=10,
                 move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
@@ -167,7 +168,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=0,
                 current_position=-1,
-                current_state="home",
+                current_state=TokenState.HOME,
                 target_position=0,
                 move_type=MoveType.EXIT_HOME,
                 is_safe_move=True,
@@ -179,7 +180,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=1,
                 current_position=-1,
-                current_state="home",
+                current_state=TokenState.HOME,
                 target_position=0,
                 move_type=MoveType.EXIT_HOME,
                 is_safe_move=True,
@@ -191,7 +192,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=2,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=10,
                 move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
@@ -214,7 +215,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=0,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=10,
                 move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
@@ -226,7 +227,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=1,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=15,
                 move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
@@ -247,7 +248,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=0,
                 current_position=-1,
-                current_state="home",
+                current_state=TokenState.HOME,
                 target_position=0,
                 move_type=MoveType.EXIT_HOME,
                 is_safe_move=True,
@@ -259,7 +260,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=1,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=10,
                 move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
@@ -280,7 +281,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=0,
                 current_position=-1,
-                current_state="home",
+                current_state=TokenState.HOME,
                 target_position=0,
                 move_type=MoveType.EXIT_HOME,
                 is_safe_move=True,
@@ -292,7 +293,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=1,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=10,
                 move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
@@ -313,7 +314,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=0,
                 current_position=-1,
-                current_state="home",
+                current_state=TokenState.HOME,
                 target_position=0,
                 move_type=MoveType.EXIT_HOME,
                 is_safe_move=True,
@@ -325,7 +326,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=1,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=10,
                 move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
@@ -346,7 +347,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=0,
                 current_position=-1,
-                current_state="home",
+                current_state=TokenState.HOME,
                 target_position=0,
                 move_type=MoveType.EXIT_HOME,
                 is_safe_move=True,
@@ -358,7 +359,7 @@ class TestStrategyBase(unittest.TestCase):
             ValidMove(
                 token_id=1,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=10,
                 move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
@@ -459,7 +460,7 @@ class TestRandomStrategy(unittest.TestCase):
                 ValidMove(
                     token_id=0,
                     current_position=-1,
-                    current_state="home",
+                    current_state=TokenState.HOME,
                     target_position=0,
                     move_type=MoveType.EXIT_HOME,
                     is_safe_move=True,
@@ -471,7 +472,7 @@ class TestRandomStrategy(unittest.TestCase):
                 ValidMove(
                     token_id=1,
                     current_position=-1,
-                    current_state="home",
+                    current_state=TokenState.HOME,
                     target_position=0,
                     move_type=MoveType.EXIT_HOME,
                     is_safe_move=True,
@@ -516,7 +517,7 @@ class TestKillerStrategy(unittest.TestCase):
                 ValidMove(
                     token_id=0,
                     current_position=5,
-                    current_state="active",
+                    current_state=TokenState.ACTIVE,
                     target_position=10,
                     move_type=MoveType.ADVANCE_MAIN_BOARD,
                     is_safe_move=False,
@@ -528,7 +529,7 @@ class TestKillerStrategy(unittest.TestCase):
                 ValidMove(
                     token_id=1,
                     current_position=5,
-                    current_state="active",
+                    current_state=TokenState.ACTIVE,
                     target_position=15,
                     move_type=MoveType.ADVANCE_MAIN_BOARD,
                     is_safe_move=False,
@@ -564,7 +565,7 @@ class TestWinnerStrategy(unittest.TestCase):
                 ValidMove(
                     token_id=0,
                     current_position=104,
-                    current_state="home_column",
+                    current_state=TokenState.HOME_COLUMN,
                     target_position=105,
                     move_type=MoveType.FINISH,
                     is_safe_move=True,
@@ -576,7 +577,7 @@ class TestWinnerStrategy(unittest.TestCase):
                 ValidMove(
                     token_id=1,
                     current_position=5,
-                    current_state="active",
+                    current_state=TokenState.ACTIVE,
                     target_position=10,
                     move_type=MoveType.ADVANCE_MAIN_BOARD,
                     is_safe_move=False,

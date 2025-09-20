@@ -43,7 +43,7 @@ class TokenInfo:
 
     token_id: int
     player_color: PlayerColor
-    state: str
+    state: TokenState
     position: int
     is_in_home: bool
     is_active: bool
@@ -82,7 +82,7 @@ class ValidMove:
 
     token_id: int
     current_position: int
-    current_state: str
+    current_state: TokenState
     target_position: int
     move_type: MoveType
     is_safe_move: bool
@@ -90,6 +90,13 @@ class ValidMove:
     captured_tokens: List[CapturedToken]
     strategic_value: float
     strategic_components: Dict[str, float]
+
+    def __post_init__(self):
+        """Ensure captured_tokens is always a list."""
+        if not isinstance(self.current_state, TokenState):
+            raise ValueError(f"current_state must be a TokenState Enum, got {type(self.current_state)}")
+        if self.captured_tokens is None:
+            self.captured_tokens = []
 
 
 @dataclass

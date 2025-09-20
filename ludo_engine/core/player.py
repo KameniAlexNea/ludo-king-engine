@@ -169,7 +169,7 @@ class Player:
                 move_info = ValidMove(
                     token_id=token.token_id,
                     current_position=token.position,
-                    current_state=token.state.value,
+                    current_state=token.state,
                     target_position=target_position,
                     move_type=self._get_move_type(token, dice_value),
                     is_safe_move=self._is_safe_move(token, target_position),

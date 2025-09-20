@@ -124,7 +124,7 @@ class TestLudoGame(unittest.TestCase):
         self.assertEqual(
             current_player.tokens[0].position, current_player.start_position
         )
-        self.assertEqual(current_player.tokens[0].state.value, "active")
+        self.assertEqual(current_player.tokens[0].state, TokenState.ACTIVE)
 
     def test_execute_move_invalid(self):
         """Test executing invalid moves."""

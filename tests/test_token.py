@@ -249,7 +249,7 @@ class TestToken(unittest.TestCase):
 
         self.assertEqual(token_dict.token_id, 0)
         self.assertEqual(token_dict.player_color, PlayerColor.RED)
-        self.assertEqual(token_dict.state, "home")
+        self.assertEqual(token_dict.state, TokenState.HOME)
         self.assertEqual(token_dict.position, -1)
         self.assertTrue(token_dict.is_in_home)
         self.assertFalse(token_dict.is_active)
@@ -262,7 +262,7 @@ class TestToken(unittest.TestCase):
         self.assertIn("Token", str_repr)
         self.assertIn("PlayerColor.RED", str_repr)
         self.assertIn("0", str_repr)
-        self.assertIn("home", str_repr)
+        self.assertIn("TokenState.HOME", str_repr)
 
     def test_edge_case_position_zero(self):
         """Test movement from position 0."""

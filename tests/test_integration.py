@@ -335,7 +335,7 @@ class TestGameIntegration(unittest.TestCase):
 
             for j, player in enumerate(game.players):
                 snapshot["token_positions"][j] = [
-                    (token.position, token.state.value) for token in player.tokens
+                    (token.position, token.state) for token in player.tokens
                 ]
 
             snapshots.append(snapshot)

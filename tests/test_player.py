@@ -28,7 +28,7 @@ def create_test_decision_context(dice_value=4, valid_moves=None):
             ValidMove(
                 token_id=0,
                 current_position=5,
-                current_state="active",
+                current_state=TokenState.ACTIVE,
                 target_position=9,
                 move_type=MoveType.ADVANCE_MAIN_BOARD,
                 is_safe_move=False,
@@ -329,7 +329,7 @@ class TestPlayer(unittest.TestCase):
                 ValidMove(
                     token_id=0,
                     current_position=-1,
-                    current_state="home",
+                    current_state=TokenState.HOME,
                     target_position=0,
                     move_type=MoveType.EXIT_HOME,
                     is_safe_move=True,
