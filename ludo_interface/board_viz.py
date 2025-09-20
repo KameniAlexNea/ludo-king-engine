@@ -4,11 +4,11 @@ from PIL import Image, ImageDraw, ImageFont
 
 from ludo_engine.core import Token
 from ludo_engine.models import (
+    ALL_COLORS,
     BoardConstants,
     GameConstants,
     PlayerColor,
     TokenState,
-    ALL_COLORS
 )
 
 # Enhanced Styling with gradients and better colors

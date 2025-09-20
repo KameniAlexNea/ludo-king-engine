@@ -37,6 +37,7 @@ class MoveType(Enum):
 
 ALL_COLORS = [PlayerColor.RED, PlayerColor.BLUE, PlayerColor.GREEN, PlayerColor.YELLOW]
 
+
 @dataclass
 class TokenInfo:
     """Information about a token."""
@@ -94,7 +95,9 @@ class ValidMove:
     def __post_init__(self):
         """Ensure captured_tokens is always a list."""
         if not isinstance(self.current_state, TokenState):
-            raise ValueError(f"current_state must be a TokenState Enum, got {type(self.current_state)}")
+            raise ValueError(
+                f"current_state must be a TokenState Enum, got {type(self.current_state)}"
+            )
         if self.captured_tokens is None:
             self.captured_tokens = []
 

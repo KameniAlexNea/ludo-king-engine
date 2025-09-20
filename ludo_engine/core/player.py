@@ -3,7 +3,6 @@ Player representation for Ludo game.
 Each player has a color and controls 4 tokens.
 """
 
-from enum import Enum
 from typing import List, Optional, Tuple
 
 from ludo_engine.core.token import Token
@@ -14,9 +13,9 @@ from ludo_engine.models import (
     MoveType,
     PlayerColor,
     PlayerState,
-    TokenState,
     StrategicComponents,
     StrategyConstants,
+    TokenState,
     ValidMove,
 )
 from ludo_engine.strategies import Strategy

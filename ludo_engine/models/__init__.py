@@ -9,6 +9,7 @@ from ludo_engine.models.constants import (
     StrategyConstants,
 )
 from ludo_engine.models.model import (
+    ALL_COLORS,
     AIDecisionContext,
     BoardPositionInfo,
     BoardState,
@@ -27,7 +28,6 @@ from ludo_engine.models.model import (
     TokenState,
     TurnResult,
     ValidMove,
-    ALL_COLORS
 )
 
 __all__ = [
@@ -52,5 +52,5 @@ __all__ = [
     "TurnResult",
     "ValidMove",
     "PlayerColor",
-    "ALL_COLORS"
+    "ALL_COLORS",
 ]

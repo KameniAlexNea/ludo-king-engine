@@ -54,7 +54,9 @@ class Board:
             self.positions[i] = Position(i)
 
         # Initialize home column positions (100-105)
-        for i in range(BoardConstants.HOME_COLUMN_START, BoardConstants.HOME_COLUMN_END + 1):
+        for i in range(
+            BoardConstants.HOME_COLUMN_START, BoardConstants.HOME_COLUMN_END + 1
+        ):
             self.positions[i] = Position(i)
 
         # Optimized blocking positions tracking (initialize before reset_token_positions)
@@ -88,7 +90,9 @@ class Board:
             self.token_positions[i] = []
 
         # Initialize positions for home columns (100-105)
-        for i in range(BoardConstants.HOME_COLUMN_START, BoardConstants.HOME_COLUMN_END + 1):
+        for i in range(
+            BoardConstants.HOME_COLUMN_START, BoardConstants.HOME_COLUMN_END + 1
+        ):
             self.token_positions[i] = []
 
         # Reset cache and multi-token tracking
@@ -299,7 +303,11 @@ class Board:
         """Get detailed information about a specific position."""
         if position == GameConstants.HOME_POSITION:
             return PositionInfo(type="home", position=position, is_safe=True, tokens=[])
-        elif BoardConstants.HOME_COLUMN_START <= position <= BoardConstants.HOME_COLUMN_END:
+        elif (
+            BoardConstants.HOME_COLUMN_START
+            <= position
+            <= BoardConstants.HOME_COLUMN_END
+        ):
             return PositionInfo(
                 type="home_column",
                 position=position,
@@ -362,12 +370,15 @@ class Board:
         blocking_positions = set()
 
         # Only check positions that potentially have multiple tokens of this color
-        candidate_positions = self._multi_token_positions.get(player_color, set()).copy()
+        candidate_positions = self._multi_token_positions.get(
+            player_color, set()
+        ).copy()
 
         for position in candidate_positions:
             # Double-check that position is still valid and has multiple tokens
-            if 0 <= position < GameConstants.MAIN_BOARD_SIZE and not self.is_position_safe(
-                position, player_color
+            if (
+                0 <= position < GameConstants.MAIN_BOARD_SIZE
+                and not self.is_position_safe(position, player_color)
             ):
                 player_tokens = [
                     t
