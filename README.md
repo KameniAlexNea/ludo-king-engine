@@ -58,7 +58,7 @@ Create and run games programmatically with full control over strategies and game
 
 ```python
 from ludo_engine import LudoGame, StrategyFactory
-from ludo_engine.player import PlayerColor
+from ludo_engine.core.player import PlayerColor
 
 # Initialize a new game with four players
 game = LudoGame(
@@ -72,9 +72,9 @@ for i, strategy_name in enumerate(strategies):
     game.players[i].set_strategy(strategy)
 
 # Execute a complete game and analyze results
-results = game.play_game()
-print(f"🏆 Winner: {results['winner']}")
-print(f"⏱️ Game Duration: {results['turns_played']} turns")
+turns = list(game.play_game(max_turns=500))
+print(f"🏆 Winner: {game.winner}")
+print(f"⏱️ Game Duration: {len(turns)} turns")
 ```
 
 ## 🧠 Available AI Strategies
@@ -159,7 +159,7 @@ Our comprehensive tournament system demonstrates the effectiveness of different 
 - **Win Rate:** 77.3% demonstrating exceptional consistency
 - **Performance:** Dominated through mathematical optimization
 
-#### � Strategic Performance Tiers
+####   Strategic Performance Tiers
 
 **🥇 Elite Tier (70%+ win rate)**
 - **Probabilistic Dominance:** Three probabilistic variants secured the top positions
@@ -205,7 +205,7 @@ Start with a simple two-player game to understand the fundamentals:
 
 ```python
 from ludo_engine import LudoGame, StrategyFactory
-from ludo_engine.player import PlayerColor
+from ludo_engine.core.player import PlayerColor
 
 # Initialize a basic two-player game
 game = LudoGame([PlayerColor.RED, PlayerColor.BLUE])
@@ -217,8 +217,8 @@ for i, strategy_name in enumerate(strategies):
     game.players[i].set_strategy(strategy)
 
 # Execute the game and get results
-results = game.play_game()
-print(f"🏆 Game completed! Winner: {results.get('winner', 'No winner')}")
+results = list(game.play_game(max_turns=500))
+print(f"🏆 Game completed! Winner: {getattr(game, "winner", None) or "No winner"}")
 ```
 
 ### Strategy Performance Comparison
@@ -227,7 +227,7 @@ Analyze and compare different AI strategies across multiple games:
 
 ```python
 from ludo_engine import LudoGame, StrategyFactory
-from ludo_engine.player import PlayerColor
+from ludo_engine.core.player import PlayerColor
 
 # Define strategies to compare
 strategies = ['random', 'killer', 'defensive', 'balanced']
@@ -243,12 +243,12 @@ for game_round in range(100):
         game.players[player_index].set_strategy(strategy)
     
     # Play game and record results
-    results = game.play_game()
+    results = list(game.play_game(max_turns=500))
     
-    if results.get('winner'):
+    if game.winner:
         # Identify winning strategy
         for player in game.players:
-            if player.color.value == results['winner']:
+            if player == game.winner:
                 performance_metrics[player.strategy.name.lower()] += 1
                 break
 
@@ -263,46 +263,82 @@ for strategy, wins in performance_metrics.items():
 Create and integrate your own AI strategy:
 
 ```python
-from ludo_engine.strategies import BaseStrategy
-from ludo_engine.player import PlayerColor
-from ludo_engine import LudoGame, StrategyFactory
+from ludo_engine.strategies.base import Strategy
+from ludo_engine.core.player import PlayerColor
+from ludo_engine import AIDecisionContext, LudoGame, STRATEGIES, StrategyFactory
 
-class CustomStrategy(BaseStrategy):
+class CustomStrategy(Strategy):
     """Example custom strategy implementation."""
     
     def __init__(self):
-        super().__init__("CustomStrategy")
+        super().__init__(name = "CustomStrategy", description="Description")
     
-    def choose_move(self, movable_tokens, dice_roll, game_state):
+    def decide(self, game_context: AIDecisionContext):
         """
         Implement your strategic logic here.
         
         Args:
-            movable_tokens: List of tokens that can be moved
-            dice_roll: Current dice value
-            game_state: Current state of the game
+            game_context: Full game description of the game at the moment (board and opponents)
             
         Returns:
             Selected token to move or None if no move possible
         """
+        moves = self._get_valid_moves(game_context)
         # Example: Prioritize tokens closest to finish
-        if movable_tokens:
-            return max(movable_tokens, key=lambda token: token.position)
+        if moves:
+            return max(moves, key=lambda move: move.target_position)
         return None
 
 # Register your custom strategy
-StrategyFactory.register_strategy('custom_strategy', CustomStrategy)
+STRATEGIES['custom_strategy'] = CustomStrategy
 
 # Use your strategy in a game
 game = LudoGame([PlayerColor.RED, PlayerColor.BLUE])
-strategies = ['custom_strategy', 'balanced']
+strategies = ['custom_strategy', 'random']
 
 for i, strategy_name in enumerate(strategies):
     strategy = StrategyFactory.create_strategy(strategy_name)
     game.players[i].set_strategy(strategy)
 
-results = game.play_game()
-print(f"🎯 Custom strategy game result: {results.get('winner', 'Draw')}")
+turns = list(game.play_game(max_turns=500))
+print("🎯 Custom strategy game winner:", game.winner or "Draw")
+```
+
+### Custom Strategy App Test
+
+Test your defined strategy with web interface:
+
+```python
+from ludo_engine import LudoGame, StrategyFactory
+from ludo_engine.core.player import PlayerColor
+
+# Define strategies to compare
+strategies = ['random', 'killer', 'defensive', 'balanced']
+performance_metrics = {strategy: 0 for strategy in strategies}
+
+# Run 100 games for statistical significance
+for game_round in range(100):
+    game = LudoGame([PlayerColor.RED, PlayerColor.BLUE, PlayerColor.GREEN, PlayerColor.YELLOW])
+    
+    # Assign strategies to players
+    for player_index, strategy_name in enumerate(strategies):
+        strategy = StrategyFactory.create_strategy(strategy_name)
+        game.players[player_index].set_strategy(strategy)
+    
+    # Play game and record results
+    results = list(game.play_game(max_turns=500))
+    
+    if game.winner:
+        # Identify winning strategy
+        for player in game.players:
+            if player == game.winner:
+                performance_metrics[player.strategy.name.lower()] += 1
+                break
+
+print("📊 Strategy Performance Analysis:")
+for strategy, wins in performance_metrics.items():
+    win_rate = (wins / 100) * 100
+    print(f"   {strategy.capitalize()}: {wins}/100 wins ({win_rate:.1f}%)")
 ```
 
 ### Advanced Game Analysis
@@ -311,7 +347,8 @@ Monitor game progression with detailed turn-by-turn analysis:
 
 ```python
 from ludo_engine import LudoGame, StrategyFactory
-from ludo_engine.player import PlayerColor
+from ludo_engine.core.player import PlayerColor
+from itertools import chain
 
 # Setup game for detailed analysis
 game = LudoGame([PlayerColor.RED, PlayerColor.BLUE])
@@ -322,35 +359,34 @@ for i, strategy_name in enumerate(strategies):
     game.players[i].set_strategy(strategy)
 
 # Initialize game and track progress
-game.start_game()
 turn_counter = 0
 
 print("🔍 Detailed Game Analysis:")
 print("=" * 50)
 
-while not game.is_finished():
+while not game.game_over:
     current_player = game.get_current_player()
     turn_result = game.play_turn()
     turn_counter += 1
     
     # Log turn details
     print(f"Turn {turn_counter:3d} | Player {current_player.color.value:6s}: "
-          f"Rolled {turn_result.get('dice_roll', 'N/A'):2d} | "
-          f"Move: {turn_result.get('move_made', 'No move')}")
+          f"Rolled {turn_result.dice_value or 'N/A':2d} | "
+          f"Move: {turn_result.moves or "No move"}")
     
     # Highlight special events
-    if turn_result.get('captured_tokens'):
-        captured_count = len(turn_result['captured_tokens'])
+    captured_tokens = list(chain.from_iterable([move.captured_tokens for move in turn_result.moves]))
+    if captured_tokens:
+        captured_count = len(captured_tokens)
         print(f"         🎯 Captured {captured_count} opponent token(s)!")
     
-    if turn_result.get('dice_roll') == 6:
+    if turn_result.dice_value == 6:
         print(f"         🎲 Bonus turn earned!")
 
 # Display final results
-final_results = game.get_game_results()
 print("=" * 50)
 print(f"🏁 Game completed in {turn_counter} turns")
-print(f"🏆 Winner: {final_results.get('winner', 'No winner determined')}")
+print(f"🏆 Winner: {game.winner or "No winner determined"}")
 ```
 
 ## 🎯 Use Cases & Applications
