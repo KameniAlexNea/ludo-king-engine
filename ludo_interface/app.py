@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import List, Optional, Union
 
 os.environ.setdefault("GRADIO_TEMP_DIR", os.path.join(os.getcwd(), "gradio_runtime"))
 os.environ.setdefault(
@@ -9,6 +9,7 @@ os.environ.setdefault(
 
 
 from ludo_engine.core import PlayerColor
+from ludo_engine.strategies import Strategy
 from ludo_engine.strategies.strategy import StrategyFactory
 from ludo_interface.board_viz import preload_board_template
 
@@ -30,31 +31,47 @@ class LudoApp:
     """Encapsulates the Ludo game application logic and Gradio UI."""
 
     def __init__(
-        self, players: Optional[List[PlayerColor]] = None, show_token_ids: bool = True
+        self,
+        players: Optional[List[PlayerColor]] = None,
+        strategies: Optional[List[Union[Strategy, str]]] = None,
+        show_token_ids: bool = True,
     ):
         """
         Initializes the Ludo application.
 
         Args:
             players (Optional[List[PlayerColor]]): A list of player colors. Defaults to standard four players.
+            strategies (Optional[List[Union[Strategy, str]]]): A list of strategies for AI players.
             show_token_ids (bool): Whether to display token IDs on the board.
         """
         self.default_players = players if players is not None else DEFAULT_PLAYERS
         self.show_token_ids = show_token_ids
-        self.ai_strategies = StrategyFactory.get_available_strategies()
+        ai_strategies = strategies if strategies is not None else AI_STRATEGIES
+        self.ai_strategies = [
+            StrategyFactory.create_strategy(s) if isinstance(s, str) else s
+            for s in ai_strategies
+        ]
+
+        if any(not isinstance(s, Strategy) for s in self.ai_strategies):
+            raise ValueError(
+                "All strategies must be instances of Strategy or valid strategy names."
+            )
+        self.ai_strategies_names = {s.name: s for s in self.ai_strategies}
 
         # Initialize components
-        self.game_manager = GameManager(self.default_players, self.show_token_ids)
+        self.game_manager = GameManager(
+            self.default_players, self.ai_strategies_names, self.show_token_ids
+        )
         self.utils = Utils()
         self.event_handler = EventHandler(
             self.game_manager,
             self.utils,
-            self.ai_strategies,
+            list(self.ai_strategies_names.keys()),
             self.default_players,
             self.show_token_ids,
         )
         self.ui_builder = UIBuilder(
-            self.ai_strategies,
+            list(self.ai_strategies_names.keys()),
             self.default_players,
             self.show_token_ids,
             self.event_handler,

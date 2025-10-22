@@ -398,7 +398,7 @@ class LudoGame:
             valid = self.get_valid_moves(current_player, dice_value)
             if not valid:
                 continue
-            if len(valid) == 1: # accelerated for single valid move
+            if len(valid) == 1:  # accelerated for single valid move
                 selected_token_id = valid[0].token_id
             else:
                 selected_token_id = current_player.make_strategic_decision(

@@ -12,8 +12,8 @@ from typing import Dict, List, Optional, Union
 from config import TournamentConfig
 
 from ludo_engine.core import LudoGame, PlayerColor
-from ludo_engine.strategies.strategy import StrategyFactory
 from ludo_engine.strategies.base import Strategy
+from ludo_engine.strategies.strategy import StrategyFactory
 
 
 @dataclass
@@ -185,12 +185,10 @@ class LudoTournament:
 
         # Get strategy objects by name (case-insensitive lookup)
         home_strategy_obj = next(
-            s for s in self.strategies
-            if s.name.lower() == home_strategy.lower()
+            s for s in self.strategies if s.name.lower() == home_strategy.lower()
         )
         away_strategy_obj = next(
-            s for s in self.strategies
-            if s.name.lower() == away_strategy.lower()
+            s for s in self.strategies if s.name.lower() == away_strategy.lower()
         )
 
         # Play multiple games if configured
@@ -444,8 +442,8 @@ def run_sample_tournament():
 
 def run_custom_strategy_tournament():
     """Demonstrate tournament with custom Strategy objects."""
-    from ludo_engine.strategies.baseline.random_strategy import RandomStrategy
     from ludo_engine.strategies.aggressive.killer import KillerStrategy
+    from ludo_engine.strategies.baseline.random_strategy import RandomStrategy
 
     # Create custom strategy instances
     custom_random = RandomStrategy()
