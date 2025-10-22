@@ -398,9 +398,12 @@ class LudoGame:
             valid = self.get_valid_moves(current_player, dice_value)
             if not valid:
                 continue
-            selected_token_id = current_player.make_strategic_decision(
-                self.get_ai_decision_context(dice_value)
-            )
+            if len(valid) == 1: # accelerated for single valid move
+                selected_token_id = valid[0].token_id
+            else:
+                selected_token_id = current_player.make_strategic_decision(
+                    self.get_ai_decision_context(dice_value)
+                )
             # Play the turn with the selected token
             turn_result = self.play_turn(
                 token_id=selected_token_id, dice_value=dice_value

@@ -20,7 +20,7 @@ def is_safe_or_home(pos: int) -> bool:
     """True if position is a star/start safe square or within any home column."""
     return BoardConstants.is_home_column_position(
         pos
-    ) or BoardConstants.is_safe_position(pos)
+    ) or BoardConstants.is_safe_position(pos) or pos == GameConstants.HOME_POSITION
 
 
 def forward_distance(start: int, end: int) -> int:
