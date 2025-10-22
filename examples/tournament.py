@@ -7,12 +7,13 @@ compete against each other in a round-robin format with home and away games.
 
 import random
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from config import TournamentConfig
 
 from ludo_engine.core import LudoGame, PlayerColor
 from ludo_engine.strategies.strategy import StrategyFactory
+from ludo_engine.strategies.base import Strategy
 
 
 @dataclass
@@ -84,14 +85,20 @@ class LudoTournament:
     - Draw: 1 point
     - Loss: 0 points
 
+    Supports both strategy names (strings) and pre-instantiated Strategy objects.
+
     Configuration is loaded from .env file or environment variables:
     - TOURNAMENT_MAX_TURNS: Maximum turns per game (default: 200)
     - TOURNAMENT_GAMES_PER_MATCH: Games per match (default: 1)
     - TOURNAMENT_SEED: Random seed for reproducibility (default: None)
 
     Example usage:
-        # Use config defaults
+        # Use strategy names (strings)
         tournament = LudoTournament(['random', 'killer'])
+
+        # Use pre-instantiated Strategy objects
+        strategies = [RandomStrategy(), KillerStrategy()]
+        tournament = LudoTournament(strategies)
 
         # Custom config
         custom_config = TournamentConfig()
@@ -100,36 +107,60 @@ class LudoTournament:
 
     def __init__(
         self,
-        strategies: List[str],
+        strategies: Union[List[str], List[Strategy]],
         config: Optional[TournamentConfig] = None,
     ):
         """
         Initialize the tournament.
 
         Args:
-            strategies: List of strategy names to compete
+            strategies: List of strategy names (strings) or Strategy objects to compete
             config: TournamentConfig instance (default: global config)
         """
         # Use provided config or global config
         self.config = config or TournamentConfig()
 
-        self.strategies = strategies
+        # Handle both list of strings and list of Strategy objects
+        self._original_strategies = strategies  # Keep original input for reference
+        self.strategies: List[Strategy] = []
+        self.strategy_names: List[str] = []
+
+        if not strategies:
+            raise ValueError("At least one strategy required for tournament")
+
+        # Check if all items are strings (strategy names)
+        if all(isinstance(s, str) for s in strategies):
+            # Validate strategy names and create instances
+            available_strategies = StrategyFactory.get_available_strategies()
+            for strategy_name in strategies:
+                if strategy_name not in available_strategies:
+                    raise ValueError(f"Unknown strategy: {strategy_name}")
+                strategy_instance = StrategyFactory.create_strategy(strategy_name)
+                self.strategies.append(strategy_instance)
+                # Use the capitalized name from the strategy object for consistency
+                self.strategy_names.append(strategy_instance.name)
+
+        # Check if all items are Strategy objects
+        elif all(isinstance(s, Strategy) for s in strategies):
+            # Use the strategy objects directly
+            self.strategies = list(strategies)  # Create a copy
+            self.strategy_names = [s.name for s in strategies]
+
+        else:
+            raise ValueError(
+                "Strategies must be either all strings (strategy names) or all Strategy objects"
+            )
+
+        if len(self.strategies) < 2:
+            raise ValueError("At least 2 strategies required for tournament")
+
         self.games_per_match = self.config.games_per_match
         self.seed = self.config.seed
         self.max_turns = self.config.max_turns
 
-        # Validate strategies
-        available_strategies = StrategyFactory.get_available_strategies()
-        for strategy in strategies:
-            if strategy not in available_strategies:
-                raise ValueError(f"Unknown strategy: {strategy}")
-
-        if len(strategies) < 2:
-            raise ValueError("At least 2 strategies required for tournament")
-
-        # Initialize tournament data
+        # Initialize tournament data using strategy names for keys
         self.team_stats: Dict[str, TeamStats] = {
-            strategy: TeamStats(strategy) for strategy in strategies
+            name: TeamStats(name) for name in self.strategy_names
         }
         self.match_results: List[MatchResult] = []
         self.completed = False
@@ -142,8 +173,8 @@ class LudoTournament:
         Play a match between two strategies.
 
         Args:
-            home_strategy: Strategy playing at home
-            away_strategy: Strategy playing away
+            home_strategy: Name of strategy playing at home
+            away_strategy: Name of strategy playing away
 
         Returns:
             MatchResult with the outcome
@@ -152,15 +183,24 @@ class LudoTournament:
         away_wins = 0
         total_turns = 0
 
+        # Get strategy objects by name (case-insensitive lookup)
+        home_strategy_obj = next(
+            s for s in self.strategies
+            if s.name.lower() == home_strategy.lower()
+        )
+        away_strategy_obj = next(
+            s for s in self.strategies
+            if s.name.lower() == away_strategy.lower()
+        )
+
         # Play multiple games if configured
         for _ in range(self.games_per_match):
             # Create game with home team having slight advantage (goes first)
             game = LudoGame(player_colors=[PlayerColor.RED, PlayerColor.GREEN])
 
-            # Set strategies for players
-            for i, strategy_name in enumerate([home_strategy, away_strategy]):
-                strategy = StrategyFactory.create_strategy(strategy_name)
-                game.players[i].set_strategy(strategy)
+            # Set strategies for players using pre-created objects
+            game.players[0].set_strategy(home_strategy_obj)
+            game.players[1].set_strategy(away_strategy_obj)
 
             turns = list(game.play_game(max_turns=self.max_turns))
             total_turns += len(turns)
@@ -212,17 +252,17 @@ class LudoTournament:
         """
         if verbose:
             print("🏆 Ludo Strategy Tournament")
-            print(f"📊 {len(self.strategies)} teams competing")
+            print(f"📊 {len(self.strategy_names)} teams competing")
             print(f"🎮 {self.games_per_match} game(s) per match")
             print("🏠 Home and away format")
             print("=" * 60)
 
-        total_matches = len(self.strategies) * (len(self.strategies) - 1)
+        total_matches = len(self.strategy_names) * (len(self.strategy_names) - 1)
         match_count = 0
 
         # Round-robin: every team plays every other team home and away
-        for home_strategy in self.strategies:
-            for away_strategy in self.strategies:
+        for home_strategy in self.strategy_names:
+            for away_strategy in self.strategy_names:
                 if home_strategy != away_strategy:
                     match_count += 1
 
@@ -331,7 +371,7 @@ class LudoTournament:
 
     def get_head_to_head(self, strategy1: str, strategy2: str) -> Dict:
         """Get head-to-head record between two strategies."""
-        if strategy1 not in self.strategies or strategy2 not in self.strategies:
+        if strategy1 not in self.strategy_names or strategy2 not in self.strategy_names:
             raise ValueError("Both strategies must be in the tournament")
 
         relevant_matches = [
@@ -402,5 +442,40 @@ def run_sample_tournament():
     return tournament
 
 
+def run_custom_strategy_tournament():
+    """Demonstrate tournament with custom Strategy objects."""
+    from ludo_engine.strategies.baseline.random_strategy import RandomStrategy
+    from ludo_engine.strategies.aggressive.killer import KillerStrategy
+
+    # Create custom strategy instances
+    custom_random = RandomStrategy()
+    custom_killer = KillerStrategy()
+
+    # You can modify strategies here if needed
+    # custom_killer.some_parameter = custom_value
+
+    strategies = [custom_random, custom_killer]
+
+    print("🚀 Running Custom Strategy Tournament")
+    print("🎯 Using pre-instantiated Strategy objects")
+    print(f"📊 Strategies: {', '.join(s.name for s in strategies)}")
+    print()
+
+    tournament = LudoTournament(
+        strategies=strategies,  # Pass Strategy objects directly
+        seed=42,
+    )
+
+    tournament.run_tournament(verbose=True)
+    return tournament
+
+
 if __name__ == "__main__":
-    run_sample_tournament()
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "--custom":
+        print("Running custom strategy tournament...")
+        run_custom_strategy_tournament()
+    else:
+        print("Running standard tournament...")
+        run_sample_tournament()
