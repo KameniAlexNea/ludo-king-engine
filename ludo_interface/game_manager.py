@@ -3,19 +3,25 @@ from typing import Dict, List, Optional
 from ludo_engine.core import LudoGame, Token
 from ludo_engine.models import MoveResult, PlayerColor
 from ludo_engine.strategies import HumanStrategy
-from ludo_engine.strategies.strategy import StrategyFactory
+from ludo_engine.strategies.base import Strategy
 
 
 class GameManager:
     """Handles core game logic and state management."""
 
-    def __init__(self, default_players: List[PlayerColor], show_token_ids: bool):
+    def __init__(
+        self,
+        default_players: List[PlayerColor],
+        strategies_mapping: Dict[str, Strategy],
+        show_token_ids: bool,
+    ):
         self.default_players = default_players
         self.show_token_ids = show_token_ids
+        self.strategies_mapping = strategies_mapping
 
     def init_game(self, strategies: List[str]) -> LudoGame:
         """Initializes a new Ludo game with the given strategies."""
-        strategy_objs = [StrategyFactory.create_strategy(name) for name in strategies]
+        strategy_objs = [self.strategies_mapping[name] for name in strategies]
         game = LudoGame(self.default_players)
         for player, strat in zip(game.players, strategy_objs):
             player.set_strategy(strat)

@@ -7,7 +7,10 @@ behind late game.
 
 from typing import List, Set
 
-from ludo_engine.models.constants import BoardConstants, StrategyConstants
+from ludo_engine.models.constants import (
+    BoardConstants,
+    CautiousStrategyConstants,
+)
 from ludo_engine.models.model import AIDecisionContext, MoveType, ValidMove
 from ludo_engine.strategies.base import Strategy
 from ludo_engine.strategies.utils import (
@@ -63,9 +66,9 @@ class CautiousStrategy(Strategy):
         # 3. Safe captures before generic safe moves (conservative but not blind)
         # Determine allowed threat based on urgency
         allowed_threat = (
-            StrategyConstants.CAUTIOUS_LATE_GAME_ALLOWED_THREAT
+            CautiousStrategyConstants.LATE_GAME_ALLOWED_THREAT
             if urgency in ("behind", "desperate", "late_game")
-            else StrategyConstants.CAUTIOUS_MAX_ALLOWED_THREAT
+            else CautiousStrategyConstants.MAX_ALLOWED_THREAT
         )
         safe_moves = self._get_safe_moves(moves)
         my_main_positions = get_my_main_positions(game_context)
@@ -105,7 +108,7 @@ class CautiousStrategy(Strategy):
             return zero_or_allowed_threat[0].token_id
 
         # 5. Exit home (only if board presence low or late game pressure)
-        if active_tokens < StrategyConstants.CAUTIOUS_MIN_ACTIVE_TOKENS or late_game:
+        if active_tokens < CautiousStrategyConstants.MIN_ACTIVE_TOKENS or late_game:
             exit_move = self._get_move_by_type(moves, MoveType.EXIT_HOME)
             if exit_move:
                 # Ensure exit square not threatened unless forced

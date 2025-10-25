@@ -9,6 +9,7 @@ from typing import List, Optional, Tuple
 from ludo_engine.models.constants import (
     BoardConstants,
     GameConstants,
+    OptimistStrategyConstants,
     StrategyConstants,
 )
 from ludo_engine.models.model import AIDecisionContext, MoveType, ValidMove
@@ -44,7 +45,7 @@ class OptimistStrategy(Strategy):
         high_value_risky = [
             m
             for m in risky_moves
-            if m.strategic_value >= StrategyConstants.OPTIMIST_HIGH_RISK_THRESHOLD
+            if m.strategic_value >= OptimistStrategyConstants.HIGH_RISK_THRESHOLD
         ]
         if high_value_risky:
             # Prefer moves with future capture potential
@@ -62,7 +63,7 @@ class OptimistStrategy(Strategy):
                 return best_capture.token_id
 
         # 3. Aggressive exit to increase board presence until target count reached
-        if active_tokens < StrategyConstants.OPTIMIST_EXIT_EARLY_ACTIVE_TARGET:
+        if active_tokens < OptimistStrategyConstants.EXIT_EARLY_ACTIVE_TARGET:
             exit_move = self._get_move_by_type(moves, MoveType.EXIT_HOME)
             if exit_move:
                 return exit_move.token_id
@@ -108,11 +109,11 @@ class OptimistStrategy(Strategy):
                 )
                 progress_bonus += (
                     (60 - remaining)
-                    * StrategyConstants.OPTIMIST_CAPTURE_PROGRESS_WEIGHT
+                    * OptimistStrategyConstants.CAPTURE_PROGRESS_WEIGHT
                     * 0.01
                 )
             stack_bonus = (
-                StrategyConstants.OPTIMIST_STACK_BONUS
+                OptimistStrategyConstants.STACK_BONUS
                 if (not mv.is_safe_move and mv.strategic_value > 10)
                 else 0.0
             )
@@ -135,12 +136,12 @@ class OptimistStrategy(Strategy):
             if potential == 0 and not fallback:
                 continue
             risk_reward = (
-                StrategyConstants.OPTIMIST_RISK_REWARD_BONUS
+                OptimistStrategyConstants.RISK_REWARD_BONUS
                 if not mv.is_safe_move
                 else 0.0
             )
             score = (
-                potential * StrategyConstants.OPTIMIST_FUTURE_CAPTURE_WEIGHT
+                potential * OptimistStrategyConstants.FUTURE_CAPTURE_WEIGHT
                 + mv.strategic_value
                 + risk_reward
             )

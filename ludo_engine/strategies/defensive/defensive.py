@@ -19,8 +19,8 @@ from typing import Dict, List, Optional, Tuple
 
 from ludo_engine.models.constants import (
     BoardConstants,
+    DefensiveStrategyConstants,
     GameConstants,
-    StrategyConstants,
 )
 from ludo_engine.models.model import AIDecisionContext, MoveType, ValidMove
 from ludo_engine.strategies.base import Strategy
@@ -53,7 +53,7 @@ class DefensiveStrategy(Strategy):
 
         leading_finished = max((o.finished_tokens for o in opponents), default=0)
         pressure = (
-            leading_finished >= StrategyConstants.DEFENSIVE_EXIT_PRESSURE_THRESHOLD
+            leading_finished >= DefensiveStrategyConstants.EXIT_PRESSURE_THRESHOLD
         )
 
         threat_map = compute_threats_for_moves(moves, game_context)
@@ -106,7 +106,7 @@ class DefensiveStrategy(Strategy):
                 return choice
 
         # 6. Exit home to maintain presence (only if below target active or under pressure)
-        if active < StrategyConstants.DEFENSIVE_MIN_ACTIVE_TOKENS or pressure:
+        if active < DefensiveStrategyConstants.MIN_ACTIVE_TOKENS or pressure:
             exit_move = self._get_move_by_type(moves, MoveType.EXIT_HOME)
             if exit_move and self._is_within_defensive_threat(
                 threat_map.get(exit_move.token_id, (0, NO_THREAT_DISTANCE))
@@ -138,9 +138,9 @@ class DefensiveStrategy(Strategy):
     @staticmethod
     def _is_within_defensive_threat(threat_tuple: Tuple[int, int]) -> bool:
         count, min_dist = threat_tuple
-        if count > StrategyConstants.DEFENSIVE_MAX_THREAT_COUNT:
+        if count > DefensiveStrategyConstants.MAX_THREAT_COUNT:
             return False
-        if 1 <= min_dist <= StrategyConstants.DEFENSIVE_ALLOW_THREAT_DISTANCE:
+        if 1 <= min_dist <= DefensiveStrategyConstants.ALLOW_THREAT_DISTANCE:
             return False
         return True
 
@@ -197,8 +197,8 @@ class DefensiveStrategy(Strategy):
                 remaining = self._distance_to_finish_proxy(mv.target_position, entry)
                 progress_value += (60 - remaining) * 0.01
             total_score = (
-                StrategyConstants.DEFENSIVE_SAFE_CAPTURE_BONUS
-                + progress_value * StrategyConstants.DEFENSIVE_SAFE_CAPTURE_BONUS
+                DefensiveStrategyConstants.SAFE_CAPTURE_BONUS
+                + progress_value * DefensiveStrategyConstants.SAFE_CAPTURE_BONUS
             )
             scored.append((total_score, mv))
         if not scored:
