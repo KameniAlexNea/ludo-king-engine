@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Tuple
 from ludo_engine.models.constants import (
     BoardConstants,
     GameConstants,
+    KillerStrategyConstants,
     StrategyConstants,
 )
 from ludo_engine.models.model import AIDecisionContext, MoveType, ValidMove
@@ -183,7 +184,7 @@ class KillerStrategy(Strategy):
             )
             progress_frac = max(0.0, 1.0 - (remaining / baseline_total))
             progress_component += (
-                progress_frac * StrategyConstants.KILLER_PROGRESS_WEIGHT
+                progress_frac * KillerStrategyConstants.PROGRESS_WEIGHT
             )
         score += progress_component
 
@@ -191,21 +192,21 @@ class KillerStrategy(Strategy):
         for ct in captured:
             opp_color = ct.player_color
             if finished_map.get(opp_color, 0) == max_finished and max_finished > 0:
-                bonus = StrategyConstants.KILLER_THREAT_WEIGHT
+                bonus = KillerStrategyConstants.THREAT_WEIGHT
                 score += bonus
 
         # Extra turn chain potential (always for capture)
-        chain_bonus = StrategyConstants.KILLER_CHAIN_BONUS
+        chain_bonus = KillerStrategyConstants.CHAIN_BONUS
         score += chain_bonus
 
         # Safety landing
         if mv.is_safe_move:
-            safe_bonus = StrategyConstants.KILLER_SAFE_LAND_BONUS
+            safe_bonus = KillerStrategyConstants.SAFE_LAND_BONUS
             score += safe_bonus
 
         # Block formation heuristic
         if not mv.is_safe_move and mv.strategic_value > 10:
-            block_bonus = StrategyConstants.KILLER_BLOCK_BONUS * 0.5
+            block_bonus = KillerStrategyConstants.BLOCK_BONUS * 0.5
             score += block_bonus
 
         # Recapture risk
@@ -213,12 +214,12 @@ class KillerStrategy(Strategy):
         if threat_count:
             # Scale penalty by number of threats, soft-capped.
             scaled = min(threat_count, 3) / 3.0  # 0..1
-            penalty = StrategyConstants.KILLER_RECAPTURE_PENALTY * scaled
+            penalty = KillerStrategyConstants.RECAPTURE_PENALTY * scaled
             score -= penalty
 
         # Weak prey penalty
         if progress_component < 0.2 and threat_count > 0:
-            penalty2 = StrategyConstants.KILLER_WEAK_PREY_PENALTY
+            penalty2 = KillerStrategyConstants.WEAK_PREY_PENALTY
             score -= penalty2
 
         return score
@@ -249,7 +250,7 @@ class KillerStrategy(Strategy):
             stack_bonus = (
                 0.5 if (mv.strategic_value > 10 and not mv.is_safe_move) else 0.0
             )
-            score = count * StrategyConstants.KILLER_FUTURE_CAPTURE_WEIGHT + stack_bonus
+            score = count * KillerStrategyConstants.FUTURE_CAPTURE_WEIGHT + stack_bonus
             if score > 0:
                 scored.append((score, mv))
 

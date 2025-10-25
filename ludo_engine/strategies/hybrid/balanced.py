@@ -9,9 +9,9 @@ relative progress and late-game pressure.
 from typing import Dict, List, Optional, Set, Tuple
 
 from ludo_engine.models.constants import (
+    BalancedStrategyConstants,
     BoardConstants,
     GameConstants,
-    StrategyConstants,
 )
 from ludo_engine.models.model import AIDecisionContext, MoveType, ValidMove
 from ludo_engine.strategies.base import Strategy
@@ -47,13 +47,13 @@ class BalancedStrategy(Strategy):
         opp_max_ratio = self._max_opponent_progress_ratio(game_context)
 
         behind = (
-            my_ratio + StrategyConstants.BALANCED_RISK_TOLERANCE_MARGIN < opp_max_ratio
+            my_ratio + BalancedStrategyConstants.RISK_TOLERANCE_MARGIN < opp_max_ratio
         )
         ahead = my_ratio > (
-            opp_max_ratio + StrategyConstants.BALANCED_RISK_TOLERANCE_MARGIN
+            opp_max_ratio + BalancedStrategyConstants.RISK_TOLERANCE_MARGIN
         )
         late_game_pressure = opp_max_ratio >= (
-            StrategyConstants.BALANCED_LATE_GAME_FINISH_PUSH
+            BalancedStrategyConstants.LATE_GAME_FINISH_PUSH
             / GameConstants.TOKENS_PER_PLAYER
         )
 
@@ -69,7 +69,7 @@ class BalancedStrategy(Strategy):
         # Priority 2: Deep home column (weighted more under late-game pressure)
         home_moves = self._get_moves_by_type(moves, MoveType.ADVANCE_HOME_COLUMN)
         if home_moves:
-            home_weight = StrategyConstants.BALANCED_HOME_PRIORITY * (
+            home_weight = BalancedStrategyConstants.HOME_PRIORITY * (
                 1.2 if late_game_pressure else 1.0
             )
             best_home = max(
@@ -105,7 +105,7 @@ class BalancedStrategy(Strategy):
                 return pick
 
         # Priority 6: Exit home to maintain presence if needed
-        if active < StrategyConstants.BALANCED_MIN_ACTIVE_TARGET or behind:
+        if active < BalancedStrategyConstants.MIN_ACTIVE_TARGET or behind:
             exit_move = self._get_move_by_type(moves, MoveType.EXIT_HOME)
             if exit_move:
                 return exit_move.token_id
@@ -168,9 +168,9 @@ class BalancedStrategy(Strategy):
             threat = threat_map.get(tid, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE))
             # when aggressive allow up to BALANCED_THREAT_SOFT_CAP else stricter
             max_threat_allowed = (
-                StrategyConstants.BALANCED_THREAT_SOFT_CAP
+                BalancedStrategyConstants.THREAT_SOFT_CAP
                 if aggressive
-                else StrategyConstants.BALANCED_AHEAD_THREAT_CAP
+                else BalancedStrategyConstants.AHEAD_THREAT_CAP
             )
             if threat[0] > max_threat_allowed:
                 continue
@@ -182,9 +182,9 @@ class BalancedStrategy(Strategy):
                 remaining = self._distance_to_finish_proxy(mv.target_position, entry)
                 progress_value += (60 - remaining) * 0.01
             score = (
-                StrategyConstants.BALANCED_SAFE_CAPTURE_WEIGHT
+                BalancedStrategyConstants.SAFE_CAPTURE_WEIGHT
                 * (1.25 if aggressive else 1.0)
-                + progress_value * StrategyConstants.BALANCED_SAFE_CAPTURE_WEIGHT
+                + progress_value * BalancedStrategyConstants.SAFE_CAPTURE_WEIGHT
             )
             scored.append((score, mv))
         if not scored:
@@ -200,11 +200,11 @@ class BalancedStrategy(Strategy):
         if not candidates:
             return None
         scored: List[Tuple[float, ValidMove]] = []
-        scan_range = StrategyConstants.BALANCED_FUTURE_CAPTURE_PROXIMITY
+        scan_range = BalancedStrategyConstants.FUTURE_CAPTURE_PROXIMITY
         for mv in candidates:
             tid = mv.token_id
             threat = threat_map.get(tid, (LARGE_THREAT_COUNT, NO_THREAT_DISTANCE))
-            if threat[0] > StrategyConstants.BALANCED_THREAT_SOFT_CAP:
+            if threat[0] > BalancedStrategyConstants.THREAT_SOFT_CAP:
                 continue
             potential = self._estimate_future_capture_potential(
                 mv.target_position, scan_range, ctx
@@ -212,7 +212,7 @@ class BalancedStrategy(Strategy):
             if potential <= 0:
                 continue
             scored.append(
-                (potential * StrategyConstants.BALANCED_FUTURE_CAPTURE_WEIGHT, mv)
+                (potential * BalancedStrategyConstants.FUTURE_CAPTURE_WEIGHT, mv)
             )
         if not scored:
             return None
@@ -259,10 +259,10 @@ class BalancedStrategy(Strategy):
             if BoardConstants.is_home_column_position(mv.target_position):
                 depth_bonus = (
                     mv.target_position - GameConstants.HOME_COLUMN_START
-                ) * StrategyConstants.BALANCED_HOME_PRIORITY
+                ) * BalancedStrategyConstants.HOME_PRIORITY
             progress_component = (
                 mv.strategic_value if mv.strategic_value is not None else 0
-            ) * StrategyConstants.BALANCED_PROGRESS_WEIGHT
+            ) * BalancedStrategyConstants.PROGRESS_WEIGHT
             aggressiveness = 1.2 if behind else 1.0
             composite = (
                 progress_component + depth_bonus

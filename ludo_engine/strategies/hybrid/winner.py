@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple
 from ludo_engine.models.constants import (
     BoardConstants,
     GameConstants,
-    StrategyConstants,
+    WinnerStrategyConstants,
 )
 from ludo_engine.models.model import AIDecisionContext, MoveType, ValidMove
 from ludo_engine.strategies.base import Strategy
@@ -64,7 +64,7 @@ class WinnerStrategy(Strategy):
                 return best_safe.token_id
 
         # 5. Exit home (only to maintain board presence)
-        if active_tokens < StrategyConstants.WINNER_EXIT_MIN_ACTIVE:
+        if active_tokens < WinnerStrategyConstants.EXIT_MIN_ACTIVE:
             exit_move = self._get_move_by_type(moves, MoveType.EXIT_HOME)
             if exit_move:
                 return exit_move.token_id
@@ -92,7 +92,7 @@ class WinnerStrategy(Strategy):
                 )
                 progress_value += (
                     (60 - remaining)
-                    * StrategyConstants.WINNER_SAFE_CAPTURE_PROGRESS_WEIGHT
+                    * WinnerStrategyConstants.SAFE_CAPTURE_PROGRESS_WEIGHT
                     * 0.01
                 )
             scored.append((progress_value, mv))

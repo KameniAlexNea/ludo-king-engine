@@ -31,7 +31,7 @@ components (subset of planned v3) with a focus on:
                 close += 1
         if close <= 1:
             return 1.0
-        return 1.0 + StrategyConstants.HYBRID_CLUSTER_INCREMENT * (close - 1)
+        return 1.0 + HybridProbabilisticConstants.CLUSTER_INCREMENT * (close - 1)
 
     def _impact_weight(self, move: ValidMove) -> float:
         cur = move.current_position
@@ -56,7 +56,7 @@ from typing import Dict, List, Optional, Sequence
 from ludo_engine.models.constants import (
     BoardConstants,
     GameConstants,
-    StrategyConstants,
+    HybridProbabilisticConstants,
 )
 from ludo_engine.models.model import AIDecisionContext, MoveType, ValidMove
 from ludo_engine.strategies.base import Strategy
@@ -129,10 +129,10 @@ class HybridProbStrategy(Strategy):
         lead_factor = (my_progress - opp_mean) / max(0.05, opp_std)
 
         # Adaptive risk weight & horizon
-        if lead_factor > StrategyConstants.HYBRID_LEAD_FACTOR_STRONG:
+        if lead_factor > HybridProbabilisticConstants.LEAD_FACTOR_STRONG:
             risk_weight = 1.3
             horizon = max(2, self.cfg.horizon_turns - 1)
-        elif lead_factor < StrategyConstants.HYBRID_BEHIND_FACTOR_STRONG:
+        elif lead_factor < HybridProbabilisticConstants.BEHIND_FACTOR_STRONG:
             risk_weight = 0.75
             horizon = self.cfg.horizon_turns + 1
         else:
@@ -155,8 +155,9 @@ class HybridProbStrategy(Strategy):
             immediate_risk = self._immediate_risk(mv, opponent_positions)
             horizon_risk = self._horizon_risk(mv, opponent_positions, horizon)
             blended_risk = (
-                StrategyConstants.HYBRID_IMMEDIATE_RISK_WEIGHT * immediate_risk
-                + (1 - StrategyConstants.HYBRID_IMMEDIATE_RISK_WEIGHT) * horizon_risk
+                HybridProbabilisticConstants.IMMEDIATE_RISK_WEIGHT * immediate_risk
+                + (1 - HybridProbabilisticConstants.IMMEDIATE_RISK_WEIGHT)
+                * horizon_risk
             )
 
             proximity_factor = (
@@ -180,7 +181,7 @@ class HybridProbStrategy(Strategy):
             opp_score += self._progress_value(mv)
             opp_score += self._home_column_value(mv)
             if mv.is_safe_move:
-                opp_score += StrategyConstants.HYBRID_SAFE_LANDING_BONUS
+                opp_score += HybridProbabilisticConstants.SAFE_LANDING_BONUS
             if self.cfg.use_extra_turn_ev:
                 opp_score += self._extra_turn_ev(mv)
             if self.cfg.use_threat_suppression:
@@ -193,12 +194,12 @@ class HybridProbStrategy(Strategy):
             # Phase scaling (late game) using mean progress
             avg_progress = (my_progress + opp_mean) / 2.0
             if avg_progress < 0.25:
-                opp_score *= StrategyConstants.HYBRID_EARLY_GAME_PROGRESS_MULT
+                opp_score *= HybridProbabilisticConstants.EARLY_GAME_PROGRESS_MULT
             elif avg_progress > 0.65:
-                opp_score *= StrategyConstants.HYBRID_LATE_GAME_PROGRESS_MULT
+                opp_score *= HybridProbabilisticConstants.LATE_GAME_PROGRESS_MULT
 
             composite_raw = opp_score - risk_weight * (
-                risk_score**StrategyConstants.HYBRID_COMPOSITE_RISK_POWER
+                risk_score**HybridProbabilisticConstants.COMPOSITE_RISK_POWER
             )
 
             scores = MoveEvaluation(
@@ -293,8 +294,10 @@ class HybridProbStrategy(Strategy):
         if not dists:
             return 1.0
         min_d = min(dists)
-        val = math.exp(max(0.0, (StrategyConstants.HYBRID_PROXIMITY_REF - min_d)) / 3.0)
-        return min(StrategyConstants.HYBRID_PROXIMITY_PENALTY_CAP, max(1.0, val))
+        val = math.exp(
+            max(0.0, (HybridProbabilisticConstants.PROXIMITY_REF - min_d)) / 3.0
+        )
+        return min(HybridProbabilisticConstants.PROXIMITY_PENALTY_CAP, max(1.0, val))
 
     def _cluster_factor(self, move: ValidMove, opponent_positions: List[int]) -> float:
         if not opponent_positions:
@@ -309,7 +312,7 @@ class HybridProbStrategy(Strategy):
                 close += 1
         if close <= 1:
             return 1.0
-        return 1.0 + StrategyConstants.HYBRID_CLUSTER_INCREMENT * (close - 1)
+        return 1.0 + HybridProbabilisticConstants.CLUSTER_INCREMENT * (close - 1)
 
     def _impact_weight(self, move: ValidMove) -> float:
         cur = move.current_position
@@ -321,8 +324,8 @@ class HybridProbStrategy(Strategy):
             return 1.0
         norm = cur / float(GameConstants.MAIN_BOARD_SIZE)
         return (
-            StrategyConstants.HYBRID_IMPACT_BASE
-            + (norm**StrategyConstants.HYBRID_IMPACT_PROGRESS_POWER) * 1.3
+            HybridProbabilisticConstants.IMPACT_BASE
+            + (norm**HybridProbabilisticConstants.IMPACT_PROGRESS_POWER) * 1.3
         )
 
     # ---- Opportunity helpers ----
@@ -336,7 +339,7 @@ class HybridProbStrategy(Strategy):
         for c in captured:
             prog = opp_token_progress_map.get(c.player_color, 0.5)
             total_scale += 1.0 + prog
-        return StrategyConstants.HYBRID_CAPTURE_BASE * max(1.0, total_scale)
+        return HybridProbabilisticConstants.CAPTURE_BASE * max(1.0, total_scale)
 
     def _progress_value(self, move: ValidMove) -> float:
         cur = move.current_position
@@ -359,24 +362,24 @@ class HybridProbStrategy(Strategy):
         if delta <= 0:
             return 0.0
         return (
-            delta**StrategyConstants.HYBRID_PROGRESS_POWER
-        ) * StrategyConstants.HYBRID_PROGRESS_SCALE
+            delta**HybridProbabilisticConstants.PROGRESS_POWER
+        ) * HybridProbabilisticConstants.PROGRESS_SCALE
 
     def _home_column_value(self, move: ValidMove) -> float:
         mt = move.move_type
         if mt == "finish":
-            return StrategyConstants.HYBRID_FINISH_BONUS
+            return HybridProbabilisticConstants.FINISH_BONUS
         if mt == "advance_home_column":
             pos = move.target_position
             if isinstance(pos, int):
                 depth = pos - GameConstants.HOME_COLUMN_START
                 return (
-                    StrategyConstants.HYBRID_ADVANCE_HOME_BONUS
-                    + depth * StrategyConstants.HYBRID_HOME_DEPTH_FACTOR * 0.1
+                    HybridProbabilisticConstants.ADVANCE_HOME_BONUS
+                    + depth * HybridProbabilisticConstants.HOME_DEPTH_FACTOR * 0.1
                 )
-            return StrategyConstants.HYBRID_ADVANCE_HOME_BONUS
+            return HybridProbabilisticConstants.ADVANCE_HOME_BONUS
         if mt == "exit_home":
-            return StrategyConstants.HYBRID_EXIT_HOME_BONUS
+            return HybridProbabilisticConstants.EXIT_HOME_BONUS
         return 0.0
 
     def _extra_turn_ev(self, move: ValidMove) -> float:
@@ -385,8 +388,8 @@ class HybridProbStrategy(Strategy):
         expected_additional = capture_turn + roll_six_prob
         return (
             expected_additional
-            * StrategyConstants.HYBRID_EXTRA_TURN_PROGRESS_NORM
-            * StrategyConstants.HYBRID_EXTRA_TURN_COEFF
+            * HybridProbabilisticConstants.EXTRA_TURN_PROGRESS_NORM
+            * HybridProbabilisticConstants.EXTRA_TURN_COEFF
         )
 
     def _risk_suppression_bonus(
@@ -404,14 +407,14 @@ class HybridProbStrategy(Strategy):
                 removed += 1
         if removed == 0:
             return 0.0
-        return removed * StrategyConstants.HYBRID_RISK_SUPPRESSION_COEFF
+        return removed * HybridProbabilisticConstants.RISK_SUPPRESSION_COEFF
 
     def _spread_bonus(self, move: ValidMove, baseline_active: int) -> float:
         if (
             move.move_type == MoveType.EXIT_HOME
-            and baseline_active < StrategyConstants.HYBRID_SPREAD_ACTIVE_TARGET
+            and baseline_active < HybridProbabilisticConstants.SPREAD_ACTIVE_TARGET
         ):
-            return StrategyConstants.HYBRID_SPREAD_BONUS
+            return HybridProbabilisticConstants.SPREAD_BONUS
         return 0.0
 
     def _future_safety_potential(self, move: ValidMove) -> float:
@@ -423,7 +426,7 @@ class HybridProbStrategy(Strategy):
         for d in range(1, 7):
             np = (tgt + d) % GameConstants.MAIN_BOARD_SIZE
             if np in safe_set:
-                potential += StrategyConstants.HYBRID_FUTURE_SAFETY_BONUS
+                potential += HybridProbabilisticConstants.FUTURE_SAFETY_BONUS
         return potential
 
     # ---- Selection helpers ----

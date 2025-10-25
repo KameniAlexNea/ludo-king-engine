@@ -10,7 +10,7 @@ strategic value with soft prioritization heuristics:
     via recent usage history embedded in game_context (optional; ignored if absent).
   - Epsilon: small probability of pure uniform random for exploration.
 
-All numeric parameters sourced from StrategyConstants WEIGHTED_RANDOM_*.
+All numeric parameters sourced from WeightedRandomStrategyConstants.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from typing import Dict, List
 from ludo_engine.models.constants import (
     BoardConstants,
     GameConstants,
-    StrategyConstants,
+    WeightedRandomStrategyConstants,
 )
 from ludo_engine.models.model import AIDecisionContext, MoveType, ValidMove
 from ludo_engine.strategies.base import Strategy
@@ -53,12 +53,12 @@ class WeightedRandomStrategy(Strategy):
         player_state = game_context.player_state
         finished = player_state.finished_tokens
         phase_ratio = finished / float(GameConstants.TOKENS_PER_PLAYER)
-        if phase_ratio < StrategyConstants.WEIGHTED_RANDOM_PHASE_EARLY:
-            temp = StrategyConstants.WEIGHTED_RANDOM_TEMP_EARLY
-        elif phase_ratio > StrategyConstants.WEIGHTED_RANDOM_PHASE_LATE:
-            temp = StrategyConstants.WEIGHTED_RANDOM_TEMP_LATE
+        if phase_ratio < WeightedRandomStrategyConstants.PHASE_EARLY:
+            temp = WeightedRandomStrategyConstants.TEMP_EARLY
+        elif phase_ratio > WeightedRandomStrategyConstants.PHASE_LATE:
+            temp = WeightedRandomStrategyConstants.TEMP_LATE
         else:
-            temp = StrategyConstants.WEIGHTED_RANDOM_TEMP_MID
+            temp = WeightedRandomStrategyConstants.TEMP_MID
 
         # Diversity penalty - expects optional context: recent_token_moves (list of token_ids)
         recent: List[int] = self.recent_moves_memory
@@ -86,16 +86,16 @@ class WeightedRandomStrategy(Strategy):
                 base += 1.0
             if mv.captures_opponent:
                 captured = mv.captured_tokens
-                base += StrategyConstants.WEIGHTED_RANDOM_CAPTURE_BONUS * max(
+                base += WeightedRandomStrategyConstants.CAPTURE_BONUS * max(
                     1, len(captured)
                 )
             if mv.is_safe_move:
-                base += StrategyConstants.WEIGHTED_RANDOM_SAFE_BONUS
+                base += WeightedRandomStrategyConstants.SAFE_BONUS
 
             # Threat penalty
             threat_count = threat_map.get(mv.token_id, 0)
-            if threat_count > StrategyConstants.WEIGHTED_RANDOM_RISK_THREAT_CAP:
-                base *= 1.0 - StrategyConstants.WEIGHTED_RANDOM_RISK_PENALTY
+            if threat_count > WeightedRandomStrategyConstants.RISK_THREAT_CAP:
+                base *= 1.0 - WeightedRandomStrategyConstants.RISK_PENALTY
 
             # Diversity penalty
             if diversity_counts:
@@ -103,16 +103,15 @@ class WeightedRandomStrategy(Strategy):
                 if occurrences > 0:
                     base /= (
                         1.0
-                        + StrategyConstants.WEIGHTED_RANDOM_DIVERSITY_LAMBDA
-                        * occurrences
+                        + WeightedRandomStrategyConstants.DIVERSITY_LAMBDA * occurrences
                     )
 
             # Ensure minimum positive weight before softmax
-            weights.append(max(base, StrategyConstants.WEIGHTED_RANDOM_MIN_WEIGHT))
+            weights.append(max(base, WeightedRandomStrategyConstants.MIN_WEIGHT))
             tokens.append(mv.token_id)
 
         # Epsilon uniform exploration
-        if random.random() < StrategyConstants.WEIGHTED_RANDOM_EPSILON:
+        if random.random() < WeightedRandomStrategyConstants.EPSILON:
             return self.save_and_return(random.choice(tokens))
 
         # Softmax sampling
@@ -133,7 +132,7 @@ class WeightedRandomStrategy(Strategy):
         self.recent_moves_memory.append(tid)
         if (
             len(self.recent_moves_memory)
-            > StrategyConstants.WEIGHTED_RANDOM_DIVERSITY_MEMORY
+            > WeightedRandomStrategyConstants.DIVERSITY_MEMORY
         ):
             self.recent_moves_memory.pop(0)
         return tid
