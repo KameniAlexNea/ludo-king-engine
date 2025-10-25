@@ -4,7 +4,7 @@ Manages the game board state and validates moves.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from ludo_engine.core.player import Player, Token, TokenState
 from ludo_engine.models import (
@@ -59,18 +59,6 @@ class Board:
         ):
             self.positions[i] = Position(i)
 
-        # Optimized blocking positions tracking (initialize before reset_token_positions)
-        self._blocking_positions_cache: Dict[PlayerColor, Set[int]] = {}
-        self._cache_valid = False
-
-        # Track positions with multiple tokens by color for faster lookup
-        self._multi_token_positions: Dict[PlayerColor, Set[int]] = {
-            PlayerColor.RED: set(),
-            PlayerColor.GREEN: set(),
-            PlayerColor.YELLOW: set(),
-            PlayerColor.BLUE: set(),
-        }
-
         # Track which tokens are at each position
         self.token_positions: Dict[int, List[Token]] = {}
         self.reset_token_positions()
@@ -95,11 +83,6 @@ class Board:
         ):
             self.token_positions[i] = []
 
-        # Reset cache and multi-token tracking
-        self._invalidate_blocking_cache()
-        for color_set in self._multi_token_positions.values():
-            color_set.clear()
-
     def add_token(self, token: Token, position: int):
         """Add a token to a specific position on the board."""
         if position not in self.token_positions:
@@ -107,36 +90,10 @@ class Board:
 
         self.token_positions[position].append(token)
 
-        # Update multi-token tracking for blocking optimization
-        if 0 <= position < GameConstants.MAIN_BOARD_SIZE:
-            player_tokens_count = sum(
-                1
-                for t in self.token_positions[position]
-                if t.player_color == token.player_color
-            )
-            if player_tokens_count >= 2:
-                self._multi_token_positions[token.player_color].add(position)
-
-        # Invalidate cache when board state changes
-        self._invalidate_blocking_cache()
-
     def remove_token(self, token: Token, position: int):
         """Remove a token from a specific position on the board."""
         if position in self.token_positions and token in self.token_positions[position]:
             self.token_positions[position].remove(token)
-
-            # Update multi-token tracking for blocking optimization
-            if 0 <= position < GameConstants.MAIN_BOARD_SIZE:
-                player_tokens_count = sum(
-                    1
-                    for t in self.token_positions[position]
-                    if t.player_color == token.player_color
-                )
-                if player_tokens_count < 2:
-                    self._multi_token_positions[token.player_color].discard(position)
-
-            # Invalidate cache when board state changes
-            self._invalidate_blocking_cache()
 
     def get_tokens_at_position(self, position: int) -> List[Token]:
         """Get all tokens at a specific position."""
@@ -340,115 +297,6 @@ class Board:
             self.remove_token(token, old_position)
         if new_position >= 0:
             self.add_token(token, new_position)
-
-    def _invalidate_blocking_cache(self):
-        """Invalidate the blocking positions cache."""
-        self._cache_valid = False
-        self._blocking_positions_cache.clear()
-
-    def _rebuild_blocking_cache(self):
-        """Rebuild the blocking positions cache for all players."""
-        self._blocking_positions_cache.clear()
-
-        for color in [
-            PlayerColor.RED,
-            PlayerColor.GREEN,
-            PlayerColor.YELLOW,
-            PlayerColor.BLUE,
-        ]:
-            self._blocking_positions_cache[color] = self._calculate_blocking_positions(
-                color
-            )
-
-        self._cache_valid = True
-
-    def _calculate_blocking_positions(self, player_color: PlayerColor) -> Set[int]:
-        """
-        Calculate blocking positions for a specific player.
-        Optimized version that only checks positions with multiple tokens.
-        """
-        blocking_positions = set()
-
-        # Only check positions that potentially have multiple tokens of this color
-        candidate_positions = self._multi_token_positions.get(
-            player_color, set()
-        ).copy()
-
-        for position in candidate_positions:
-            # Double-check that position is still valid and has multiple tokens
-            if (
-                0 <= position < GameConstants.MAIN_BOARD_SIZE
-                and not self.is_position_safe(position, player_color)
-            ):
-                player_tokens = [
-                    t
-                    for t in self.token_positions.get(position, [])
-                    if t.player_color == player_color
-                ]
-
-                if len(player_tokens) >= 2:
-                    blocking_positions.add(position)
-                else:
-                    # Clean up inconsistent state
-                    self._multi_token_positions[player_color].discard(position)
-
-        return blocking_positions
-
-    def get_blocking_positions(self, player_color: PlayerColor) -> Set[int]:
-        """
-        Get positions where this player is blocking opponents.
-
-        This method is now optimized with caching and efficient data structures.
-        Time complexity reduced from O(n*m) to O(1) for cached results,
-        where n is number of positions and m is average tokens per position.
-        """
-        # Return cached result if available
-        if self._cache_valid and player_color in self._blocking_positions_cache:
-            return self._blocking_positions_cache[player_color].copy()
-
-        # Rebuild entire cache if invalid (affects all players)
-        if not self._cache_valid:
-            self._rebuild_blocking_cache()
-            return self._blocking_positions_cache.get(player_color, set()).copy()
-
-        # Calculate for this specific player if not in cache
-        blocking_positions = self._calculate_blocking_positions(player_color)
-        self._blocking_positions_cache[player_color] = blocking_positions
-
-        return blocking_positions.copy()
-
-    def get_all_blocking_positions(self) -> Dict[PlayerColor, Set[int]]:
-        """
-        Get blocking positions for all players at once.
-        More efficient than calling get_blocking_positions for each player separately.
-        """
-        if not self._cache_valid:
-            self._rebuild_blocking_cache()
-
-        return {
-            color: positions.copy()
-            for color, positions in self._blocking_positions_cache.items()
-        }
-
-    def has_blocking_position(self, player_color: PlayerColor, position: int) -> bool:
-        """
-        Quick check if a specific position is blocking for a player.
-        More efficient than getting all blocking positions when you only need one.
-        """
-        if not (0 <= position < GameConstants.MAIN_BOARD_SIZE):
-            return False
-
-        if self.is_position_safe(position, player_color):
-            return False
-
-        # Check if this position has multiple tokens of the same color
-        player_tokens = [
-            t
-            for t in self.token_positions.get(position, [])
-            if t.player_color == player_color
-        ]
-
-        return len(player_tokens) >= 2
 
     def __str__(self) -> str:
         """String representation of the board state."""
