@@ -9,7 +9,7 @@ from ludo_engine_simple.strategy import StrategicValueComputer
 
 from .prompt import build_prompt
 
-Responder = Callable[[str], Optional[int]]
+Responder = Callable[[str], Optional[str]]
 
 
 def build(
@@ -33,14 +33,29 @@ def build(
         if echo_prompt:
             print(prompt)
 
+        chosen_move = None
         if responder is not None:
-            choice = responder(prompt)
-            if choice is not None and 0 <= choice < len(current.moves):
-                return current.moves[choice].decision
+            raw = responder(prompt)
+            if raw is not None:
+                parsed = raw.strip().lower()
+                if parsed.startswith("choice:"):
+                    value = parsed.split("choice:", 1)[1].strip()
+                else:
+                    value = parsed
+                if value == "none":
+                    chosen_move = None
+                elif value.isdigit():
+                    idx = int(value)
+                    if 0 <= idx < len(current.moves):
+                        chosen_move = current.moves[idx]
 
-        # Fallbacks: prefer finish, otherwise top-scoring move
+        if chosen_move is None:
+            chosen_move = max(current.moves, key=lambda move: move.score)
+
+        if chosen_move.will_finish:
+            return chosen_move.decision
         finish = next((move for move in current.moves if move.will_finish), None)
-        return (finish or current.moves[0]).decision
+        return (finish or chosen_move).decision
 
     return decide
 
