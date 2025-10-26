@@ -256,7 +256,6 @@ class StrategicValueComputer:
         if chooser is None:
             return None
 
-        current_player = self._game.players[current_index]
         decisions = [move.decision for move in players[current_index].moves]
         if not decisions:
             return None

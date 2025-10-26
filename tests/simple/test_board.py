@@ -2,7 +2,7 @@
 
 import unittest
 
-from ludo_engine_simple import Board, CONFIG
+from ludo_engine_simple import CONFIG, Board
 from ludo_engine_simple.token import Token
 
 

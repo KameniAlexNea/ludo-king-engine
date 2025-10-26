@@ -38,9 +38,17 @@ class Board:
 
     def enter_board(self, token: Token) -> MoveResult:
         if token.finished:
-            return MoveResult(token, None, None, message="Token already finished", valid=False)
+            return MoveResult(
+                token, None, None, message="Token already finished", valid=False
+            )
         if token.board_index is not None:
-            return MoveResult(token, token.board_index, token.board_index, message="Token already in play", valid=False)
+            return MoveResult(
+                token,
+                token.board_index,
+                token.board_index,
+                message="Token already in play",
+                valid=False,
+            )
         start_index = CONFIG.start_offsets[token.color]
         captured = self._pop_capture(start_index, token.color)
         token.board_index = start_index
@@ -53,9 +61,13 @@ class Board:
 
     def advance_token(self, token: Token, steps: int) -> MoveResult:
         if token.finished:
-            return MoveResult(token, None, None, message="Token already finished", valid=False)
+            return MoveResult(
+                token, None, None, message="Token already finished", valid=False
+            )
         if token.board_index is None:
-            return MoveResult(token, None, None, message="Token must enter board first", valid=False)
+            return MoveResult(
+                token, None, None, message="Token must enter board first", valid=False
+            )
         target_steps = token.steps_taken + steps
         if target_steps > CONFIG.total_steps:
             return MoveResult(
@@ -71,7 +83,9 @@ class Board:
             self._remove_from_position(start_index, token)
             token.steps_taken = target_steps
             token.mark_finished()
-            return MoveResult(token, start_index, None, finished=True, message="Token finished")
+            return MoveResult(
+                token, start_index, None, finished=True, message="Token finished"
+            )
 
         if target_steps >= CONFIG.travel_distance:
             home_offset = target_steps - CONFIG.travel_distance
@@ -87,7 +101,9 @@ class Board:
         message = f"Moved to {new_index}"
         if captured:
             message += f", captured {captured.color}"
-        return MoveResult(token, start_index, new_index, captured=captured, message=message)
+        return MoveResult(
+            token, start_index, new_index, captured=captured, message=message
+        )
 
     def _remove_from_position(self, index: int, token: Token) -> None:
         stack = self._positions.get(index)
@@ -118,4 +134,7 @@ class Board:
 
     def state(self) -> Dict[int, List[str]]:
         """Return a lightweight view of the board for debugging or UI."""
-        return {index: [token.color for token in stack] for index, stack in self._positions.items()}
+        return {
+            index: [token.color for token in stack]
+            for index, stack in self._positions.items()
+        }

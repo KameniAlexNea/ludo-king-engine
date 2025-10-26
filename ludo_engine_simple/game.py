@@ -18,7 +18,9 @@ DecisionFn = Callable[[List[Player], int, Sequence[Decision], int], Optional[Dec
 class Game:
     seed: Optional[int] = None
     board: Board = field(default_factory=Board)
-    players: List[Player] = field(default_factory=lambda: [Player(color) for color in CONFIG.colors])
+    players: List[Player] = field(
+        default_factory=lambda: [Player(color) for color in CONFIG.colors]
+    )
     current_player_index: int = 0
     history: List[MoveResult] = field(default_factory=list)
     strategies: Dict[str, DecisionFn] = field(default_factory=dict)
@@ -62,10 +64,18 @@ class Game:
         decision: Optional[Decision] = None
         active_decider = self.strategies.get(player.color)
         if moves and active_decider is not None:
-            decision = active_decider(self.players, dice_value, moves, self.current_player_index)
+            decision = active_decider(
+                self.players, dice_value, moves, self.current_player_index
+            )
         if decision is None and moves:
             decision = moves[0]
-        result = MoveResult(player.tokens[moves[0][1]] if moves else player.tokens[0], None, None, message="No move", valid=False)
+        result = MoveResult(
+            player.tokens[moves[0][1]] if moves else player.tokens[0],
+            None,
+            None,
+            message="No move",
+            valid=False,
+        )
         if decision:
             result = self.execute(player, decision, dice_value)
             if result.valid and self._winner_index is None and player.has_won():
@@ -75,10 +85,14 @@ class Game:
 
     def _advance_turn(self, dice_value: int, result: MoveResult) -> None:
         if not result.valid:
-            self.current_player_index = (self.current_player_index + 1) % len(self.players)
+            self.current_player_index = (self.current_player_index + 1) % len(
+                self.players
+            )
             return
 
-        earned_extra_turn = dice_value == 6 or result.captured is not None or result.finished
+        earned_extra_turn = (
+            dice_value == 6 or result.captured is not None or result.finished
+        )
         if earned_extra_turn:
             return
         self.current_player_index = (self.current_player_index + 1) % len(self.players)

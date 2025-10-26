@@ -18,13 +18,19 @@ class Player:
 
     def __post_init__(self) -> None:
         if not self.tokens:
-            self.tokens = [Token(self.color, i) for i in range(CONFIG.tokens_per_player)]
+            self.tokens = [
+                Token(self.color, i) for i in range(CONFIG.tokens_per_player)
+            ]
 
     def ready_tokens(self) -> Iterable[Token]:
         return (token for token in self.tokens if token.is_ready())
 
     def home_tokens(self) -> Iterable[Token]:
-        return (token for token in self.tokens if token.board_index is None and not token.finished)
+        return (
+            token
+            for token in self.tokens
+            if token.board_index is None and not token.finished
+        )
 
     def finished_count(self) -> int:
         return sum(1 for token in self.tokens if token.finished)

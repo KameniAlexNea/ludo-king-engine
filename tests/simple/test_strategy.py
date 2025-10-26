@@ -3,10 +3,7 @@
 import unittest
 
 from ludo_engine_simple.game import Game
-from ludo_engine_simple.strategy import (
-    StrategicEvaluation,
-    StrategicValueComputer,
-)
+from ludo_engine_simple.strategy import StrategicEvaluation, StrategicValueComputer
 
 
 def choose_last(players, dice_value, moves, current_index):
@@ -46,9 +43,7 @@ class StrategicValueComputerTestCase(unittest.TestCase):
         board._positions[5] = [enemy_token]
 
         snapshot = self.computer.evaluate(4)
-        move_lookup = {
-            move.decision: move for move in snapshot.players[0].moves
-        }
+        move_lookup = {move.decision: move for move in snapshot.players[0].moves}
         capture_move = move_lookup.get(("advance", red_token.index))
         self.assertIsNotNone(capture_move)
         self.assertTrue(capture_move.will_capture)
