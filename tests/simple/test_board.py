@@ -39,10 +39,10 @@ class BoardTestCase(unittest.TestCase):
         blue = Token("blue", 1)
 
         self.board.enter_board(red)
-        self.board.advance_token(red, 8)  # safe position
+        self.board.advance_token(red, 7)  # land on safe position 8
 
         self.board.enter_board(blue)
-        result = self.board.advance_token(blue, 21)  # land on same safe index
+        result = self.board.advance_token(blue, 20)  # land on same safe index
 
         occupants = self.board.occupants(8)
         self.assertEqual(len(occupants), 2)

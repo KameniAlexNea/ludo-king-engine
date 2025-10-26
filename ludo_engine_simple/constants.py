@@ -13,21 +13,21 @@ class LudoConfig:
     track_size: int = 52
     home_run: int = 6
     base_safe_positions: Tuple[int, ...] = (
-        0,
+        1,
         8,
-        13,
+        14,
         21,
-        26,
+        27,
         34,
-        39,
+        40,
         47,
     )
     start_offsets: Dict[str, int] = field(
         default_factory=lambda: {
-            "red": 0,
-            "green": 13,
-            "yellow": 26,
-            "blue": 39,
+            "red": 1,
+            "green": 14,
+            "yellow": 27,
+            "blue": 40,
         }
     )
     colors: Tuple[str, ...] = ("red", "green", "yellow", "blue")

@@ -40,10 +40,10 @@ class StrategicValueComputerTestCase(unittest.TestCase):
         board.enter_board(red_token)
 
         enemy_token = opponent.tokens[0]
-        enemy_token.board_index = 4
-        enemy_token.steps_taken = 39  # arbitrary but consistent
+        enemy_token.board_index = 5
+        enemy_token.steps_taken = 40  # arbitrary but consistent
         enemy_token.finished = False
-        board._positions[4] = [enemy_token]
+        board._positions[5] = [enemy_token]
 
         snapshot = self.computer.evaluate(4)
         move_lookup = {
