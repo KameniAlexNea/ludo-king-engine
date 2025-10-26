@@ -7,7 +7,11 @@ from random import Random
 from typing import List, Optional, Sequence
 
 from ludo_engine_simple.game import Decision, DecisionFn, Game
-from ludo_engine_simple.strategy import StrategicMove, StrategicValueComputer, StrategicWeights
+from ludo_engine_simple.strategy import (
+    StrategicMove,
+    StrategicValueComputer,
+    StrategicWeights,
+)
 
 
 @dataclass

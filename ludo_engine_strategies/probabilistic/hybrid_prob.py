@@ -50,7 +50,9 @@ class HybridProbStrategy(StrategyAdapter):
         if max_score <= 0:
             return self.rng().choice(moves)
 
-        exp_scores = [math.exp((score - max_score) / self._temperature) for score in scores]
+        exp_scores = [
+            math.exp((score - max_score) / self._temperature) for score in scores
+        ]
         total = sum(exp_scores)
         threshold = self.rng().random() * total
         cumulative = 0.0
@@ -61,7 +63,9 @@ class HybridProbStrategy(StrategyAdapter):
         return moves[-1]
 
 
-def build(game: Game, *, temperature: float = 0.9, seed: Optional[int] = None) -> DecisionFn:
+def build(
+    game: Game, *, temperature: float = 0.9, seed: Optional[int] = None
+) -> DecisionFn:
     rng = Random(seed) if seed is not None else None
     strategy = HybridProbStrategy(game, temperature=temperature, rng=rng)
     return strategy.as_decision_fn()

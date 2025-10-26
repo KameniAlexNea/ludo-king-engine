@@ -7,7 +7,8 @@ from typing import Optional
 
 from ludo_engine_simple.game import DecisionFn, Game
 
-from .special.llm import Responder, build as build_llm
+from .special.llm import Responder
+from .special.llm import build as build_llm
 
 
 def build_ollama_strategy(
