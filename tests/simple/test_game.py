@@ -80,6 +80,7 @@ class GameTestCase(unittest.TestCase):
         for token in player.tokens:
             token.finished = True
             token.board_index = None
+        self.assertIs(self.game.recalculate_winner(), player)
         self.assertIs(self.game.winner(), player)
 
 

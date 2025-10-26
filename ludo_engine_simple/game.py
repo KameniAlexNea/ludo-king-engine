@@ -22,6 +22,7 @@ class Game:
     current_player_index: int = 0
     history: List[MoveResult] = field(default_factory=list)
     strategies: Dict[str, DecisionFn] = field(default_factory=dict)
+    _winner_index: Optional[int] = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         self._rng = random.Random(self.seed)
@@ -67,6 +68,8 @@ class Game:
         result = MoveResult(player.tokens[moves[0][1]] if moves else player.tokens[0], None, None, message="No move", valid=False)
         if decision:
             result = self.execute(player, decision, dice_value)
+            if result.valid and self._winner_index is None and player.has_won():
+                self._winner_index = self.current_player_index
         self._advance_turn(dice_value, result)
         return result
 
@@ -81,9 +84,16 @@ class Game:
         self.current_player_index = (self.current_player_index + 1) % len(self.players)
 
     def winner(self) -> Optional[Player]:
-        for player in self.players:
+        if self._winner_index is None:
+            return None
+        return self.players[self._winner_index]
+
+    def recalculate_winner(self) -> Optional[Player]:
+        for index, player in enumerate(self.players):
             if player.has_won():
+                self._winner_index = index
                 return player
+        self._winner_index = None
         return None
 
     def is_finished(self) -> bool:
