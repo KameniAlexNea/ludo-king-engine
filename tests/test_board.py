@@ -65,15 +65,10 @@ class TestBoard(unittest.TestCase):
             self.assertTrue(self.board.is_position_safe(pos, PlayerColor.RED))
             self.assertTrue(self.board.is_position_safe(pos, PlayerColor.BLUE))
 
-        # Colored safe squares
-        red_safe = BoardConstants.COLORED_SAFE_SQUARES[PlayerColor.RED]
-        for pos in red_safe:
-            self.assertTrue(self.board.is_position_safe(pos, PlayerColor.RED))
-            # Starting positions are safe for everyone, not just the owning color
-            if pos in BoardConstants.START_POSITIONS.values():
-                self.assertTrue(self.board.is_position_safe(pos, PlayerColor.BLUE))
-            else:
-                self.assertFalse(self.board.is_position_safe(pos, PlayerColor.BLUE))
+        # Starting squares are safe for every color
+        for start in BoardConstants.START_POSITIONS.values():
+            for color in PlayerColor:
+                self.assertTrue(self.board.is_position_safe(start, color))
 
         # Regular positions are not safe
         self.assertFalse(self.board.is_position_safe(5, PlayerColor.RED))

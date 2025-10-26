@@ -30,16 +30,6 @@ class GameConstants:
     HOME_POSITION = -1  # Tokens start in home (-1)
     HOME_COLUMN_START = 100  # Start of home column positions
 
-    # Normalization constants for RL environment
-    DICE_NORMALIZATION_MEAN = 3.5  # (DICE_MIN + DICE_MAX) / 2
-    HOME_COLUMN_DEPTH_SCALE = 5.0  # HOME_COLUMN_SIZE - 1
-    POSITION_NORMALIZATION_FACTOR = 0.5  # For scaling positions to [0,1]
-    TURN_INDEX_MAX_SCALE = 1.0  # Maximum normalized turn index
-    BLOCKING_COUNT_NORMALIZATION = 6.0  # Maximum expected blocking positions
-
-    # Opponent simulation
-    MAX_OPPONENT_CHAIN_LENGTH = 20  # Safety cap for opponent turn chains
-
 
 class BoardConstants(GameConstants):
     """Board layout and position constants."""
@@ -63,14 +53,6 @@ class BoardConstants(GameConstants):
         PlayerColor.BLUE: 38,  # Blue enters home after position 38
     }
 
-    # Starting positions are safe for everyone (all starting squares are safe)
-    COLORED_SAFE_SQUARES: Dict[PlayerColor, Set[int]] = {
-        PlayerColor.RED: {1},  # Only starting position (safe for everyone)
-        PlayerColor.GREEN: {14},  # Only starting position (safe for everyone)
-        PlayerColor.YELLOW: {27},  # Only starting position (safe for everyone)
-        PlayerColor.BLUE: {40},  # Only starting position (safe for everyone)
-    }
-
     # Home column positions (100 to 105)
     HOME_COLUMN_START = GameConstants.HOME_COLUMN_START
     HOME_COLUMN_END = GameConstants.FINISH_POSITION
@@ -81,8 +63,7 @@ class BoardConstants(GameConstants):
     def get_all_safe_squares(cls) -> Set[int]:
         """Get all safe squares on the board."""
         all_safe = cls.STAR_SQUARES.copy()
-        for color_squares in cls.COLORED_SAFE_SQUARES.values():
-            all_safe.update(color_squares)
+        all_safe.update(cls.START_POSITIONS.values())
         return all_safe
 
     @classmethod

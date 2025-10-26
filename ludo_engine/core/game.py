@@ -8,6 +8,7 @@ from typing import List, Optional, Union
 
 from ludo_engine.core.board import Board
 from ludo_engine.core.player import Player, PlayerColor
+from ludo_engine.core.token import Token
 from ludo_engine.models import (
     AIDecisionContext,
     CapturedToken,
@@ -113,39 +114,62 @@ class LudoGame:
             self.consecutive_sixes = 0
             return []
 
-        possible_moves = player.get_possible_moves(dice_value)
         valid_moves = []
-
-        for move in possible_moves:
+        for move in player.get_possible_moves(dice_value):
             token = player.tokens[move.token_id]
-            target_position = move.target_position
-
-            # Check if the move is actually valid on the board
             can_move, tokens_to_capture = self.board.can_move_to_position(
-                token, target_position
+                token, move.target_position
             )
+            if not can_move:
+                continue
 
-            if can_move:
-                captured_tokens = [
-                    CapturedToken(player_color=t.player_color, token_id=t.token_id)
-                    for t in tokens_to_capture
-                ]
+            captured_tokens = [
+                CapturedToken(player_color=t.player_color, token_id=t.token_id)
+                for t in tokens_to_capture
+            ]
 
-                valid_move = ValidMove(
+            valid_moves.append(
+                ValidMove(
                     token_id=move.token_id,
                     current_position=move.current_position,
                     current_state=move.current_state,
-                    target_position=target_position,
+                    target_position=move.target_position,
                     move_type=move.move_type,
                     is_safe_move=move.is_safe_move,
-                    captures_opponent=len(tokens_to_capture) > 0,
+                    captures_opponent=bool(tokens_to_capture),
                     captured_tokens=captured_tokens,
                     strategic_value=move.strategic_value,
                     strategic_components=move.strategic_components,
                 )
-                valid_moves.append(valid_move)
+            )
 
         return valid_moves
+
+    def _move_failure(
+        self, player: Player, token_id: int, dice_value: int, position: int, error: str
+    ) -> MoveResult:
+        """Build a failure MoveResult with shared defaults."""
+        return MoveResult(
+            success=False,
+            player_color=player.color,
+            token_id=token_id,
+            dice_value=dice_value,
+            old_position=position,
+            new_position=position,
+            captured_tokens=[],
+            finished_token=False,
+            extra_turn=False,
+            error=error,
+        )
+
+    def _grants_extra_turn(
+        self, dice_value: int, captured_tokens: List[Token], token: Token
+    ) -> bool:
+        """Evaluate extra turn rules in a single place."""
+        if self.consecutive_sixes >= 3:
+            return False
+
+        return dice_value == 6 or bool(captured_tokens) or token.is_finished()
 
     def execute_move(
         self, player: Player, token_id: int, dice_value: int
@@ -161,103 +185,59 @@ class LudoGame:
         Returns:
             MoveResult: Result of the move including any captures, extra turns, etc.
         """
-        if token_id < 0 or token_id >= 4:
-            # @TODO: Log warning about invalid token ID
-            return MoveResult(
-                success=False,
-                player_color=player.color,
-                token_id=token_id,
-                dice_value=dice_value,
-                old_position=-1,
-                new_position=-1,
-                captured_tokens=[],
-                finished_token=False,
-                extra_turn=False,
-                error="Invalid token ID",
+        if not 0 <= token_id < GameConstants.TOKENS_PER_PLAYER:
+            return self._move_failure(
+                player,
+                token_id,
+                dice_value,
+                GameConstants.HOME_POSITION,
+                "Invalid token ID",
             )
 
         token = player.tokens[token_id]
 
-        # Check if move is valid
         if not token.can_move(dice_value):
-            return MoveResult(
-                success=False,
-                player_color=player.color,
-                token_id=token_id,
-                dice_value=dice_value,
-                old_position=token.position,
-                new_position=token.position,
-                captured_tokens=[],
-                finished_token=False,
-                extra_turn=False,
-                error="Token cannot move with this dice value",
+            return self._move_failure(
+                player,
+                token_id,
+                dice_value,
+                token.position,
+                "Token cannot move with this dice value",
             )
 
         old_position = token.position
         target_position = token.get_target_position(dice_value, player.start_position)
 
-        if target_position == token.position:
-            return MoveResult(
-                success=False,
-                player_color=player.color,
-                token_id=token_id,
-                dice_value=dice_value,
-                old_position=old_position,
-                new_position=old_position,
-                captured_tokens=[],
-                finished_token=False,
-                extra_turn=False,
-                error="Invalid target position",
+        if target_position == old_position:
+            return self._move_failure(
+                player,
+                token_id,
+                dice_value,
+                old_position,
+                "Invalid target position",
             )
 
-        # Validate board occupancy / capture
         can_move, tokens_to_capture = self.board.can_move_to_position(
             token, target_position
         )
         if not can_move:
-            return MoveResult(
-                success=False,
-                player_color=player.color,
-                token_id=token_id,
-                dice_value=dice_value,
-                old_position=old_position,
-                new_position=old_position,
-                captured_tokens=[],
-                finished_token=False,
-                extra_turn=False,
-                error="Invalid move - position blocked",
+            return self._move_failure(
+                player,
+                token_id,
+                dice_value,
+                old_position,
+                "Invalid move - position blocked",
             )
 
-        # Apply board side-effects (captures & relocation) first
         captured_tokens = self.board.execute_move(token, old_position, target_position)
-
-        # Now commit token internal state without recomputation
         token.commit_move(target_position, player.start_position)
 
-        # Create move result
         captured_token_objects = [
-            CapturedToken(player_color=t.player_color, token_id=t.token_id)
-            for t in captured_tokens
+            CapturedToken(
+                player_color=captured.player_color, token_id=captured.token_id
+            )
+            for captured in captured_tokens
         ]
-
-        # Check for extra turn conditions
-        extra_turn = False
-
-        # Rolling a 6 gives extra turn
-        if dice_value == 6:
-            extra_turn = True
-
-        # Capturing opponent gives extra turn
-        if captured_tokens:
-            extra_turn = True
-
-        # Finishing a token gives extra turn
-        if token.is_finished():
-            extra_turn = True
-
-        # But not if player rolled 3 sixes in a row
-        if self.consecutive_sixes >= 3:
-            extra_turn = False
 
         move_result = MoveResult(
             success=True,
@@ -268,13 +248,11 @@ class LudoGame:
             new_position=token.position,
             captured_tokens=captured_token_objects,
             finished_token=token.is_finished(),
-            extra_turn=extra_turn,
+            extra_turn=self._grants_extra_turn(dice_value, captured_tokens, token),
         )
 
-        # Record move in history
         self.move_history.append(move_result)
 
-        # Check for game over
         if player.has_won():
             self.game_over = True
             self.winner = player
@@ -312,8 +290,7 @@ class LudoGame:
             )
 
         current_player = self.get_current_player()
-        if dice_value is None:
-            dice_value = self.roll_dice()
+        dice_value = dice_value or self.roll_dice()
 
         turn_result = TurnResult(
             player_color=current_player.color,
@@ -324,16 +301,13 @@ class LudoGame:
             turn_ended=False,
         )
 
-        # Check for 3 consecutive sixes
         if self.consecutive_sixes >= 3:
             turn_result.turn_ended = True
             turn_result.reason = "Three consecutive sixes - turn forfeited"
             self.next_turn()
             return turn_result
 
-        # Get valid moves
         valid_moves = self.get_valid_moves(current_player, dice_value)
-
         if not valid_moves:
             turn_result.turn_ended = dice_value != 6
             turn_result.extra_turn = dice_value == 6
@@ -342,24 +316,17 @@ class LudoGame:
                 self.next_turn()
             return turn_result
 
-        # Select move (use provided token_id or first available)
         if token_id is not None:
-            # Find the move for the specified token
-            selected_move = None
-            for move in valid_moves:
-                if move.token_id == token_id:
-                    selected_move = move
-                    break
-
-            if not selected_move:
+            selected_move = next(
+                (move for move in valid_moves if move.token_id == token_id), None
+            )
+            if selected_move is None:
                 turn_result.error = f"Token {token_id} cannot move"
                 self.next_turn()
                 return turn_result
         else:
-            # Select first available move (can be enhanced with AI logic)
             selected_move = valid_moves[0]
 
-        # Execute the move
         move_result = self.execute_move(
             current_player, selected_move.token_id, dice_value
         )
@@ -370,7 +337,6 @@ class LudoGame:
             self.next_turn()
             return turn_result
 
-        # Check if player gets extra turn
         if move_result.extra_turn:
             turn_result.extra_turn = True
         else:

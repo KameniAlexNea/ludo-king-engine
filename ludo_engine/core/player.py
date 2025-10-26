@@ -3,6 +3,7 @@ Player representation for Ludo game.
 Each player has a color and controls 4 tokens.
 """
 
+from dataclasses import asdict
 from typing import List, Optional, Tuple
 
 from ludo_engine.core.token import Token
@@ -63,13 +64,7 @@ class Player:
         Returns:
             List[Token]: List of tokens that can make valid moves
         """
-        movable_tokens = []
-
-        for token in self.tokens:
-            if token.can_move(dice_value):  # Simplified check for now
-                movable_tokens.append(token)
-
-        return movable_tokens
+        return [token for token in self.tokens if token.can_move(dice_value)]
 
     def has_tokens_in_home(self) -> bool:
         """Check if player has any tokens still in home."""
@@ -99,7 +94,7 @@ class Player:
         Returns:
             bool: True if any token can be moved, False otherwise
         """
-        return len(self.get_movable_tokens(dice_value)) > 0
+        return any(token.can_move(dice_value) for token in self.tokens)
 
     def move_token(self, token_id: int, dice_value: int) -> bool:
         """
@@ -112,11 +107,10 @@ class Player:
         Returns:
             bool: True if move was successful, False otherwise
         """
-        if token_id < 0 or token_id >= 4:
+        if not 0 <= token_id < len(self.tokens):
             return False
 
-        token = self.tokens[token_id]
-        return token.move(dice_value, self.start_position)
+        return self.tokens[token_id].move(dice_value, self.start_position)
 
     def get_game_state(self) -> PlayerState:
         """
@@ -125,20 +119,26 @@ class Player:
         Returns:
             PlayerState: Player's current state including all token positions
         """
-        tokens_info = [token.to_dict() for token in self.tokens]
+        tokens_info = []
+        tokens_in_home = active_tokens = tokens_in_home_column = finished_tokens = 0
+
+        for token in self.tokens:
+            tokens_info.append(token.to_dict())
+            tokens_in_home += token.is_in_home()
+            active_tokens += token.is_active()
+            tokens_in_home_column += token.is_in_home_column()
+            finished_tokens += token.is_finished()
 
         return PlayerState(
             player_id=self.player_id,
             color=self.color,
             start_position=self.start_position,
             tokens=tokens_info,
-            tokens_in_home=sum(1 for token in self.tokens if token.is_in_home()),
-            active_tokens=sum(1 for token in self.tokens if token.is_active()),
-            tokens_in_home_column=sum(
-                1 for token in self.tokens if token.is_in_home_column()
-            ),
-            finished_tokens=self.get_finished_tokens_count(),
-            has_won=self.has_won(),
+            tokens_in_home=tokens_in_home,
+            active_tokens=active_tokens,
+            tokens_in_home_column=tokens_in_home_column,
+            finished_tokens=finished_tokens,
+            has_won=finished_tokens == GameConstants.TOKENS_TO_WIN,
             positions_occupied=self.player_positions(),
         )
 
@@ -175,15 +175,7 @@ class Player:
                     captures_opponent=False,  # Will be calculated by board
                     captured_tokens=[],  # Will be calculated by board
                     strategic_value=strategic_value,
-                    strategic_components={
-                        "exit_home": strategic_components.exit_home,
-                        "finish": strategic_components.finish,
-                        "home_column_depth": strategic_components.home_column_depth,
-                        "forward_progress": strategic_components.forward_progress,
-                        "acceleration": strategic_components.acceleration,
-                        "safety": strategic_components.safety,
-                        "vulnerability_penalty": strategic_components.vulnerability_penalty,
-                    },
+                    strategic_components=asdict(strategic_components),
                 )
 
                 possible_moves.append(move_info)
@@ -342,35 +334,35 @@ class Player:
             return 0
 
         # Simple priority: finish > capture > exit > highest value
-        for move in valid_moves:
-            if move.move_type == MoveType.FINISH:
-                return move.token_id
+        priorities = (
+            lambda move: move.move_type == MoveType.FINISH,
+            lambda move: move.captures_opponent,
+            lambda move: move.move_type == MoveType.EXIT_HOME,
+        )
 
-        for move in valid_moves:
-            if move.captures_opponent:
-                return move.token_id
+        for predicate in priorities:
+            selected = next(
+                (move.token_id for move in valid_moves if predicate(move)), None
+            )
+            if selected is not None:
+                return selected
 
-        for move in valid_moves:
-            if move.move_type == MoveType.EXIT_HOME:
-                return move.token_id
-
-        # Choose highest strategic value
-        best_move = max(valid_moves, key=lambda m: m.strategic_value)
-        return best_move.token_id
+        return max(valid_moves, key=lambda move: move.strategic_value).token_id
 
     def get_strategy_name(self) -> str:
         """Get the name of the current strategy."""
-        if self.strategy is None:
-            return "Simple"
-        return self.strategy.name
+        return self.strategy.name if self.strategy else "Simple"
 
     def get_strategy_description(self) -> str:
         """Get the description of the current strategy."""
-        if self.strategy is None:
-            return "Basic priority-based decision making"
-        return self.strategy.description
+        return (
+            self.strategy.description
+            if self.strategy
+            else "Basic priority-based decision making"
+        )
 
     def __str__(self) -> str:
         """String representation of the player."""
         strategy_name = self.get_strategy_name()
-        return f"Player({self.color}, strategy: {strategy_name}, tokens: {len([t for t in self.tokens if not t.is_in_home()])} active)"
+        active_tokens = sum(not token.is_in_home() for token in self.tokens)
+        return f"Player({self.color}, strategy: {strategy_name}, tokens: {active_tokens} active)"

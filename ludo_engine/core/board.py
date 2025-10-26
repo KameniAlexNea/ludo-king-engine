@@ -3,6 +3,7 @@ Board representation for Ludo game.
 Manages the game board state and validates moves.
 """
 
+from collections import Counter
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
@@ -11,34 +12,24 @@ from ludo_engine.models import (
     BoardConstants,
     BoardPositionInfo,
     BoardState,
+    GameConstants,
     PlayerColor,
     PositionInfo,
 )
-from ludo_engine.models.constants import GameConstants
+
+_HOME_COLUMN_RANGE = range(
+    BoardConstants.HOME_COLUMN_START, BoardConstants.HOME_COLUMN_END + 1
+)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Position:
-    """Represents a position on the board."""
+    """Lightweight representation of a board position for compatibility."""
 
     index: int
-    is_safe: bool = False
-    is_star: bool = False
-    color: Optional[str] = None
-
-    def __post_init__(self):
-        """Set safe and star properties based on position."""
-        # Star squares (safe for all players)
-        if self.index in BoardConstants.STAR_SQUARES:
-            self.is_star = True
-            self.is_safe = True
-
-        # Colored safe squares for each player
-        for color, safe_positions in BoardConstants.COLORED_SAFE_SQUARES.items():
-            if self.index in safe_positions:
-                self.color = color
-                self.is_safe = True
-                break
+    is_safe: bool
+    is_star: bool
+    color: Optional[PlayerColor] = None
 
 
 class Board:
@@ -47,41 +38,40 @@ class Board:
     """
 
     def __init__(self):
-        """Initialize the board with 52 main positions plus home columns."""
-        # Initialize main board positions (0-51)
-        self.positions: Dict[int, Position] = {}
-        for i in range(GameConstants.MAIN_BOARD_SIZE):
-            self.positions[i] = Position(i)
+        """Initialize board state and precompute convenience lookups."""
+        self.start_positions = BoardConstants.START_POSITIONS
+        self.home_entries = BoardConstants.HOME_COLUMN_ENTRIES
+        self.safe_positions = BoardConstants.get_all_safe_squares()
+        self.star_positions = set(BoardConstants.STAR_SQUARES)
+        self.colored_square_lookup = {
+            start: color for color, start in self.start_positions.items()
+        }
 
-        # Initialize home column positions (100-105)
-        for i in range(
-            BoardConstants.HOME_COLUMN_START, BoardConstants.HOME_COLUMN_END + 1
-        ):
-            self.positions[i] = Position(i)
+        self.positions: Dict[int, Position] = {
+            index: Position(
+                index=index,
+                is_safe=BoardConstants.is_safe_position(index),
+                is_star=index in self.star_positions,
+                color=self.colored_square_lookup.get(index),
+            )
+            for index in range(GameConstants.MAIN_BOARD_SIZE)
+        }
+        self.positions.update(
+            {
+                index: Position(index=index, is_safe=True, is_star=False)
+                for index in _HOME_COLUMN_RANGE
+            }
+        )
 
-        # Track which tokens are at each position
         self.token_positions: Dict[int, List[Token]] = {}
         self.reset_token_positions()
 
-        # Starting positions for each color
-        self.start_positions = BoardConstants.START_POSITIONS
-
-        # Home column entry positions for each color
-        self.home_entries = BoardConstants.HOME_COLUMN_ENTRIES
-
     def reset_token_positions(self):
         """Reset all token position tracking."""
-        self.token_positions.clear()
-
-        # Initialize positions for main board (0-51)
-        for i in range(GameConstants.MAIN_BOARD_SIZE):
-            self.token_positions[i] = []
-
-        # Initialize positions for home columns (100-105)
-        for i in range(
-            BoardConstants.HOME_COLUMN_START, BoardConstants.HOME_COLUMN_END + 1
-        ):
-            self.token_positions[i] = []
+        self.token_positions = {
+            **{index: [] for index in range(GameConstants.MAIN_BOARD_SIZE)},
+            **{index: [] for index in _HOME_COLUMN_RANGE},
+        }
 
     def add_token(self, token: Token, position: int):
         """Add a token to a specific position on the board."""
@@ -103,115 +93,64 @@ class Board:
         """Check if a position is safe for a given player color."""
         return BoardConstants.is_safe_position(position, player_color)
 
+    @staticmethod
+    def _has_blocking_stack(tokens: List[Token]) -> bool:
+        """Return True if any color has two or more tokens at the position."""
+        return any(
+            count >= 2
+            for count in Counter(token.player_color for token in tokens).values()
+        )
+
+    @staticmethod
+    def _partition_tokens(
+        player_color: PlayerColor, tokens: List[Token]
+    ) -> Tuple[List[Token], List[Token]]:
+        """Split tokens into friendly and opponent groups."""
+        same_color = [token for token in tokens if token.player_color == player_color]
+        opponents = [token for token in tokens if token.player_color != player_color]
+        return same_color, opponents
+
     def can_move_to_position(
         self, token: Token, target_position: int
     ) -> Tuple[bool, List[Token]]:
-        """
-        Check if a token can move to a target position.
-
-        Returns:
-            Tuple[bool, List[Token]]: (can_move, tokens_to_capture)
-        """
+        """Check if a token can move to a target position."""
         tokens_at_target = self.get_tokens_at_position(target_position)
-        tokens_to_capture: List[Token] = []
-
-        # No tokens at target position
         if not tokens_at_target:
             return True, []
 
-        # Check if position is safe
         if self.is_position_safe(target_position, token.player_color):
-            # Safe positions allow stacking with same color
-            same_color_tokens = [
-                t for t in tokens_at_target if t.player_color == token.player_color
-            ]
-            opponent_tokens = [
-                t for t in tokens_at_target if t.player_color != token.player_color
-            ]
+            return True, []
 
-            if opponent_tokens:
-                # CAN land on opponent tokens in safe squares (but they don't get captured)
-                # The safe rule protects existing tokens from being captured
-                return True, []  # Can move but no captures
-            else:
-                # Can stack with own tokens
-                return True, []
+        _, opponent_tokens = self._partition_tokens(
+            token.player_color, tokens_at_target
+        )
 
-        # Not a safe position
-        opponent_tokens = [
-            t for t in tokens_at_target if t.player_color != token.player_color
-        ]
-        same_color_tokens = [
-            t for t in tokens_at_target if t.player_color == token.player_color
-        ]
+        if opponent_tokens and self._has_blocking_stack(opponent_tokens):
+            return False, []
 
-        if same_color_tokens:
-            # Can stack with own tokens. If opponents present too, decide capture rule below.
-            if opponent_tokens:
-                # If opponent stack size >=2, it's protected (cannot capture a block)
-                opponent_stack_counts = {}
-                for ot in opponent_tokens:
-                    opponent_stack_counts.setdefault(ot.player_color, 0)
-                    opponent_stack_counts[ot.player_color] += 1
-                protected = any(count >= 2 for count in opponent_stack_counts.values())
-                if not protected:
-                    tokens_to_capture = opponent_tokens
-            return True, tokens_to_capture
-
-        if opponent_tokens:
-            # Single-opponent or mixed-color stack capture logic
-            opponent_stack_counts = {}
-            for ot in opponent_tokens:
-                opponent_stack_counts.setdefault(ot.player_color, 0)
-                opponent_stack_counts[ot.player_color] += 1
-            # If ANY color has >=2 tokens here, square is blocked from capture
-            if any(count >= 2 for count in opponent_stack_counts.values()):
-                return False, []
-            tokens_to_capture = opponent_tokens
-            return True, tokens_to_capture
-
-        return True, []
+        return True, opponent_tokens
 
     def execute_move(
         self, token: Token, old_position: int, new_position: int
     ) -> List[Token]:
-        """
-        Execute a move on the board and return any captured tokens.
-
-        Args:
-            token: The token being moved
-            old_position: Current position of the token
-            new_position: Target position for the token
-
-        Returns:
-            List[Token]: List of captured tokens
-        """
-        captured_tokens = []
-
-        # Remove token from old position
-        if old_position >= 0:  # -1 means token was in home
+        """Execute a move on the board and return any captured tokens."""
+        if old_position >= 0:
             self.remove_token(token, old_position)
 
-        # Check what happens at the new position
         can_move, tokens_to_capture = self.can_move_to_position(token, new_position)
-
         if not can_move:
-            # Move is not valid, put token back
             if old_position >= 0:
                 self.add_token(token, old_position)
             return []
 
-        # Capture opponent tokens
-        for captured_token in tokens_to_capture:
-            self.remove_token(captured_token, new_position)
+        captured_tokens: List[Token] = []
+        for captured in tokens_to_capture:
+            self.remove_token(captured, new_position)
+            captured.state = TokenState.HOME
+            captured.position = GameConstants.HOME_POSITION
+            captured_tokens.append(captured)
 
-            captured_token.state = TokenState.HOME
-            captured_token.position = -1
-            captured_tokens.append(captured_token)
-
-        # Place the moving token at new position
         self.add_token(token, new_position)
-
         return captured_tokens
 
     def get_board_state_for_ai(self, current_player: Player) -> BoardState:
@@ -224,34 +163,26 @@ class Board:
         Returns:
             BoardState: Complete board state information
         """
-        board_positions = {}
-        safe_positions = []
-        star_positions = []
+        board_positions = {
+            position: [
+                BoardPositionInfo(
+                    player_color=token.player_color,
+                    token_id=token.token_id,
+                    state=token.state.value,
+                )
+                for token in tokens
+            ]
+            for position, tokens in self.token_positions.items()
+            if tokens
+        }
 
-        # Map all token positions
-        for position, tokens in self.token_positions.items():
-            if tokens:  # Only include positions with tokens
-                board_positions[position] = [
-                    BoardPositionInfo(
-                        player_color=token.player_color,
-                        token_id=token.token_id,
-                        state=token.state.value,
-                    )
-                    for token in tokens
-                ]
-
-        # Add safe and star positions
-        for pos_idx, position in self.positions.items():
-            if position.is_safe:
-                safe_positions.append(pos_idx)
-            if position.is_star:
-                star_positions.append(pos_idx)
+        safe_positions = sorted(self.safe_positions | set(_HOME_COLUMN_RANGE))
 
         return BoardState(
             current_player=current_player.color,
             board_positions=board_positions,
             safe_positions=safe_positions,
-            star_positions=star_positions,
+            star_positions=sorted(self.star_positions),
             player_start_positions=self.start_positions,
             home_column_entries=self.home_entries,
         )
@@ -260,36 +191,26 @@ class Board:
         """Get detailed information about a specific position."""
         if position == GameConstants.HOME_POSITION:
             return PositionInfo(type="home", position=position, is_safe=True, tokens=[])
-        elif (
-            BoardConstants.HOME_COLUMN_START
-            <= position
-            <= BoardConstants.HOME_COLUMN_END
-        ):
+
+        tokens = [token.to_dict() for token in self.get_tokens_at_position(position)]
+
+        if BoardConstants.is_home_column_position(position):
             return PositionInfo(
-                type="home_column",
-                position=position,
-                is_safe=True,
-                tokens=[
-                    token.to_dict() for token in self.get_tokens_at_position(position)
-                ],
+                type="home_column", position=position, is_safe=True, tokens=tokens
             )
-        elif 0 <= position < GameConstants.MAIN_BOARD_SIZE:
-            board_pos = self.positions.get(position, Position(position))
+
+        if 0 <= position < GameConstants.MAIN_BOARD_SIZE:
             return PositionInfo(
                 type="main_board",
                 position=position,
-                is_safe=board_pos.is_safe,
-                is_star=board_pos.is_star,
-                color=board_pos.color,
-                tokens=[
-                    token.to_dict() for token in self.get_tokens_at_position(position)
-                ],
+                is_safe=BoardConstants.is_safe_position(position),
+                is_star=position in self.star_positions,
+                color=self.colored_square_lookup.get(position),
+                tokens=tokens,
             )
-        else:
-            # @TODO: Log warning about invalid position
-            return PositionInfo(
-                type="unknown", position=position, is_safe=False, tokens=[]
-            )
+
+        # @TODO: Log warning about invalid position
+        return PositionInfo(type="unknown", position=position, is_safe=False, tokens=[])
 
     def update_token_position(self, token: Token, old_position: int, new_position: int):
         """Update token position tracking on the board."""
@@ -300,9 +221,10 @@ class Board:
 
     def __str__(self) -> str:
         """String representation of the board state."""
-        result = "Board State:\n"
-        for position in range(GameConstants.MAIN_BOARD_SIZE):
-            tokens = self.get_tokens_at_position(position)
-            if tokens:
-                result += f"Position {position}: {[str(token) for token in tokens]}\n"
-        return result
+        lines = [
+            f"Position {position}: {[str(token) for token in tokens]}"
+            for position, tokens in sorted(self.token_positions.items())
+            if tokens and 0 <= position < GameConstants.MAIN_BOARD_SIZE
+        ]
+        board_snapshot = "\n".join(lines)
+        return f"Board State:\n{board_snapshot}"
