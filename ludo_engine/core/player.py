@@ -171,7 +171,7 @@ class Player:
                     current_state=token.state,
                     target_position=target_position,
                     move_type=self._get_move_type(token, dice_value),
-                    is_safe_move=self._is_safe_move(token, target_position),
+                    is_safe_move=self._is_safe_move(target_position),
                     captures_opponent=False,  # Will be calculated by board
                     captured_tokens=[],  # Will be calculated by board
                     strategic_value=strategic_value,
@@ -193,9 +193,9 @@ class Player:
             return MoveType.ADVANCE_HOME_COLUMN
         return MoveType.ADVANCE_MAIN_BOARD
 
-    def _is_safe_move(self, token: Token, target_position: int) -> bool:
-        """Check if the target position is a safe square."""
-        return BoardConstants.is_safe_position(target_position, self.color)
+    def _is_safe_move(self, target_position: int) -> bool:
+        """Check if the target position is a safe square. Then it's a safe move."""
+        return BoardConstants.is_safe_position(target_position)
 
     def _calculate_strategic_value(
         self, token: Token, dice_value: int, target_position: Optional[int] = None
@@ -254,13 +254,13 @@ class Player:
             components.acceleration = advantage * StrategyConstants.ACCELERATION_WEIGHT
 
         # 5: Safety bonus for landing square
-        if BoardConstants.is_safe_position(target_position, self.color):
+        if BoardConstants.is_safe_position(target_position):
             components.safety = StrategyConstants.SAFETY_BONUS
 
         # 6: Vulnerability penalty (simple placeholder): if not safe and token is active
         # and not entering home column and not finishing, apply penalty.
         if (
-            not BoardConstants.is_safe_position(target_position, self.color)
+            not BoardConstants.is_safe_position(target_position)
             and not BoardConstants.is_home_column_position(target_position)
             and token.is_active()
         ):

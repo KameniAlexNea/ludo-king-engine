@@ -89,8 +89,10 @@ class Board:
         """Get all tokens at a specific position."""
         return self.token_positions.get(position, [])
 
-    def is_position_safe(self, position: int, player_color: PlayerColor) -> bool:
-        """Check if a position is safe for a given player color."""
+    def is_position_safe(
+        self, position: int, player_color: Optional[PlayerColor] = None
+    ) -> bool:
+        """Check if a position is safe."""
         return BoardConstants.is_safe_position(position, player_color)
 
     @staticmethod
@@ -118,7 +120,7 @@ class Board:
         if not tokens_at_target:
             return True, []
 
-        if self.is_position_safe(target_position, token.player_color):
+        if self.is_position_safe(target_position):
             return True, []
 
         _, opponent_tokens = self._partition_tokens(

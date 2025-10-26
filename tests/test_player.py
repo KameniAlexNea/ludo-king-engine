@@ -394,11 +394,11 @@ class TestPlayer(unittest.TestCase):
     def test_safe_move_detection(self):
         """Test safe move detection."""
         # Safe position
-        is_safe = self.player._is_safe_move(self.player.tokens[0], 8)  # Star position
+        is_safe = self.player._is_safe_move(8)  # Star position
         self.assertTrue(is_safe)
 
         # Unsafe position
-        is_safe = self.player._is_safe_move(self.player.tokens[0], 5)
+        is_safe = self.player._is_safe_move(5)
         self.assertFalse(is_safe)
 
 

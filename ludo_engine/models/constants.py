@@ -3,7 +3,7 @@ Constants and configuration values for the Ludo game.
 Centralized location for all game rules and board layout constants.
 """
 
-from typing import Dict, Set
+from typing import Dict, Optional, Set
 
 from ludo_engine.models.model import PlayerColor
 
@@ -29,6 +29,7 @@ class GameConstants:
     FINISH_POSITION = 105  # Final position in home column
     HOME_POSITION = -1  # Tokens start in home (-1)
     HOME_COLUMN_START = 100  # Start of home column positions
+    HOME_COLUMN_END = 105  # End of home column positions
 
 
 class BoardConstants(GameConstants):
@@ -53,11 +54,6 @@ class BoardConstants(GameConstants):
         PlayerColor.BLUE: 38,  # Blue enters home after position 38
     }
 
-    # Home column positions (100 to 105)
-    HOME_COLUMN_START = GameConstants.HOME_COLUMN_START
-    HOME_COLUMN_END = GameConstants.FINISH_POSITION
-    FINISH_POSITION = GameConstants.FINISH_POSITION
-
     # All safe squares (combination of star squares and colored squares)
     @classmethod
     def get_all_safe_squares(cls) -> Set[int]:
@@ -72,7 +68,9 @@ class BoardConstants(GameConstants):
         return cls.HOME_COLUMN_START <= position <= cls.HOME_COLUMN_END
 
     @classmethod
-    def is_safe_position(cls, position: int, player_color: PlayerColor = None) -> bool:
+    def is_safe_position(
+        cls, position: int, player_color: Optional[PlayerColor] = None
+    ) -> bool:
         """
         Check if a position is safe.
 
