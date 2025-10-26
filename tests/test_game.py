@@ -15,6 +15,7 @@ from ludo_engine.models import (
     TurnResult,
     ValidMove,
 )
+from ludo_engine.models.model import PlayerState
 from ludo_engine.strategies import RandomStrategy
 
 
@@ -222,7 +223,6 @@ class TestLudoGame(unittest.TestCase):
             context.current_situation.player_color, self.game.players[0].color
         )
         self.assertIsInstance(context.valid_moves, list)
-        from ludo_engine.models.model import PlayerState
 
         self.assertIsInstance(context.player_state, PlayerState)
 

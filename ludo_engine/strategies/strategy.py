@@ -38,11 +38,14 @@ class StrategyFactory:
         return cls._strategies[strategy_name]()
 
     @classmethod
-    def get_available_strategies(cls, avoid_llm=True) -> List[str]:
+    def get_available_strategies(cls, avoid_llm=True, avoid_human=False) -> List[str]:
         """Get list of available strategy names."""
+        avoided = []
+        if avoid_human:
+            avoided.append("human")
         if avoid_llm:
-            return [name for name in cls._strategies.keys() if "llm" not in name]
-        return list(cls._strategies.keys())
+            avoided.append("llm")
+        return [name for name in cls._strategies.keys() if name not in avoided]
 
     @classmethod
     def get_strategy_descriptions(cls, avoid_llm=True) -> Dict[str, str]:

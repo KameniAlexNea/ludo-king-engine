@@ -5,7 +5,6 @@ Tests cover LLM integration, response parsing, and fallback behavior.
 
 import json
 import unittest
-import unittest.mock
 from unittest.mock import MagicMock, patch
 
 from ludo_engine.models import (

@@ -3,12 +3,19 @@ Integration tests for the Ludo game engine.
 Tests cover full game scenarios, multi-player interactions, and end-to-end game flow.
 """
 
+import random
 import unittest
 from unittest.mock import patch
 
 from ludo_engine.core import LudoGame, Player, PlayerColor, TokenState
 from ludo_engine.models import TurnResult
-from ludo_engine.strategies import KillerStrategy, RandomStrategy, WinnerStrategy
+from ludo_engine.models.model import PlayerState
+from ludo_engine.strategies import (
+    STRATEGIES,
+    KillerStrategy,
+    RandomStrategy,
+    WinnerStrategy,
+)
 
 
 class TestGameIntegration(unittest.TestCase):
@@ -248,7 +255,6 @@ class TestGameIntegration(unittest.TestCase):
             game.get_current_player().color,
         )
         self.assertIsInstance(context.valid_moves, list)
-        from ludo_engine.models.model import PlayerState
 
         self.assertIsInstance(context.player_state, PlayerState)
 
@@ -356,7 +362,8 @@ class TestStrategyIntegration(unittest.TestCase):
 
     def test_strategy_factory_integration(self):
         """Test strategy factory works with game integration."""
-        from ludo_engine.strategies import STRATEGIES
+
+        random.seed(42)
 
         # Create strategies
         killer = STRATEGIES["killer"]()

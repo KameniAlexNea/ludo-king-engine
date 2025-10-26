@@ -26,7 +26,7 @@ class TournamentConfig:
         # Strategy settings
         self.default_strategies = self._get_list_env(
             "DEFAULT_STRATEGIES",
-            StrategyFactory.get_available_strategies(),
+            StrategyFactory.get_available_strategies(avoid_human=True, avoid_llm=True),
         )
 
         # Game settings
