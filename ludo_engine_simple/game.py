@@ -11,7 +11,7 @@ from .constants import CONFIG
 from .player import Player
 
 Decision = Tuple[str, int]  # (action, token_index)
-DecisionFn = Callable[[Player, int, Sequence[Decision]], Optional[Decision]]
+DecisionFn = Callable[[List[Player], int, Sequence[Decision], int], Optional[Decision]]
 
 
 @dataclass
@@ -61,7 +61,7 @@ class Game:
         decision: Optional[Decision] = None
         active_decider = self.strategies.get(player.color)
         if moves and active_decider is not None:
-            decision = active_decider(player, dice_value, moves)
+            decision = active_decider(self.players, dice_value, moves, self.current_player_index)
         if decision is None and moves:
             decision = moves[0]
         result = MoveResult(player.tokens[moves[0][1]] if moves else player.tokens[0], None, None, message="No move", valid=False)

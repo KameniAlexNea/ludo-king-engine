@@ -5,7 +5,8 @@ import unittest
 from ludo_engine_simple import CONFIG, Game
 
 
-def choose_first_move(_player, _dice, moves):
+def choose_first_move(players, _dice, moves, current_index):
+    _ = players, current_index
     return moves[0] if moves else None
 
 
@@ -17,7 +18,8 @@ class GameTestCase(unittest.TestCase):
     def test_play_turn_uses_strategy_choice(self) -> None:
         calls = []
 
-        def choose_last(player, dice_value, moves):
+        def choose_last(players, dice_value, moves, current_index):
+            player = players[current_index]
             calls.append((player.color, dice_value, len(moves)))
             return moves[-1]
 
