@@ -24,17 +24,30 @@ def _render_move(move: StrategicMove, index: int) -> str:
 
 def build_prompt(evaluation: StrategicEvaluation) -> str:
     player = evaluation.players[evaluation.current_index]
-    lines = [
-        f"Dice: {evaluation.dice_value}",
-        f"Player: {player.color}",
-        "Moves:",
+    header = [
+        "You are an assistant selecting the best Ludo move for the current player.",
+        "Consider the dice roll, safety, captures, and distance to finish.",
+        "Respond with a single line: `choice: <index>` using one of the listed move indices.",
+        "If no move should be played, respond with `choice: none`.",
+        "",
+        "Game context:",
+        f"- Dice roll: {evaluation.dice_value}",
+        f"- Current player: {player.color}",
+        "",
+        "Available moves:",
     ]
+
     if not player.moves:
-        lines.append("  (no moves)")
+        body = ["  (no moves)"]
     else:
-        for idx, move in enumerate(player.moves):
-            lines.append("  " + _render_move(move, idx))
-    return "\n".join(lines)
+        body = ["  " + _render_move(move, idx) for idx, move in enumerate(player.moves)]
+
+    footer = [
+        "",
+        "Return only the line with `choice: <index>` (or `choice: none`).",
+    ]
+
+    return "\n".join(header + body + footer)
 
 
 __all__ = ["build_prompt"]
