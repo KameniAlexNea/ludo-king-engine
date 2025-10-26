@@ -8,7 +8,7 @@ and .env files for flexible tournament setup.
 import os
 from typing import List, Optional
 
-from ludo_engine.strategies.strategy import StrategyFactory
+from ludo_engine_strategies import available_strategies
 
 
 class TournamentConfig:
@@ -24,10 +24,8 @@ class TournamentConfig:
         self.seed = self._get_int_env("TOURNAMENT_SEED", None)
 
         # Strategy settings
-        self.default_strategies = self._get_list_env(
-            "DEFAULT_STRATEGIES",
-            StrategyFactory.get_available_strategies(avoid_human=True, avoid_llm=True),
-        )
+        default_names = available_strategies(include_special=False)
+        self.default_strategies = self._get_list_env("DEFAULT_STRATEGIES", default_names)
 
         # Game settings
         self.max_consecutive_sixes = self._get_int_env("GAME_MAX_CONSECUTIVE_SIXES", 3)
