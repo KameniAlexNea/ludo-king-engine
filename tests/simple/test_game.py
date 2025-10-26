@@ -60,7 +60,7 @@ class GameTestCase(unittest.TestCase):
     def test_extra_turn_awarded_on_finish(self) -> None:
         token = self.game.players[0].tokens[0]
         self.game.board.enter_board(token)
-        self.game.board.advance_token(token, CONFIG.track_size)
+        self.game.board.advance_token(token, CONFIG.travel_distance)
         self.game.board.advance_token(token, CONFIG.home_run - 1)
 
         self.game.current_player_index = 0

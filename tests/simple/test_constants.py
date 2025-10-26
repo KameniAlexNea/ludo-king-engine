@@ -7,7 +7,8 @@ from ludo_engine_simple import CONFIG
 
 class TestConstants(unittest.TestCase):
     def test_total_steps_matches_track_and_home_run(self) -> None:
-        self.assertEqual(CONFIG.total_steps, CONFIG.track_size + CONFIG.home_run)
+        self.assertEqual(CONFIG.travel_distance, CONFIG.track_size - 1)
+        self.assertEqual(CONFIG.total_steps, CONFIG.travel_distance + CONFIG.home_run)
 
     def test_home_positions_are_safe(self) -> None:
         for position in CONFIG.home_positions:

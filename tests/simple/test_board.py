@@ -55,10 +55,10 @@ class BoardTestCase(unittest.TestCase):
         blue = Token("blue", 0)
 
         self.board.enter_board(red)
-        self.board.advance_token(red, CONFIG.track_size)
+        self.board.advance_token(red, CONFIG.travel_distance)
 
         self.board.enter_board(blue)
-        result = self.board.advance_token(blue, CONFIG.track_size)
+        result = self.board.advance_token(blue, CONFIG.travel_distance)
 
         occupants = self.board.occupants(100)
         self.assertEqual(len(occupants), 2)
@@ -80,9 +80,9 @@ class BoardTestCase(unittest.TestCase):
         token = Token("green", 0)
 
         self.board.enter_board(token)
-        home_entry = self.board.advance_token(token, CONFIG.track_size)
+        home_entry = self.board.advance_token(token, CONFIG.travel_distance)
         self.assertEqual(home_entry.end, 100)
-        self.assertEqual(token.steps_taken, CONFIG.track_size)
+        self.assertEqual(token.steps_taken, CONFIG.travel_distance)
 
         remaining = CONFIG.total_steps - token.steps_taken
         finish_result = self.board.advance_token(token, remaining)

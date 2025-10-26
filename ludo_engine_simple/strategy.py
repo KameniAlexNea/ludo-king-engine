@@ -196,8 +196,8 @@ class StrategicValueComputer:
         target_steps = token.steps_taken + dice_value
         if target_steps >= CONFIG.total_steps:
             return None, True, CONFIG.total_steps
-        if target_steps >= CONFIG.track_size:
-            home_offset = target_steps - CONFIG.track_size
+        if target_steps >= CONFIG.travel_distance:
+            home_offset = target_steps - CONFIG.travel_distance
             return CONFIG.home_index(player.color, home_offset), False, target_steps
         start_offset = CONFIG.start_offsets[player.color]
         target_index = (start_offset + target_steps) % CONFIG.track_size

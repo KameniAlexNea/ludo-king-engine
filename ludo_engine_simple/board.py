@@ -73,8 +73,8 @@ class Board:
             token.mark_finished()
             return MoveResult(token, start_index, None, finished=True, message="Token finished")
 
-        if target_steps >= CONFIG.track_size:
-            home_offset = target_steps - CONFIG.track_size
+        if target_steps >= CONFIG.travel_distance:
+            home_offset = target_steps - CONFIG.travel_distance
             new_index = CONFIG.home_index(token.color, home_offset)
         else:
             new_index = self._absolute_index(token.color, target_steps)

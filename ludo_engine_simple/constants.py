@@ -35,6 +35,7 @@ class LudoConfig:
     home_columns: Dict[str, Tuple[int, ...]] = field(init=False)
     home_positions: Tuple[int, ...] = field(init=False)
     safe_positions: Tuple[int, ...] = field(init=False)
+    travel_distance: int = field(init=False)
     total_steps: int = field(init=False)
 
     def __post_init__(self) -> None:
@@ -42,11 +43,13 @@ class LudoConfig:
         columns = {color: home_lane for color in self.colors}
         home_positions = home_lane
         combined_safe = tuple(sorted(set(self.base_safe_positions + home_positions)))
-        total_steps = self.track_size + self.home_run
+        travel_distance = self.track_size - 1
+        total_steps = travel_distance + self.home_run
 
         object.__setattr__(self, "home_columns", columns)
         object.__setattr__(self, "home_positions", home_positions)
         object.__setattr__(self, "safe_positions", combined_safe)
+        object.__setattr__(self, "travel_distance", travel_distance)
         object.__setattr__(self, "total_steps", total_steps)
 
     def home_index(self, color: str, offset: int) -> int:
