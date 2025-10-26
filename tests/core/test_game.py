@@ -2,7 +2,7 @@
 
 import unittest
 
-from ludo_engine_simple import CONFIG, Game
+from ludo_engine import CONFIG, Game
 
 
 def choose_first_move(players, _dice, moves, current_index):

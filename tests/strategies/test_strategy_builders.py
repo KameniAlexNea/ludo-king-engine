@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from ludo_engine_simple import CONFIG, Game
+from ludo_engine import CONFIG, Game
 from ludo_engine_strategies import build_strategy
 from ludo_engine_strategies.strategy import STRATEGY_BUILDERS, available_strategies
 

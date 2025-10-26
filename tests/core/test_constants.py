@@ -2,7 +2,7 @@
 
 import unittest
 
-from ludo_engine_simple import CONFIG
+from ludo_engine import CONFIG
 
 
 class TestConstants(unittest.TestCase):

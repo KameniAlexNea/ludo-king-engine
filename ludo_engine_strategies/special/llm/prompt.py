@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import List
 
-from ludo_engine_simple.strategy import StrategicEvaluation, StrategicMove
+from ludo_engine.strategy import StrategicEvaluation, StrategicMove
 
 
 def _render_move(move: StrategicMove, index: int) -> str:

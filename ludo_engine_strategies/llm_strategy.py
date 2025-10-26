@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-from ludo_engine_simple.game import DecisionFn, Game
+from ludo_engine.game import DecisionFn, Game
 
 from .special.llm import Responder
 from .special.llm import build as build_llm

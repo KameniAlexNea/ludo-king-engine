@@ -2,7 +2,7 @@
 
 import unittest
 
-from ludo_engine_simple.token import Token
+from ludo_engine.token import Token
 
 
 class TokenTestCase(unittest.TestCase):

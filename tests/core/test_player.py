@@ -2,9 +2,9 @@
 
 import unittest
 
-from ludo_engine_simple import CONFIG
-from ludo_engine_simple.player import Player
-from ludo_engine_simple.token import Token
+from ludo_engine import CONFIG
+from ludo_engine.player import Player
+from ludo_engine.token import Token
 
 
 class PlayerTestCase(unittest.TestCase):

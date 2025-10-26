@@ -5,8 +5,8 @@ from __future__ import annotations
 from random import Random
 from typing import Optional
 
-from ludo_engine_simple.game import DecisionFn, Game
-from ludo_engine_simple.strategy import StrategicMove, StrategicWeights
+from ludo_engine.game import DecisionFn, Game
+from ludo_engine.strategy import StrategicMove, StrategicWeights
 
 from ..base import StrategyAdapter, StrategyContext
 

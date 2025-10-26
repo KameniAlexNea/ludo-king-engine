@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Iterable, List, Sequence, Tuple
 
-from ludo_engine_simple.strategy import StrategicMove
+from ludo_engine.strategy import StrategicMove
 
 
 def split_safety(

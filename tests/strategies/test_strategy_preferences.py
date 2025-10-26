@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import unittest
 
-from ludo_engine_simple import Game
-from ludo_engine_simple.strategy import StrategicMove
+from ludo_engine import Game
+from ludo_engine.strategy import StrategicMove
 from ludo_engine_strategies.aggressive.killer import KillerStrategy
 from ludo_engine_strategies.aggressive.optimist import OptimistStrategy
 from ludo_engine_strategies.base import StrategyContext

@@ -2,8 +2,8 @@
 
 import unittest
 
-from ludo_engine_simple.game import Game
-from ludo_engine_simple.strategy import StrategicEvaluation, StrategicValueComputer
+from ludo_engine.game import Game
+from ludo_engine.strategy import StrategicEvaluation, StrategicValueComputer
 
 
 def choose_last(players, dice_value, moves, current_index):

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Callable, Dict, Iterable, List
 
-from ludo_engine_simple.game import DecisionFn, Game
+from ludo_engine.game import DecisionFn, Game
 
 from .aggressive import build_killer, build_optimist
 from .baseline import build_random, build_weighted
