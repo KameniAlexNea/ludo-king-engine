@@ -57,7 +57,7 @@ class Board:
         if token.board_index is None:
             return MoveResult(token, None, None, message="Token must enter board first", valid=False)
         target_steps = token.steps_taken + steps
-        if target_steps > CONFIG.track_size:
+        if target_steps > CONFIG.total_steps:
             return MoveResult(
                 token,
                 token.board_index,
@@ -67,13 +67,18 @@ class Board:
             )
 
         start_index = token.board_index
-        if target_steps == CONFIG.track_size:
+        if target_steps == CONFIG.total_steps:
             self._remove_from_position(start_index, token)
             token.steps_taken = target_steps
             token.mark_finished()
             return MoveResult(token, start_index, None, finished=True, message="Token finished")
 
-        new_index = self._absolute_index(token.color, target_steps)
+        if target_steps >= CONFIG.track_size:
+            home_offset = target_steps - CONFIG.track_size
+            new_index = CONFIG.home_index(token.color, home_offset)
+        else:
+            new_index = self._absolute_index(token.color, target_steps)
+
         self._remove_from_position(start_index, token)
         token.steps_taken = target_steps
         token.board_index = new_index

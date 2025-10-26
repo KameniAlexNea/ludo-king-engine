@@ -33,12 +33,12 @@ class Game:
     def roll(self) -> int:
         return self._rng.randint(1, 6)
 
-    def available_moves(self, player: Player, roll: int) -> List[Decision]:
+    def available_moves(self, player: Player, dice_value: int) -> List[Decision]:
         moves: List[Decision] = []
-        if roll == 6:
+        if dice_value == 6:
             moves.extend(("enter", token.index) for token in player.home_tokens())
         for token in player.ready_tokens():
-            if token.steps_taken + roll <= CONFIG.track_size:
+            if token.steps_taken + dice_value <= CONFIG.total_steps:
                 moves.append(("advance", token.index))
         return moves
 
