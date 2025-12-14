@@ -25,7 +25,9 @@ class TournamentConfig:
 
         # Strategy settings
         default_names = available_strategies(include_special=False)
-        self.default_strategies = self._get_list_env("DEFAULT_STRATEGIES", default_names)
+        self.default_strategies = self._get_list_env(
+            "DEFAULT_STRATEGIES", default_names
+        )
 
         # Game settings
         self.max_consecutive_sixes = self._get_int_env("GAME_MAX_CONSECUTIVE_SIXES", 3)

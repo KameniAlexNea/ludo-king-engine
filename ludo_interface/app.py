@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional, Union
+from typing import List, Optional
 
 os.environ.setdefault("GRADIO_TEMP_DIR", os.path.join(os.getcwd(), "gradio_runtime"))
 os.environ.setdefault(
@@ -8,9 +8,8 @@ os.environ.setdefault(
 )
 
 
-from ludo_engine.core import PlayerColor
-from ludo_engine.strategies import Strategy
-from ludo_engine.strategies.strategy import StrategyFactory
+from ludo_engine.constants import CONFIG
+from ludo_engine_strategies import available_strategies
 from ludo_interface.board_viz import preload_board_template
 
 from .event_handler import EventHandler
@@ -18,13 +17,10 @@ from .game_manager import GameManager
 from .ui_builder import UIBuilder
 from .utils import Utils
 
-AI_STRATEGIES = StrategyFactory.get_available_strategies()
-DEFAULT_PLAYERS = [
-    PlayerColor.RED,
-    PlayerColor.GREEN,
-    PlayerColor.YELLOW,
-    PlayerColor.BLUE,
+AI_STRATEGIES = ["human"] + [
+    name for name in available_strategies(include_special=True) if name != "human"
 ]
+DEFAULT_PLAYERS = list(CONFIG.colors)
 
 
 class LudoApp:
@@ -32,46 +28,34 @@ class LudoApp:
 
     def __init__(
         self,
-        players: Optional[List[PlayerColor]] = None,
-        strategies: Optional[List[Union[Strategy, str]]] = None,
+        players: Optional[List[str]] = None,
+        strategies: Optional[List[str]] = None,
         show_token_ids: bool = True,
     ):
         """
         Initializes the Ludo application.
 
         Args:
-            players (Optional[List[PlayerColor]]): A list of player colors. Defaults to standard four players.
-            strategies (Optional[List[Union[Strategy, str]]]): A list of strategies for AI players.
+            players (Optional[List[str]]): A list of player colors. Defaults to standard four players.
+            strategies (Optional[List[str]]): A list of strategy names. Use "human" for manual play.
             show_token_ids (bool): Whether to display token IDs on the board.
         """
         self.default_players = players if players is not None else DEFAULT_PLAYERS
         self.show_token_ids = show_token_ids
-        ai_strategies = strategies if strategies is not None else AI_STRATEGIES
-        self.ai_strategies = [
-            StrategyFactory.create_strategy(s) if isinstance(s, str) else s
-            for s in ai_strategies
-        ]
-
-        if any(not isinstance(s, Strategy) for s in self.ai_strategies):
-            raise ValueError(
-                "All strategies must be instances of Strategy or valid strategy names."
-            )
-        self.ai_strategies_names = {s.name: s for s in self.ai_strategies}
+        self.ai_strategies = strategies if strategies is not None else AI_STRATEGIES
 
         # Initialize components
-        self.game_manager = GameManager(
-            self.default_players, self.ai_strategies_names, self.show_token_ids
-        )
+        self.game_manager = GameManager(self.default_players, self.show_token_ids)
         self.utils = Utils()
         self.event_handler = EventHandler(
             self.game_manager,
             self.utils,
-            list(self.ai_strategies_names.keys()),
+            list(self.ai_strategies),
             self.default_players,
             self.show_token_ids,
         )
         self.ui_builder = UIBuilder(
-            list(self.ai_strategies_names.keys()),
+            list(self.ai_strategies),
             self.default_players,
             self.show_token_ids,
             self.event_handler,

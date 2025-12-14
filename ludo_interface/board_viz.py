@@ -1,37 +1,49 @@
+from __future__ import annotations
+
 from typing import Dict, List, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
-from ludo_engine.core import Token
-from ludo_engine.models import (
-    ALL_COLORS,
-    BoardConstants,
-    GameConstants,
-    PlayerColor,
-    TokenState,
-)
+from ludo_engine import Token
+from ludo_engine.constants import CONFIG
+
+ALL_COLORS = tuple(CONFIG.colors)
+
+# Engine indices for the home lane use 100..105 (CONFIG.home_run == 6)
+HOME_COLUMN_START = 100
+HOME_COLUMN_SIZE = CONFIG.home_run
+HOME_COLUMN_END = HOME_COLUMN_START + HOME_COLUMN_SIZE - 1
+
+START_POSITIONS = dict(CONFIG.start_offsets)
+HOME_COLUMN_ENTRIES = {
+    color: (START_POSITIONS[color] + (CONFIG.travel_distance - 1)) % CONFIG.track_size
+    for color in ALL_COLORS
+}
+
+# Only mark safe/star squares on the main track (exclude home positions).
+STAR_SQUARES = set(CONFIG.base_safe_positions)
 
 # Enhanced Styling with gradients and better colors
 COLOR_MAP = {
-    PlayerColor.RED: (220, 53, 69),
-    PlayerColor.GREEN: (40, 167, 69),
-    PlayerColor.YELLOW: (255, 193, 7),
-    PlayerColor.BLUE: (13, 110, 253),
+    "red": (220, 53, 69),
+    "green": (40, 167, 69),
+    "yellow": (255, 193, 7),
+    "blue": (13, 110, 253),
 }
 
 # Additional color variations for better visuals
 COLOR_LIGHT = {
-    PlayerColor.RED: (248, 215, 218),
-    PlayerColor.GREEN: (209, 231, 221),
-    PlayerColor.YELLOW: (255, 243, 205),
-    PlayerColor.BLUE: (204, 229, 255),
+    "red": (248, 215, 218),
+    "green": (209, 231, 221),
+    "yellow": (255, 243, 205),
+    "blue": (204, 229, 255),
 }
 
 COLOR_DARK = {
-    PlayerColor.RED: (176, 42, 55),
-    PlayerColor.GREEN: (32, 134, 55),
-    PlayerColor.YELLOW: (204, 154, 6),
-    PlayerColor.BLUE: (10, 88, 202),
+    "red": (176, 42, 55),
+    "green": (32, 134, 55),
+    "yellow": (204, 154, 6),
+    "blue": (10, 88, 202),
 }
 
 BG_COLOR = (248, 249, 250)
@@ -52,11 +64,6 @@ except Exception:
 CELL = 32
 GRID = 15
 BOARD_SIZE = GRID * CELL
-
-# Derived constants
-HOME_COLUMN_START = GameConstants.HOME_COLUMN_START
-HOME_COLUMN_END = GameConstants.FINISH_POSITION
-HOME_COLUMN_SIZE = GameConstants.HOME_COLUMN_SIZE
 
 # Global board template cache
 _BOARD_TEMPLATE = None
@@ -114,10 +121,10 @@ PATH_INDEX_TO_COORD = {i: coord for i, coord in enumerate(PATH_LIST)}
 # Home quadrants bounding boxes (col range inclusive)
 HOME_QUADRANTS = {
     # Reordered to follow counter-clockwise Red -> Green -> Yellow -> Blue
-    PlayerColor.RED: ((0, 5), (0, 5)),  # top-left
-    PlayerColor.GREEN: ((0, 5), (9, 14)),  # bottom-left
-    PlayerColor.YELLOW: ((9, 14), (9, 14)),  # bottom-right
-    PlayerColor.BLUE: ((9, 14), (0, 5)),  # top-right
+    "red": ((0, 5), (0, 5)),  # top-left
+    "green": ((0, 5), (9, 14)),  # bottom-left
+    "yellow": ((9, 14), (9, 14)),  # bottom-right
+    "blue": ((9, 14), (0, 5)),  # top-right
 }
 
 
@@ -269,7 +276,7 @@ def _draw_stacked_tokens(
             text_color = (255, 255, 255) if sum(token_color) < 400 else (0, 0, 0)
             d.text(
                 (token_x - 5, token_y - 8),
-                str(token.token_id),
+                str(token.index),
                 fill=text_color,
                 font=FONT,
             )
@@ -307,24 +314,23 @@ def _token_home_grid_position(color: str, token_id: int) -> Tuple[int, int]:
     return col, row
 
 
-def _home_column_positions_for_color(color: PlayerColor) -> Dict[int, Tuple[int, int]]:
+def _home_column_positions_for_color(color: str) -> Dict[int, Tuple[int, int]]:
     """
-    Map home column indices (100..104) to board coordinates; 105 is final finish.
+    Map home column indices (100..105) to board coordinates.
 
-    GameConstants.HOME_COLUMN_SIZE = 6 covers 100..105 inclusive, but per spec 105 is
-    not a drawable lane square—tokens reaching 105 are considered finished and moved
-    to the center aggregation. We therefore only allocate 5 visual squares (100-104).
+    In the simplified engine, home squares are 100..105 (inclusive) and a token only
+    becomes finished after reaching CONFIG.total_steps (it then disappears from the
+    board and is rendered in the center).
     """
     mapping: Dict[int, Tuple[int, int]] = {}
     center = (7, 7)
-    entry_index = BoardConstants.HOME_COLUMN_ENTRIES[color]
+    entry_index = HOME_COLUMN_ENTRIES[color]
     entry_coord = PATH_INDEX_TO_COORD[entry_index]
     ex, ey = entry_coord
     dx = 0 if ex == center[0] else (1 if center[0] > ex else -1)
     dy = 0 if ey == center[1] else (1 if center[1] > ey else -1)
     cx, cy = ex + dx, ey + dy
-    # Only create squares for 100..104 (size - 1)
-    for offset in range(GameConstants.HOME_COLUMN_SIZE - 1):  # exclude final 105
+    for offset in range(HOME_COLUMN_SIZE):
         mapping[HOME_COLUMN_START + offset] = (cx, cy)
         cx += dx
         cy += dy
@@ -348,8 +354,8 @@ def _generate_board_template() -> Image.Image:
     _draw_home_quadrants(d)
 
     # Precompute special colored squares: start positions & home entry positions
-    start_positions = BoardConstants.START_POSITIONS  # color -> index
-    home_entries = BoardConstants.HOME_COLUMN_ENTRIES  # color -> index
+    start_positions = START_POSITIONS  # color -> index
+    home_entries = HOME_COLUMN_ENTRIES  # color -> index
     start_index_to_color = {idx: clr for clr, idx in start_positions.items()}
     entry_index_to_color = {idx: clr for clr, idx in home_entries.items()}
 
@@ -399,7 +405,7 @@ def _generate_board_template() -> Image.Image:
             fill = PATH_COLOR
             outline = COLOR_MAP[color]
             d.rectangle(bbox, fill=fill, outline=outline, width=3)
-        elif idx in BoardConstants.STAR_SQUARES:  # global safe/star
+        elif idx in STAR_SQUARES:  # global safe/star
             fill = STAR_COLOR
             d.rectangle(bbox, fill=fill, outline=outline, width=2)
             # Add star decoration
@@ -476,9 +482,7 @@ def get_board_template() -> Image.Image:
     return _BOARD_TEMPLATE.copy()
 
 
-def draw_board(
-    tokens: Dict[PlayerColor, List[Token]], show_ids: bool = True
-) -> Image.Image:
+def draw_board(tokens: Dict[str, List[Token]], show_ids: bool = True) -> Image.Image:
     """
     Optimized board drawing that uses a cached template and only draws tokens.
     This significantly improves performance by avoiding regenerating the board layout.
@@ -492,59 +496,48 @@ def draw_board(
     midx = (cx0 + cx1) // 2
     midy = (cy0 + cy1) // 2
     finish_anchor = {
-        PlayerColor.RED: (midx, cy0 + (midy - cy0) // 2),
-        PlayerColor.BLUE: (cx1 - (cx1 - midx) // 2, midy),
-        PlayerColor.YELLOW: (midx, cy1 - (cy1 - midy) // 2),
-        PlayerColor.GREEN: (cx0 + (midx - cx0) // 2, midy),
+        "red": (midx, cy0 + (midy - cy0) // 2),
+        "blue": (cx1 - (cx1 - midx) // 2, midy),
+        "yellow": (midx, cy1 - (cy1 - midy) // 2),
+        "green": (cx0 + (midx - cx0) // 2, midy),
     }
 
     # Enhanced token rendering with proper stacking
     # First, collect all tokens by position and state for stacking
-    position_groups: dict[str, list[Token]] = {}
+    position_groups: dict[str, list[tuple[str, Token]]] = {}
 
     for color, tlist in tokens.items():
         for tk in tlist:
-            state = tk.state.value
-            pos = tk.position
+            pos = tk.board_index
 
-            if state == TokenState.HOME.value:
+            if tk.finished:
+                key = f"finished_{color}"
+                position_groups.setdefault(key, []).append((color, tk))
+
+            elif pos is None:
                 # Home tokens - render individually in their designated spots
-                c, r = _token_home_grid_position(color, tk.token_id)
+                c, r = _token_home_grid_position(color, tk.index)
                 bbox = _cell_bbox(c, r)
                 cx, cy = (bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2
                 _draw_stacked_tokens(d, [(color, tk)], cx, cy, CELL // 2 - 6, show_ids)
 
-            elif (
-                state == TokenState.HOME_COLUMN.value
-                and HOME_COLUMN_START <= pos <= HOME_COLUMN_END
-            ):
+            elif pos is not None and HOME_COLUMN_START <= pos <= HOME_COLUMN_END:
                 # Home column tokens
                 coord_map = HOME_COLUMN_COORDS[color]
                 if pos in coord_map:
-                    key = f"home_column_{color.value}_{pos}"
-                    if key not in position_groups:
-                        position_groups[key] = []
-                    position_groups[key].append((color, tk))
-
-            elif state == TokenState.FINISHED.value:
-                # Finished tokens - stack at finish anchor
-                key = f"finished_{color.value}"
-                if key not in position_groups:
-                    position_groups[key] = []
-                position_groups[key].append((color, tk))
+                    key = f"home_column_{color}_{pos}"
+                    position_groups.setdefault(key, []).append((color, tk))
 
             else:  # active on main path
-                if 0 <= pos < len(PATH_INDEX_TO_COORD):
+                if pos is not None and 0 <= pos < len(PATH_INDEX_TO_COORD):
                     key = f"main_path_{pos}"
-                    if key not in position_groups:
-                        position_groups[key] = []
-                    position_groups[key].append((color, tk))
+                    position_groups.setdefault(key, []).append((color, tk))
 
     # Render grouped tokens with proper stacking
     for key, token_group in position_groups.items():
         if key.startswith("home_column_"):
             parts = key.split("_")
-            color = PlayerColor(parts[2])
+            color = parts[2]
             pos = int(parts[3])
             coord_map = HOME_COLUMN_COORDS[color]
             if pos in coord_map:
@@ -554,7 +547,7 @@ def draw_board(
                 _draw_stacked_tokens(d, token_group, cx, cy, CELL // 2 - 4, show_ids)
 
         elif key.startswith("finished_"):
-            color = PlayerColor(key.split("_")[1])
+            color = key.split("_")[1]
             ax, ay = finish_anchor[color]
             _draw_stacked_tokens(d, token_group, ax, ay, CELL // 2 - 4, show_ids)
 

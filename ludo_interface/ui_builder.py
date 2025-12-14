@@ -2,8 +2,6 @@ from typing import List
 
 import gradio as gr
 
-from ludo_engine.core import PlayerColor
-
 from .event_handler import EventHandler
 
 
@@ -13,7 +11,7 @@ class UIBuilder:
     def __init__(
         self,
         ai_strategies: List[str],
-        default_players: List[PlayerColor],
+        default_players: List[str],
         show_token_ids: bool,
         handler: EventHandler,
     ):
@@ -49,7 +47,7 @@ class UIBuilder:
             game_state = gr.State()
             move_history = gr.State([])
             stats_state = gr.State(
-                {"games": 0, "wins": {c.value: 0 for c in self.default_players}}
+                {"games": 0, "wins": {c: 0 for c in self.default_players}}
             )
             waiting_for_human = gr.State(False)
             human_move_options = gr.State([])
@@ -115,7 +113,7 @@ class UIBuilder:
                                     else self.ai_strategies[0]
                                 )
                             ),
-                            label="🔴🟢🟡🔵"[i] + f" {color.value.title()} Strategy",
+                            label="🔴🟢🟡🔵"[i] + f" {color.title()} Strategy",
                             container=True,
                             scale=1,
                         )
@@ -194,7 +192,7 @@ class UIBuilder:
                         container=False,
                         value={
                             "games": 0,
-                            "wins": {c.value: 0 for c in self.default_players},
+                            "wins": {c: 0 for c in self.default_players},
                         },
                     )
 
@@ -393,7 +391,7 @@ class UIBuilder:
                                     - 1,
                                 )
                             ],
-                            label="🔴🟢🟡🔵"[i] + f" {color.value.title()} Strategy",
+                            label="🔴🟢🟡🔵"[i] + f" {color.title()} Strategy",
                             container=True,
                         )
                         for i, color in enumerate(self.default_players)

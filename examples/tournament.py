@@ -47,7 +47,9 @@ class StrategyEntry:
         def _builder(game: Game, *, key: str = identifier, options: Dict = params):
             return build_strategy(key, game, **options)
 
-        return StrategyEntry(identifier=identifier, display_name=label, builder=_builder)
+        return StrategyEntry(
+            identifier=identifier, display_name=label, builder=_builder
+        )
 
 
 @dataclass
@@ -139,7 +141,9 @@ class LudoTournament:
 
         self.config = config or TournamentConfig()
         self.games_per_match = (
-            games_per_match if games_per_match is not None else self.config.games_per_match
+            games_per_match
+            if games_per_match is not None
+            else self.config.games_per_match
         )
         self.max_turns = max_turns if max_turns is not None else self.config.max_turns
         self.seed = seed if seed is not None else self.config.seed
@@ -150,9 +154,13 @@ class LudoTournament:
             raise ValueError("max_turns must be at least 1")
 
         allowed_lookup = {color.lower(): color for color in CONFIG.colors}
-        chosen_colors = tuple(player_colors) if player_colors is not None else (
-            HOME_COLOR,
-            AWAY_COLOR,
+        chosen_colors = (
+            tuple(player_colors)
+            if player_colors is not None
+            else (
+                HOME_COLOR,
+                AWAY_COLOR,
+            )
         )
         if len(chosen_colors) != 2:
             raise ValueError(
@@ -167,13 +175,17 @@ class LudoTournament:
                 raise ValueError("Player colors must be unique")
             if key not in allowed_lookup:
                 available = ", ".join(CONFIG.colors)
-                raise ValueError(f"Unknown player color '{color}'. Choices: {available}")
+                raise ValueError(
+                    f"Unknown player color '{color}'. Choices: {available}"
+                )
             seen_colors.add(key)
             canonical_colors.append(allowed_lookup[key])
 
         self.home_color, self.away_color = canonical_colors
 
-        available_builtin = {name.lower() for name in available_strategies(include_special=True)}
+        available_builtin = {
+            name.lower() for name in available_strategies(include_special=True)
+        }
         entries: List[StrategyEntry] = []
 
         for spec in strategies:
@@ -423,7 +435,10 @@ class LudoTournament:
         print(f"   🔎 Game-level draws: {total_game_draws}")
 
         if self.match_results:
-            avg_turns = sum(result.turns_played for result in self.match_results) / total_matches
+            avg_turns = (
+                sum(result.turns_played for result in self.match_results)
+                / total_matches
+            )
             print(f"   ⏱ Average turns per game: {avg_turns:.1f}")
 
     def get_head_to_head(

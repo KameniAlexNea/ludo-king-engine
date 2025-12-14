@@ -35,6 +35,15 @@ class StrategyAdapter:
     def as_decision_fn(self) -> DecisionFn:
         """Expose the strategy as a :class:`DecisionFn`."""
 
+        def _no_recommendation(
+            players: List,
+            dice_value: int,
+            moves: Sequence[Decision],
+            current_index: int,
+        ) -> Optional[Decision]:
+            _ = players, dice_value, moves, current_index
+            return None
+
         def _decide(
             players: List,  # unused – kept for compatibility with DecisionFn signature
             dice_value: int,
@@ -42,7 +51,11 @@ class StrategyAdapter:
             current_index: int,
         ) -> Optional[Decision]:
             _ = players, moves  # the strategic view already recomputes enriched moves
-            evaluation = self._computer.evaluate(dice_value)
+            # Important: pass an explicit decision_fn so StrategicValueComputer does not
+            # fall back to game.strategies (which would call back into this DecisionFn).
+            evaluation = self._computer.evaluate(
+                dice_value, decision_fn=_no_recommendation
+            )
             current = evaluation.players[current_index]
             chosen = self.select_move(StrategyContext(dice_value, current.moves))
             return chosen.decision if chosen else None

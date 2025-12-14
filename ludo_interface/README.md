@@ -16,7 +16,7 @@ Then open the local Gradio link.
 
 ## Architecture
 - `board_viz.py` draws a lightweight approximate board (not pixel‑perfect official layout) focusing on clarity.
-- `app.py` wires strategies via existing `StrategyFactory` and drives turns using the core `LudoGame` API.
+- `app.py` wires strategies via `ludo_engine_strategies.build_strategy` and drives turns using `ludo_engine.Game`.
 
 ## Future Enhancements
 - Animation / per-move delay playback

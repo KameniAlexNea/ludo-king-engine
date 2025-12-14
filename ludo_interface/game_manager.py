@@ -1,88 +1,135 @@
-from typing import Dict, List, Optional
+from __future__ import annotations
 
-from ludo_engine.core import LudoGame, Token
-from ludo_engine.models import MoveResult, PlayerColor
-from ludo_engine.strategies import HumanStrategy
-from ludo_engine.strategies.base import Strategy
+from typing import Dict, List, Optional, Sequence
+
+from ludo_engine import Game, Token
+from ludo_engine.board import MoveResult
+from ludo_engine.constants import CONFIG
+from ludo_engine.game import Decision
+from ludo_engine.player import Player
+from ludo_engine_strategies import build_strategy
 
 
 class GameManager:
     """Handles core game logic and state management."""
 
-    def __init__(
-        self,
-        default_players: List[PlayerColor],
-        strategies_mapping: Dict[str, Strategy],
-        show_token_ids: bool,
-    ):
+    def __init__(self, default_players: List[str], show_token_ids: bool):
         self.default_players = default_players
         self.show_token_ids = show_token_ids
-        self.strategies_mapping = strategies_mapping
 
-    def init_game(self, strategies: List[str]) -> LudoGame:
-        """Initializes a new Ludo game with the given strategies."""
-        strategy_objs = [self.strategies_mapping[name] for name in strategies]
-        game = LudoGame(self.default_players)
-        for player, strat in zip(game.players, strategy_objs):
-            player.set_strategy(strat)
+    def init_game(self, strategies: List[str]) -> Game:
+        """Initializes a new game and assigns strategies by player color.
+
+        "human" is treated as an interface-only strategy handled by the UI.
+        """
+        game = Game(players=[Player(color) for color in self.default_players])
+
+        interface_strategy_names = {
+            player.color: strategies[i] if i < len(strategies) else "random"
+            for i, player in enumerate(game.players)
+        }
+        setattr(game, "_interface_strategy_names", interface_strategy_names)
+
+        for player in game.players:
+            chosen = interface_strategy_names.get(player.color, "random")
+            if chosen == "human":
+                continue
+            game.strategies[player.color] = build_strategy(chosen, game)
+
         return game
 
-    def game_state_tokens(self, game: LudoGame) -> Dict[PlayerColor, List[Token]]:
+    def game_state_tokens(self, game: Game) -> Dict[str, List[Token]]:
         """Extracts token information from the game state."""
-        token_map: Dict[PlayerColor, List[Token]] = {c: [] for c in PlayerColor}
-        for p in game.players:
-            for t in p.tokens:
-                token_map[p.color].append(t)
+        token_map: Dict[str, List[Token]] = {c: [] for c in self.default_players}
+        for player in game.players:
+            token_map.setdefault(player.color, []).extend(player.tokens)
         return token_map
 
-    def get_human_strategy(self, game: LudoGame) -> Optional[HumanStrategy]:
-        """Get the human strategy from the current player if it exists."""
-        current_player = game.get_current_player()
-        return (
-            current_player.strategy
-            if isinstance(current_player.strategy, HumanStrategy)
-            else None
-        )
+    def is_human_turn(self, game: Game) -> bool:
+        names = getattr(game, "_interface_strategy_names", {})
+        return names.get(game.current_player.color) == "human"
 
-    def is_human_turn(self, game: LudoGame) -> bool:
-        """Check if it's currently a human player's turn."""
-        return self.get_human_strategy(game) is not None
-
-    def get_human_move_options(self, game: LudoGame, dice: int) -> List[dict]:
-        """Get move options for a human player."""
-        current_player = game.get_current_player()
-        valid_moves = game.get_valid_moves(current_player, dice)
-
-        options = []
-        for move in valid_moves:
-            token = current_player.tokens[move.token_id]
+    def get_human_move_options(self, game: Game, dice: int) -> List[dict]:
+        current_player = game.current_player
+        moves = game.available_moves(current_player, dice)
+        options: List[dict] = []
+        for action, token_index in moves:
+            token = current_player.tokens[token_index]
+            target = self._predict_target_index(
+                player_color=current_player.color,
+                token=token,
+                action=action,
+                dice=dice,
+            )
+            target_text = (
+                "finish"
+                if target is None and self._would_finish(token, action, dice)
+                else target
+            )
             options.append(
                 {
-                    "token_id": move.token_id,
-                    "description": f"Token {move.token_id}: {token.state.value} at {token.position} -> {move.target_position}",
-                    "move_type": move.move_type,
+                    "token_id": token_index,
+                    "description": f"Token {token_index}: {action} -> {target_text}",
+                    "move_type": action,
                 }
             )
         return options
 
+    def _would_finish(self, token: Token, action: str, dice: int) -> bool:
+        if action != "advance":
+            return False
+        return token.steps_taken + dice == CONFIG.total_steps
+
+    def _predict_target_index(
+        self, *, player_color: str, token: Token, action: str, dice: int
+    ) -> Optional[int]:
+        if action == "enter":
+            return CONFIG.start_offsets[player_color]
+        if action != "advance":
+            return None
+
+        target_steps = token.steps_taken + dice
+        if target_steps == CONFIG.total_steps:
+            return None
+        if target_steps >= CONFIG.travel_distance:
+            home_offset = target_steps - CONFIG.travel_distance
+            return CONFIG.home_index(player_color, home_offset)
+        start = CONFIG.start_offsets[player_color]
+        return (start + target_steps) % CONFIG.track_size
+
     def serialize_move(self, move_result: MoveResult) -> str:
         """Serializes a move result into a human-readable string."""
-        if not move_result or not move_result.success:
+        if not move_result or not move_result.valid:
             return "No move"
-        parts = [
-            f"{move_result.player_color} token {move_result.token_id} -> {move_result.new_position}"
-        ]
-        if move_result.captured_tokens:
-            parts.append(f"captured {len(move_result.captured_tokens)}")
-        if move_result.finished_token:
+        token = move_result.token
+        start = move_result.start
+        end = move_result.end
+
+        parts = [f"{token.color} token {token.index}"]
+        if start is None and end is not None:
+            parts.append(f"entered -> {end}")
+        elif end is None and move_result.finished:
             parts.append("finished")
-        if move_result.extra_turn:
+        else:
+            parts.append(f"{start} -> {end}")
+
+        if move_result.captured is not None:
+            parts.append(f"captured {move_result.captured.color}")
+
+        earned_extra_turn = False
+        if move_result.valid:
+            earned_extra_turn = (
+                getattr(self, "_last_roll", None) == 6
+                or move_result.captured is not None
+                or move_result.finished
+            )
+        if earned_extra_turn:
             parts.append("extra turn")
         return ", ".join(parts)
 
     def play_step(
         self,
-        game: LudoGame,
+        game: Game,
         human_move_choice: Optional[int] = None,
         dice: Optional[int] = None,
     ):
@@ -90,56 +137,72 @@ class GameManager:
 
         If `dice` is provided, use it; otherwise roll a new dice value.
         """
-        if game.game_over:
-            return game, "Game over", self.game_state_tokens(game), [], False
+        if game.is_finished():
+            winner = game.winner()
+            winner_text = winner.color if winner else "unknown"
+            return (
+                game,
+                f"Game over (winner: {winner_text})",
+                self.game_state_tokens(game),
+                [],
+                False,
+            )
 
-        current_player = game.get_current_player()
+        current_player = game.current_player
         if dice is None:
-            dice = game.roll_dice()
-        valid_moves = game.get_valid_moves(current_player, dice)
+            dice = game.roll()
+        self._last_roll = dice
 
-        if not valid_moves:
-            extra_turn = dice == 6
-            if not extra_turn:
-                game.next_turn()
+        if self.is_human_turn(game):
+            moves = game.available_moves(current_player, dice)
+            if moves and human_move_choice is None:
+                setattr(game, "_interface_pending_dice", dice)
+                move_options = self.get_human_move_options(game, dice)
+                desc = f"{current_player.color} rolled {dice} - Choose your move:"
+                return game, desc, self.game_state_tokens(game), move_options, True
 
-            token_positions = ", ".join(
-                [
-                    f"token {i}: {t.position} ({t.state.value})"
-                    for i, t in enumerate(current_player.tokens)
-                ]
-            )
-            desc = f"{current_player.color.value} rolled {dice} - no moves{' (extra turn)' if extra_turn else ''} | Positions: {token_positions}"
-            return game, desc, self.game_state_tokens(game), [], False
-
-        human_strategy = self.get_human_strategy(game)
-        if human_strategy and human_move_choice is None:
-            move_options = self.get_human_move_options(game, dice)
-            desc = f"{current_player.color.value} rolled {dice} - Choose your move:"
-            return game, desc, self.game_state_tokens(game), move_options, True
-
-        chosen_move = None
-        if human_strategy and human_move_choice is not None:
-            chosen_move = next(
-                (m for m in valid_moves if m.token_id == human_move_choice), None
-            )
+            # Resolve the turn using the chosen token (or default) and advance.
+            if not moves:
+                move_res = game.play_turn(dice)
+            else:
+                decision = self._pick_decision(moves, human_move_choice)
+                move_res = game.execute(current_player, decision, dice)
+                game.recalculate_winner()
+                self._advance_turn(game, dice, move_res)
         else:
-            ctx = game.get_ai_decision_context(dice)
-            token_choice = current_player.make_strategic_decision(ctx)
-            chosen_move = next(
-                (m for m in valid_moves if m.token_id == token_choice), None
-            )
+            move_res = game.play_turn(dice)
 
-        if chosen_move is None:
-            chosen_move = valid_moves[0]
+        # Turn resolved; pending dice no longer applies.
+        setattr(game, "_interface_pending_dice", None)
 
-        move_res = game.execute_move(current_player, chosen_move.token_id, dice)
-        desc = f"{current_player.color.value} rolled {dice}: {self.serialize_move(move_res)}"
-
-        if not move_res.extra_turn and not game.game_over:
-            game.next_turn()
-
-        if game.game_over:
-            desc += f" | WINNER: {game.winner.color.value}"
+        desc = f"{current_player.color} rolled {dice}: {self.serialize_move(move_res)}"
+        if game.is_finished():
+            winner = game.winner()
+            if winner:
+                desc += f" | WINNER: {winner.color}"
 
         return game, desc, self.game_state_tokens(game), [], False
+
+    def _pick_decision(
+        self, moves: Sequence[Decision], token_choice: Optional[int]
+    ) -> Decision:
+        if token_choice is None:
+            return moves[0]
+        for decision in moves:
+            if decision[1] == token_choice:
+                return decision
+        return moves[0]
+
+    def _advance_turn(self, game: Game, dice_value: int, result: MoveResult) -> None:
+        if not result.valid:
+            game.current_player_index = (game.current_player_index + 1) % len(
+                game.players
+            )
+            return
+
+        earned_extra_turn = (
+            dice_value == 6 or result.captured is not None or result.finished
+        )
+        if earned_extra_turn:
+            return
+        game.current_player_index = (game.current_player_index + 1) % len(game.players)
