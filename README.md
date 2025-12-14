@@ -152,6 +152,9 @@ Our comprehensive tournament system demonstrates the effectiveness of different 
 
 **Legend:** P=Played, W=Won, D=Draw, L=Lost, GF=Goals For, GA=Goals Against, GD=Goal Difference
 
+While individual outcomes vary with the random seed, the overall performance hierarchy typically looks like this:
+Probabilistic family > Cautious & Killer > Defensive & Winner & Balanced > Optimist & WeightedRandom & Random
+
 ### Key Tournament Insights
 
 #### 🏆 Champion Analysis
