@@ -81,8 +81,15 @@ class StrategicValueComputer:
         self._weights = weights or StrategicWeights()
 
     def evaluate(
-        self, dice_value: int, decision_fn: Optional[DecisionFn] = None
+        self,
+        dice_value: int,
+        decision_fn: Optional[DecisionFn] = None,
+        weights: Optional[StrategicWeights] = None,
     ) -> StrategicEvaluation:
+        # Use provided weights or fall back to instance weights
+        if weights is not None:
+            self._weights = weights
+
         current_index = self._game.current_player_index
         players = [
             self._build_player_view(i, dice_value)

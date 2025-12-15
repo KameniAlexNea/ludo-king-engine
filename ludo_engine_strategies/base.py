@@ -36,8 +36,14 @@ class StrategyAdapter:
         rng: Optional[Random] = None,
     ) -> None:
         self._game = game
-        self._computer = StrategicValueComputer(game, weights=weights)
+        self._weights = weights or StrategicWeights()
+        self._computer = StrategicValueComputer(game, weights=self._weights)
         self._rng = rng
+
+    @property
+    def weights(self) -> StrategicWeights:
+        """Expose the strategy's scoring weights."""
+        return self._weights
 
     def as_decision_fn(self) -> DecisionFn:
         """Expose the strategy as a :class:`DecisionFn`."""
@@ -58,6 +64,8 @@ class StrategyAdapter:
             chosen = self.select_move(context)
             return chosen.decision if chosen else None
 
+        # Attach strategy instance to the function so weights can be accessed
+        _decide.strategy = self  # type: ignore
         return _decide
 
     # API surface subclasses care about -------------------------------------------------

@@ -34,12 +34,14 @@ dev = [
 ]
 gradio = [
     "gradio",
-    "Pillow"
+    "Pillow",
+    "pydantic-settings>=2.8.1",
 ]
 webservices = [
     "Pillow",
     "fastapi>=0.104.0",
     "pydantic>=2.0.0",
+    "pydantic-settings>=2.8.1",
     "python-multipart>=0.0.6",
     "sqlmodel>=0.0.14",
     "uvicorn[standard]>=0.24.0",

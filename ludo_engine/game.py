@@ -74,8 +74,18 @@ class Game:
             # Use StrategicValueComputer to get enriched PlayerView data
             from .strategy import StrategicValueComputer
 
+            # Get strategy-specific weights if available
+            strategy_weights = None
+            if hasattr(active_decider, "strategy"):
+                # DecisionFn has attached strategy instance
+                strategy_instance = active_decider.strategy  # type: ignore
+                if hasattr(strategy_instance, "weights"):
+                    strategy_weights = strategy_instance.weights
+
             computer = StrategicValueComputer(self)
-            evaluation = computer.evaluate(dice_value, decision_fn=active_decider)
+            evaluation = computer.evaluate(
+                dice_value, decision_fn=active_decider, weights=strategy_weights
+            )
             if evaluation.recommended:
                 decision = evaluation.recommended.decision
         if decision is None and moves:
