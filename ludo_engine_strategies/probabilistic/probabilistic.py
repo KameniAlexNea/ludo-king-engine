@@ -7,15 +7,14 @@ from random import Random
 from typing import Optional
 
 from ludo_engine.game import DecisionFn, Game
-from ludo_engine.strategy import StrategicMove, StrategicWeights
 
 from ..base import StrategyAdapter, StrategyContext
+from ..strategic_computer import StrategicMove, StrategicWeights
 
 
 class ProbabilisticStrategy(StrategyAdapter):
     def __init__(
         self,
-        game: Game,
         *,
         temperature: float = 1.1,
         rng: Optional[Random] = None,
@@ -28,7 +27,7 @@ class ProbabilisticStrategy(StrategyAdapter):
             finish_bonus=110.0,
             unsafe_penalty=7.5,
         )
-        super().__init__(game, weights=weights, rng=rng)
+        super().__init__(weights=weights, rng=rng)
         self._temperature = max(0.1, temperature)
 
     def select_move(self, context: StrategyContext) -> Optional[StrategicMove]:
@@ -56,7 +55,7 @@ def build(
     game: Game, *, temperature: float = 1.1, seed: Optional[int] = None
 ) -> DecisionFn:
     rng = Random(seed) if seed is not None else None
-    strategy = ProbabilisticStrategy(game, temperature=temperature, rng=rng)
+    strategy = ProbabilisticStrategy(temperature=temperature, rng=rng)
     return strategy.as_decision_fn()
 
 

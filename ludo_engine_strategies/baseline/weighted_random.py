@@ -14,13 +14,12 @@ from ..base import StrategyAdapter, StrategyContext
 class WeightedRandomStrategy(StrategyAdapter):
     def __init__(
         self,
-        game: Game,
         *,
         temperature: float = 1.0,
         epsilon: float = 0.0,
         rng: Optional[Random] = None,
     ) -> None:
-        super().__init__(game, rng=rng)
+        super().__init__(rng=rng)
         self._temperature = max(0.05, temperature)
         self._epsilon = max(0.0, min(1.0, epsilon))
 
@@ -55,7 +54,6 @@ def build(
 ) -> DecisionFn:
     rng = Random(seed) if seed is not None else None
     strategy = WeightedRandomStrategy(
-        game,
         temperature=temperature,
         epsilon=epsilon,
         rng=rng,

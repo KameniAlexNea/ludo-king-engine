@@ -4,21 +4,18 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from .board import Board, MoveResult
 from .constants import CONFIG
 from .player import Player
 
 Decision = Tuple[str, int]  # (action, token_index)
-# DecisionFn now receives enriched PlayerView data from StrategicValueComputer
-# Signature: (players: List[PlayerView], dice_value: int, current_index: int) -> Optional[Decision]
-# Import will be resolved at runtime to avoid circular dependency
 
-
-DecisionFn = Callable[
-    [Sequence, int, int], Optional[Decision]
-]  # (players: List[PlayerView], dice, current_idx)
+# DecisionFn: Strategy observes game state and makes decision
+# Signature: (game: Game, dice_value: int) -> Optional[Decision]
+# Strategy should call game.available_moves() to see options
+DecisionFn = Callable[["Game", int], Optional[Decision]]
 
 
 @dataclass
@@ -66,30 +63,21 @@ class Game:
         return result
 
     def play_turn(self, dice_value: int) -> MoveResult:
+        """Execute one turn: ask strategy for decision, then execute it."""
         player = self.current_player
         moves = self.available_moves(player, dice_value)
         decision: Optional[Decision] = None
+
+        # Strategy observes game state and makes decision
         active_decider = self.strategies.get(player.color)
         if moves and active_decider is not None:
-            # Use StrategicValueComputer to get enriched PlayerView data
-            from .strategy import StrategicValueComputer
+            decision = active_decider(self, dice_value)
 
-            # Get strategy-specific weights if available
-            strategy_weights = None
-            if hasattr(active_decider, "strategy"):
-                # DecisionFn has attached strategy instance
-                strategy_instance = active_decider.strategy  # type: ignore
-                if hasattr(strategy_instance, "weights"):
-                    strategy_weights = strategy_instance.weights
-
-            computer = StrategicValueComputer(self)
-            evaluation = computer.evaluate(
-                dice_value, decision_fn=active_decider, weights=strategy_weights
-            )
-            if evaluation.recommended:
-                decision = evaluation.recommended.decision
+        # Default to first move if strategy returns None
         if decision is None and moves:
             decision = moves[0]
+
+        # Create invalid result if no moves available
         result = MoveResult(
             player.tokens[moves[0][1]] if moves else player.tokens[0],
             None,
@@ -97,10 +85,13 @@ class Game:
             message="No move",
             valid=False,
         )
+
+        # Execute the chosen decision
         if decision:
             result = self.execute(player, decision, dice_value)
             if result.valid and self._winner_index is None and player.has_won:
                 self._winner_index = self.current_player_index
+
         self._advance_turn(dice_value, result)
         return result
 

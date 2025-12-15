@@ -5,13 +5,13 @@ from __future__ import annotations
 from typing import Optional
 
 from ludo_engine.game import DecisionFn, Game
-from ludo_engine.strategy import StrategicMove, StrategicWeights
 
 from ..base import StrategyAdapter, StrategyContext
+from ..strategic_computer import StrategicMove, StrategicWeights
 
 
 class OptimistStrategy(StrategyAdapter):
-    def __init__(self, game: Game) -> None:
+    def __init__(self) -> None:
         weights = StrategicWeights(
             progress=1.25,
             enter_bonus=10.0,
@@ -20,7 +20,7 @@ class OptimistStrategy(StrategyAdapter):
             finish_bonus=105.0,
             unsafe_penalty=1.5,
         )
-        super().__init__(game, weights=weights)
+        super().__init__(weights=weights)
 
     def select_move(self, context: StrategyContext) -> Optional[StrategicMove]:
         moves = list(context.moves)
@@ -44,8 +44,8 @@ class OptimistStrategy(StrategyAdapter):
         return best_progress
 
 
-def build(game: Game) -> DecisionFn:
-    return OptimistStrategy(game).as_decision_fn()
+def build(game: Game = None) -> DecisionFn:
+    return OptimistStrategy().as_decision_fn()
 
 
 __all__ = ["OptimistStrategy", "build"]

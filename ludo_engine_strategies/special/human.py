@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Optional, Sequence
 
-from ludo_engine.game import DecisionFn, Game
-from ludo_engine.strategy import PlayerView, StrategicMove
+from ludo_engine.game import Decision, DecisionFn, Game
+
+from ..strategic_computer import StrategicMove, StrategicValueComputer
 
 
 def _render_choices(moves: Sequence[StrategicMove]) -> str:
@@ -26,11 +27,15 @@ def _render_choices(moves: Sequence[StrategicMove]) -> str:
     return "\n".join(lines)
 
 
-def build(game: Game) -> DecisionFn:
-    def decide(players: Sequence[PlayerView], dice_value: int, current_index: int):
-        # Now receives enriched PlayerView data directly - no re-computation needed!
-        current = players[current_index]
-        enriched = current.moves
+def build(game: Game = None) -> DecisionFn:
+    def decide(game: Game, dice_value: int) -> Optional[Decision]:
+        # Compute strategic values by observing game state
+        computer = StrategicValueComputer(game)
+        evaluation = computer.evaluate(dice_value)
+
+        player_view = evaluation.players[game.current_player_index]
+        enriched = player_view.moves
+
         if not enriched:
             print("No moves available.")
             return None

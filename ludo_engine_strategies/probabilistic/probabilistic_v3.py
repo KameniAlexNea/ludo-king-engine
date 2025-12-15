@@ -6,15 +6,14 @@ from random import Random
 from typing import Optional
 
 from ludo_engine.game import DecisionFn, Game
-from ludo_engine.strategy import StrategicMove, StrategicWeights
 
 from ..base import StrategyAdapter, StrategyContext
+from ..strategic_computer import StrategicMove, StrategicWeights
 
 
 class ProbabilisticV3Strategy(StrategyAdapter):
     def __init__(
         self,
-        game: Game,
         *,
         top_k: int = 3,
         rng: Optional[Random] = None,
@@ -27,7 +26,7 @@ class ProbabilisticV3Strategy(StrategyAdapter):
             finish_bonus=115.0,
             unsafe_penalty=6.5,
         )
-        super().__init__(game, weights=weights, rng=rng)
+        super().__init__(weights=weights, rng=rng)
         self._top_k = max(1, top_k)
 
     def select_move(self, context: StrategyContext) -> Optional[StrategicMove]:
@@ -63,7 +62,7 @@ def build(
     seed: Optional[int] = None,
 ) -> DecisionFn:
     rng = Random(seed) if seed is not None else None
-    strategy = ProbabilisticV3Strategy(game, top_k=top_k, rng=rng)
+    strategy = ProbabilisticV3Strategy(top_k=top_k, rng=rng)
     return strategy.as_decision_fn()
 
 

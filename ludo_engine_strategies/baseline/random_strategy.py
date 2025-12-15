@@ -18,9 +18,9 @@ class RandomStrategy(StrategyAdapter):
         return self.rng().choice(moves)
 
 
-def build(game: Game, seed: Optional[int] = None) -> DecisionFn:
+def build(game: Game = None, seed: Optional[int] = None) -> DecisionFn:
     rng = Random(seed) if seed is not None else None
-    return RandomStrategy(game, rng=rng).as_decision_fn()
+    return RandomStrategy(rng=rng).as_decision_fn()
 
 
 __all__ = ["RandomStrategy", "build"]

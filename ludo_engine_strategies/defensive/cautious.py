@@ -5,13 +5,13 @@ from __future__ import annotations
 from typing import Optional
 
 from ludo_engine.game import DecisionFn, Game
-from ludo_engine.strategy import StrategicMove, StrategicWeights
 
 from ..base import StrategyAdapter, StrategyContext
+from ..strategic_computer import StrategicMove, StrategicWeights
 
 
 class CautiousStrategy(StrategyAdapter):
-    def __init__(self, game: Game) -> None:
+    def __init__(self) -> None:
         weights = StrategicWeights(
             progress=0.9,
             enter_bonus=14.0,
@@ -20,7 +20,7 @@ class CautiousStrategy(StrategyAdapter):
             finish_bonus=110.0,
             unsafe_penalty=12.0,
         )
-        super().__init__(game, weights=weights)
+        super().__init__(weights=weights)
 
     def select_move(self, context: StrategyContext) -> Optional[StrategicMove]:
         moves = list(context.moves)
@@ -40,8 +40,8 @@ class CautiousStrategy(StrategyAdapter):
         return max(moves, key=lambda m: (-m.distance_to_finish, m.score))
 
 
-def build(game: Game) -> DecisionFn:
-    return CautiousStrategy(game).as_decision_fn()
+def build(game: Game = None) -> DecisionFn:
+    return CautiousStrategy().as_decision_fn()
 
 
 __all__ = ["CautiousStrategy", "build"]

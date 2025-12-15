@@ -5,11 +5,11 @@ import unittest
 from ludo_engine import CONFIG, Game
 
 
-def choose_first_move(players, _dice, current_index):
-    """Choose first available move from PlayerView."""
-    current_player = players[current_index]
-    moves = current_player.moves
-    return moves[0].decision if moves else None
+def choose_first_move(game, dice_value):
+    """Choose first available move by observing game state."""
+    player = game.current_player
+    moves = game.available_moves(player, dice_value)
+    return moves[0] if moves else None
 
 
 class GameTestCase(unittest.TestCase):
@@ -20,10 +20,11 @@ class GameTestCase(unittest.TestCase):
     def test_play_turn_uses_strategy_choice(self) -> None:
         calls = []
 
-        def choose_last(players, dice_value, current_index):
-            player = players[current_index]
-            calls.append((player.color, dice_value, len(player.moves)))
-            return player.moves[-1].decision if player.moves else None
+        def choose_last(game, dice_value):
+            player = game.current_player
+            moves = game.available_moves(player, dice_value)
+            calls.append((player.color, dice_value, len(moves)))
+            return moves[-1] if moves else None
 
         self.game.strategies["red"] = choose_last
 

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
-from .constants import CONFIG
-from .game import Decision, DecisionFn, Game
-from .player import Player
-from .token import Token
+from ludo_engine.constants import CONFIG
+
+if TYPE_CHECKING:
+    from ludo_engine.game import Decision, Game
+    from ludo_engine.player import Player
+    from ludo_engine.token import Token
 
 
 @dataclass
@@ -76,38 +78,29 @@ class StrategicEvaluation:
 class StrategicValueComputer:
     """Compute lightweight strategic values using the simplified engine state."""
 
-    def __init__(self, game: Game, weights: Optional[StrategicWeights] = None) -> None:
+    def __init__(
+        self, game: "Game", weights: Optional[StrategicWeights] = None
+    ) -> None:
         self._game = game
         self._weights = weights or StrategicWeights()
 
-    def evaluate(
-        self,
-        dice_value: int,
-        decision_fn: Optional[DecisionFn] = None,
-        weights: Optional[StrategicWeights] = None,
-    ) -> StrategicEvaluation:
-        # Use provided weights or fall back to instance weights
-        if weights is not None:
-            self._weights = weights
-
+    def evaluate(self, dice_value: int) -> StrategicEvaluation:
+        """Evaluate current game state for given dice value."""
         current_index = self._game.current_player_index
         players = [
             self._build_player_view(i, dice_value)
             for i in range(len(self._game.players))
         ]
 
-        chooser = decision_fn or self._game.strategies.get(
-            self._game.players[current_index].color
-        )
-        recommended = self._determine_recommendation(
-            chooser, dice_value, players, current_index
-        )
-
         return StrategicEvaluation(
             dice_value=dice_value,
             current_index=current_index,
             players=players,
-            recommended=recommended,
+            recommended=(
+                players[current_index].moves[0]
+                if players[current_index].moves
+                else None
+            ),
         )
 
     def _build_player_view(self, player_index: int, dice_value: int) -> PlayerView:
@@ -252,27 +245,6 @@ class StrategicValueComputer:
         if not is_safe and not will_finish:
             score -= weights.unsafe_penalty
         return score
-
-    def _determine_recommendation(
-        self,
-        chooser: Optional[DecisionFn],
-        dice_value: int,
-        players: Sequence[PlayerView],
-        current_index: int,
-    ) -> Optional[StrategicMove]:
-        if chooser is None:
-            return None
-
-        if not players[current_index].moves:
-            return None
-
-        # Pass enriched PlayerView data to strategy instead of raw Player objects
-        choice = chooser(players, dice_value, current_index)
-        if choice is None:
-            return None
-
-        lookup = {move.decision: move for move in players[current_index].moves}
-        return lookup.get(choice)
 
 
 __all__ = [

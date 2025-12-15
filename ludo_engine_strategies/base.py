@@ -4,15 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from random import Random
-from typing import Optional, Sequence
+from typing import TYPE_CHECKING, Optional
 
-from ludo_engine.game import Decision, DecisionFn, Game
-from ludo_engine.strategy import (
-    PlayerView,
-    StrategicMove,
-    StrategicValueComputer,
-    StrategicWeights,
-)
+from ludo_engine.game import Decision, DecisionFn
+
+if TYPE_CHECKING:
+    from ludo_engine.game import Game
+
+from .strategic_computer import StrategicMove, StrategicValueComputer, StrategicWeights
 
 
 @dataclass
@@ -20,9 +19,8 @@ class StrategyContext:
     """Lightweight container passed to selection hooks."""
 
     dice_value: int
-    players: Sequence[PlayerView]
     current_index: int
-    moves: Sequence[StrategicMove]  # Shortcut to players[current_index].moves
+    moves: list[StrategicMove]
 
 
 class StrategyAdapter:
@@ -30,14 +28,11 @@ class StrategyAdapter:
 
     def __init__(
         self,
-        game: Game,
         *,
         weights: Optional[StrategicWeights] = None,
         rng: Optional[Random] = None,
     ) -> None:
-        self._game = game
         self._weights = weights or StrategicWeights()
-        self._computer = StrategicValueComputer(game, weights=self._weights)
         self._rng = rng
 
     @property
@@ -49,22 +44,27 @@ class StrategyAdapter:
         """Expose the strategy as a :class:`DecisionFn`."""
 
         def _decide(
-            players: Sequence[PlayerView],  # Now receives enriched PlayerView data!
+            game: "Game",  # Observe game state
             dice_value: int,
-            current_index: int,
         ) -> Optional[Decision]:
-            # No need to re-compute - we receive enriched data directly
-            current = players[current_index]
+            # Compute strategic values by observing game state
+            computer = StrategicValueComputer(game, weights=self._weights)
+            evaluation = computer.evaluate(dice_value)
+
+            player_view = evaluation.players[game.current_player_index]
+
+            if not player_view.moves:
+                return None
+
             context = StrategyContext(
                 dice_value=dice_value,
-                players=players,
-                current_index=current_index,
-                moves=current.moves,
+                current_index=game.current_player_index,
+                moves=player_view.moves,
             )
             chosen = self.select_move(context)
             return chosen.decision if chosen else None
 
-        # Attach strategy instance to the function so weights can be accessed
+        # Attach strategy instance for introspection
         _decide.strategy = self  # type: ignore
         return _decide
 

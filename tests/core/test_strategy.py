@@ -3,14 +3,10 @@
 import unittest
 
 from ludo_engine.game import Game
-from ludo_engine.strategy import StrategicEvaluation, StrategicValueComputer
-
-
-def choose_last(players, dice_value, current_index):
-    """Choose last available move from PlayerView."""
-    _ = dice_value
-    current_player = players[current_index]
-    return current_player.moves[-1].decision if current_player.moves else None
+from ludo_engine_strategies.strategic_computer import (
+    StrategicEvaluation,
+    StrategicValueComputer,
+)
 
 
 class StrategicValueComputerTestCase(unittest.TestCase):
@@ -19,7 +15,7 @@ class StrategicValueComputerTestCase(unittest.TestCase):
         self.computer = StrategicValueComputer(self.game)
 
     def test_evaluate_returns_recommendation(self) -> None:
-        snapshot = self.computer.evaluate(6, decision_fn=choose_last)
+        snapshot = self.computer.evaluate(6)
         self.assertIsInstance(snapshot, StrategicEvaluation)
         self.assertEqual(snapshot.dice_value, 6)
         self.assertEqual(snapshot.current_index, self.game.current_player_index)
@@ -27,7 +23,7 @@ class StrategicValueComputerTestCase(unittest.TestCase):
         if snapshot.recommended is not None:
             self.assertEqual(
                 snapshot.recommended.decision,
-                snapshot.players[snapshot.current_index].moves[-1].decision,
+                snapshot.players[snapshot.current_index].moves[0].decision,
             )
 
     def test_capture_move_flagged(self) -> None:
