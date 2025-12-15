@@ -16,6 +16,7 @@ class Token:
     steps_taken: int = 0
     finished: bool = False
 
+    @property
     def is_ready(self) -> bool:
         return self.board_index is not None and not self.finished
 

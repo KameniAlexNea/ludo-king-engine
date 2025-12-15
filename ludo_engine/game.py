@@ -78,7 +78,7 @@ class Game:
         )
         if decision:
             result = self.execute(player, decision, dice_value)
-            if result.valid and self._winner_index is None and player.has_won():
+            if result.valid and self._winner_index is None and player.has_won:
                 self._winner_index = self.current_player_index
         self._advance_turn(dice_value, result)
         return result
@@ -104,7 +104,7 @@ class Game:
 
     def recalculate_winner(self) -> Optional[Player]:
         for index, player in enumerate(self.players):
-            if player.has_won():
+            if player.has_won:
                 self._winner_index = index
                 return player
         self._winner_index = None

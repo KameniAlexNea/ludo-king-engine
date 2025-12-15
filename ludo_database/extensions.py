@@ -2,125 +2,110 @@
 
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, List
 
 from ludo_database.notation import decision_to_notation, fen_to_state, state_to_fen
+from ludo_engine.constants import CONFIG
 from ludo_engine.game import Game
+from ludo_engine.player import Player
 
 
-def game_to_fen(game: Game) -> str:
-    """Export game state as FEN string."""
-    return state_to_fen(game)
+class DatabaseGame(Game):
+    """Game class with database/serialization methods."""
 
+    def to_fen(self) -> str:
+        """Export game state as FEN string."""
+        return state_to_fen(self)
 
-def game_from_fen(fen: str) -> Game:
-    """Create game from FEN string."""
-    from ludo_engine.constants import CONFIG
-    from ludo_engine.player import Player
+    @classmethod
+    def from_fen(cls, fen: str) -> DatabaseGame:
+        """Create game from FEN string."""
+        current_player_color, token_lists = fen_to_state(fen)
 
-    current_player_color, token_lists = fen_to_state(fen)
+        players = []
+        for i, color in enumerate(CONFIG.colors):
+            player = Player(color)
+            if i < len(token_lists):
+                player.tokens = token_lists[i]
+            players.append(player)
 
-    players = []
-    for i, color in enumerate(CONFIG.colors):
-        player = Player(color)
-        if i < len(token_lists):
-            player.tokens = token_lists[i]
-        players.append(player)
+        game = cls(players=players)
 
-    game = Game(players=players)
+        # Set current player
+        for i, player in enumerate(game.players):
+            if player.color == current_player_color:
+                game.current_player_index = i
+                break
 
-    # Set current player
-    for i, player in enumerate(game.players):
-        if player.color == current_player_color:
-            game.current_player_index = i
-            break
+        # Update board state from tokens
+        for player in game.players:
+            for token in player.tokens:
+                if (
+                    token.board_index is not None
+                    and token.board_index >= 0
+                    and not token.finished
+                ):
+                    game.board._positions[token.board_index] = token
 
-    # Update board state from tokens
-    for player in game.players:
-        for token in player.tokens:
-            if (
-                token.board_index is not None
-                and token.board_index >= 0
-                and not token.finished
-            ):
-                game.board._positions[token.board_index] = token
+        return game
 
-    return game
+    def apply_move_from_notation(self, dice: int, move_notation: str) -> Dict[str, any]:
+        """Apply a move from notation and return the result.
 
+        Returns dict with:
+          - valid: bool
+          - fen_after: str
+          - captured: bool
+          - finished: bool
+          - message: str
+        """
+        from ludo_database.notation import notation_to_decision
 
-def apply_move_from_notation(
-    game: Game, dice: int, move_notation: str
-) -> Dict[str, any]:
-    """Apply a move from notation and return the result.
+        try:
+            decision, expected_dice, _ = notation_to_decision(move_notation)
 
-    Returns dict with:
-      - valid: bool
-      - fen_after: str
-      - captured: bool
-      - finished: bool
-      - message: str
-    """
-    from ludo_database.notation import notation_to_decision
+            # Validate dice matches
+            if dice != expected_dice and decision[0] == "advance":
+                return {
+                    "valid": False,
+                    "fen_after": self.to_fen(),
+                    "captured": False,
+                    "finished": False,
+                    "message": f"Dice mismatch: expected {expected_dice}, got {dice}",
+                }
 
-    try:
-        decision, expected_dice, _ = notation_to_decision(move_notation)
+            # Get current player
+            player = self.current_player
 
-        # Validate dice matches
-        if dice != expected_dice and decision[0] == "advance":
+            # Execute move
+            result = self.execute(player, decision, dice)
+
+            if result.valid:
+                # Advance turn
+                self._advance_turn(dice, result)
+
             return {
-                "valid": False,
-                "fen_after": game_to_fen(game),
-                "captured": False,
-                "finished": False,
-                "message": f"Dice mismatch: expected {expected_dice}, got {dice}",
+                "valid": result.valid,
+                "fen_after": self.to_fen(),
+                "captured": result.captured is not None,
+                "finished": result.finished,
+                "message": result.message,
             }
 
-        # Get current player
-        player = game.current_player
+        except Exception as e:
+            return {
+                "valid": False,
+                "fen_after": self.to_fen(),
+                "captured": False,
+                "finished": False,
+                "message": str(e),
+            }
 
-        # Execute move
-        result = game.execute(player, decision, dice)
-
-        if result.valid:
-            # Advance turn
-            game._advance_turn(dice, result)
-
-        return {
-            "valid": result.valid,
-            "fen_after": game_to_fen(game),
-            "captured": result.captured is not None,
-            "finished": result.finished,
-            "message": result.message,
-        }
-
-    except Exception as e:
-        return {
-            "valid": False,
-            "fen_after": game_to_fen(game),
-            "captured": False,
-            "finished": False,
-            "message": str(e),
-        }
+    def get_legal_moves_notation(self, dice: int) -> List[str]:
+        """Get all legal moves in notation format."""
+        player = self.current_player
+        decisions = self.available_moves(player, dice)
+        return [decision_to_notation(decision, dice) for decision in decisions]
 
 
-def get_legal_moves_notation(game: Game, dice: int) -> list[str]:
-    """Get all legal moves in notation format."""
-    player = game.current_player
-    decisions = game.available_moves(player, dice)
-
-    return [decision_to_notation(decision, dice) for decision in decisions]
-
-
-# Extend Game class with convenience methods
-Game.to_fen = game_to_fen
-Game.from_fen = staticmethod(game_from_fen)
-Game.apply_move_from_notation = apply_move_from_notation
-Game.get_legal_moves_notation = get_legal_moves_notation
-
-
-__all__ = [
-    "game_to_fen",
-    "game_from_fen",
-    "apply_move_from_notation",
-    "get_legal_moves_notation",
-]
+__all__ = ["DatabaseGame"]

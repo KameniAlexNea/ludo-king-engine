@@ -23,7 +23,7 @@ class Player:
             ]
 
     def ready_tokens(self) -> Iterable[Token]:
-        return (token for token in self.tokens if token.is_ready())
+        return (token for token in self.tokens if token.is_ready)
 
     def home_tokens(self) -> Iterable[Token]:
         return (
@@ -32,8 +32,10 @@ class Player:
             if token.board_index is None and not token.finished
         )
 
+    @property
     def finished_count(self) -> int:
         return sum(1 for token in self.tokens if token.finished)
 
+    @property
     def has_won(self) -> bool:
-        return self.finished_count() == CONFIG.tokens_per_player
+        return self.finished_count == CONFIG.tokens_per_player

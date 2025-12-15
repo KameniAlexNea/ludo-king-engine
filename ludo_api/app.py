@@ -6,15 +6,9 @@ import io
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from ludo_database.extensions import (
-    apply_move_from_notation,
-    game_from_fen,
-    game_to_fen,
-    get_legal_moves_notation,
-)
+from ludo_database.extensions import DatabaseGame
 from ludo_database.storage import get_database
 from ludo_engine.constants import CONFIG
-from ludo_engine.game import Game
 from ludo_interface.board_viz import draw_board
 
 from .schemas import (
@@ -81,13 +75,11 @@ async def get_board_state(request: BoardStateRequest):
     """
     try:
         if request.fen:
-            game = game_from_fen(request.fen)
+            game = DatabaseGame.from_fen(request.fen)
         else:
-            game = Game()
+            game = DatabaseGame()
 
-        # For demonstration, assume dice roll of 1-6 (client should specify)
-        # In a real implementation, you'd want to roll or have the client provide it
-        fen = game_to_fen(game)
+        fen = game.to_fen()
         current_player = game.current_player.color
         is_finished = game.is_finished()
         winner = game.winner().color if game.winner() else None
@@ -96,7 +88,7 @@ async def get_board_state(request: BoardStateRequest):
         # In practice, you'd compute this after a specific dice roll
         legal_moves = []
         for dice in range(1, 7):
-            moves = get_legal_moves_notation(game, dice)
+            moves = game.get_legal_moves_notation(dice)
             for move in moves:
                 if move not in legal_moves:
                     legal_moves.append(move)
@@ -120,10 +112,9 @@ async def apply_move(request: ApplyMoveRequest):
     dice roll, and move, returns the next position.
     """
     try:
-        game = game_from_fen(request.fen)
+        game = DatabaseGame.from_fen(request.fen)
 
-        result = apply_move_from_notation(game, request.dice, request.move)
-
+        result = game.apply_move_from_notation(request.dice, request.move)
         # Get next player and check if game finished
         next_player = game.current_player.color if not game.is_finished() else None
         game_finished = game.is_finished()
@@ -158,7 +149,7 @@ async def get_empty_board():
         # Clear all tokens to base positions
         for player in empty_players:
             for token in player.tokens:
-                token.board_index = -1
+                token.board_index = None
                 token.steps_taken = 0
                 token.finished = False
 
@@ -182,8 +173,7 @@ async def get_empty_board():
 async def get_board_image(request: BoardImageRequest):
     """Get a board image showing the current state (PNG encoded as base64)."""
     try:
-        game = game_from_fen(request.fen)
-
+        game = DatabaseGame.from_fen(request.fen)
         # Draw board with current token positions
         img = draw_board(game.players)
 
@@ -232,8 +222,8 @@ async def create_game(request: GameCreateRequest):
         db = get_database()
 
         # Create initial board state
-        game = Game()
-        starting_fen = game_to_fen(game)
+        game = DatabaseGame()
+        starting_fen = game.to_fen()
 
         game_record = db.create_game(
             players=request.players,

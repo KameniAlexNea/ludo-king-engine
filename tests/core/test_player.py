@@ -38,8 +38,8 @@ class PlayerTestCase(unittest.TestCase):
         player = Player("yellow")
         for token in player.tokens:
             token.finished = True
-        self.assertEqual(player.finished_count(), CONFIG.tokens_per_player)
-        self.assertTrue(player.has_won())
+        self.assertEqual(player.finished_count, CONFIG.tokens_per_player)
+        self.assertTrue(player.has_won)
 
 
 if __name__ == "__main__":
