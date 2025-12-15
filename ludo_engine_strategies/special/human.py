@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Sequence
 
 from ludo_engine.game import DecisionFn, Game
-from ludo_engine.strategy import PlayerView, StrategicMove, StrategicValueComputer
+from ludo_engine.strategy import PlayerView, StrategicMove
 
 
 def _render_choices(moves: Sequence[StrategicMove]) -> str:

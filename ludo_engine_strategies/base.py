@@ -4,10 +4,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from random import Random
-from typing import List, Optional, Sequence
+from typing import Optional, Sequence
 
 from ludo_engine.game import Decision, DecisionFn, Game
-from ludo_engine.strategy import PlayerView, StrategicMove, StrategicValueComputer, StrategicWeights
+from ludo_engine.strategy import (
+    PlayerView,
+    StrategicMove,
+    StrategicValueComputer,
+    StrategicWeights,
+)
 
 
 @dataclass

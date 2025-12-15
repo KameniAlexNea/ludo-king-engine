@@ -20,7 +20,7 @@ class TournamentConfig:
 
         # Tournament settings
         self.max_turns = self._get_int_env("TOURNAMENT_MAX_TURNS", 200)
-        self.games_per_match = self._get_int_env("TOURNAMENT_GAMES_PER_MATCH", 1)
+        self.games_per_match = self._get_int_env("TOURNAMENT_GAMES_PER_MATCH", 10)
         self.seed = self._get_int_env("TOURNAMENT_SEED", None)
 
         # Strategy settings

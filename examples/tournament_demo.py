@@ -6,12 +6,6 @@ This script demonstrates the tournament system by running competitions
 between different AI strategies using configuration from .env file.
 """
 
-import os
-import sys
-
-# Add the project root to the path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from config import TournamentConfig
 from tournament import LudoTournament
 

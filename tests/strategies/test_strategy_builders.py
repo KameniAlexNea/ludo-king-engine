@@ -5,6 +5,7 @@ from __future__ import annotations
 import unittest
 
 from ludo_engine import CONFIG, Game
+from ludo_engine.strategy import StrategicValueComputer
 from ludo_engine_strategies import build_strategy
 from ludo_engine_strategies.strategy import STRATEGY_BUILDERS, available_strategies
 
@@ -27,12 +28,9 @@ class StrategyBuilderTest(unittest.TestCase):
 
     def _assert_strategy_picks_finishing_move(self, name: str, **kwargs) -> None:
         decision_fn = build_strategy(name, self.game, **kwargs)
-        decision = decision_fn(
-            self.game.players,
-            self.dice_value,
-            self.moves,
-            self.game.current_player_index,
-        )
+        computer = StrategicValueComputer(self.game)
+        evaluation = computer.evaluate(self.dice_value, decision_fn=decision_fn)
+        decision = evaluation.recommended.decision if evaluation.recommended else None
         self.assertEqual(self.moves[0], decision, msg=f"strategy {name} failed")
 
     def test_available_strategies_without_special(self) -> None:
@@ -53,12 +51,9 @@ class StrategyBuilderTest(unittest.TestCase):
             return "choice: 0"
 
         decision_fn = build_strategy("llm", self.game, responder=responder)
-        decision = decision_fn(
-            self.game.players,
-            self.dice_value,
-            self.moves,
-            self.game.current_player_index,
-        )
+        computer = StrategicValueComputer(self.game)
+        evaluation = computer.evaluate(self.dice_value, decision_fn=decision_fn)
+        decision = evaluation.recommended.decision if evaluation.recommended else None
         self.assertEqual(self.moves[0], decision)
 
 

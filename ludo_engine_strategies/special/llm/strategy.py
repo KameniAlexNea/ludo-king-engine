@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Callable, Optional, Sequence
 
 from ludo_engine.game import DecisionFn, Game
-from ludo_engine.strategy import PlayerView, StrategicValueComputer
+from ludo_engine.strategy import PlayerView
 
 from .prompt import build_prompt_from_view
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import unittest
 
 from ludo_engine import CONFIG, Game
+from ludo_engine.strategy import StrategicValueComputer
 from ludo_engine_strategies.baseline import build_random, build_weighted
 
 
@@ -26,12 +27,9 @@ class RandomBaselineStrategyTest(unittest.TestCase):
     def test_random_strategy_returns_only_move(self) -> None:
         dice_value, moves = prepare_finishing_move(self.game)
         strategy = build_random(self.game, seed=123)
-        decision = strategy(
-            self.game.players,
-            dice_value,
-            moves,
-            self.game.current_player_index,
-        )
+        computer = StrategicValueComputer(self.game)
+        evaluation = computer.evaluate(dice_value, decision_fn=strategy)
+        decision = evaluation.recommended.decision if evaluation.recommended else None
         self.assertEqual(moves, [decision])
 
     def test_weighted_random_returns_only_move(self) -> None:
@@ -42,12 +40,9 @@ class RandomBaselineStrategyTest(unittest.TestCase):
             epsilon=0.0,
             seed=5,
         )
-        decision = strategy(
-            self.game.players,
-            dice_value,
-            moves,
-            self.game.current_player_index,
-        )
+        computer = StrategicValueComputer(self.game)
+        evaluation = computer.evaluate(dice_value, decision_fn=strategy)
+        decision = evaluation.recommended.decision if evaluation.recommended else None
         self.assertEqual(moves, [decision])
 
 

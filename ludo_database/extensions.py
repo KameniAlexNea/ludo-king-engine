@@ -5,11 +5,7 @@ from __future__ import annotations
 from typing import Dict, List
 
 from ludo_database.notation import decision_to_notation, fen_to_state, state_to_fen
-from ludo_database.validation import (
-    validate_dice,
-    validate_fen,
-    validate_move_notation,
-)
+from ludo_database.validation import validate_dice, validate_fen, validate_move_notation
 from ludo_engine.constants import CONFIG
 from ludo_engine.game import Game
 from ludo_engine.player import Player

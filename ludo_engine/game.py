@@ -14,11 +14,11 @@ Decision = Tuple[str, int]  # (action, token_index)
 # DecisionFn now receives enriched PlayerView data from StrategicValueComputer
 # Signature: (players: List[PlayerView], dice_value: int, current_index: int) -> Optional[Decision]
 # Import will be resolved at runtime to avoid circular dependency
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from .strategy import PlayerView
 
-DecisionFn = Callable[[Sequence, int, int], Optional[Decision]]  # (players: List[PlayerView], dice, current_idx)
+
+DecisionFn = Callable[
+    [Sequence, int, int], Optional[Decision]
+]  # (players: List[PlayerView], dice, current_idx)
 
 
 @dataclass
@@ -73,6 +73,7 @@ class Game:
         if moves and active_decider is not None:
             # Use StrategicValueComputer to get enriched PlayerView data
             from .strategy import StrategicValueComputer
+
             computer = StrategicValueComputer(self)
             evaluation = computer.evaluate(dice_value, decision_fn=active_decider)
             if evaluation.recommended:

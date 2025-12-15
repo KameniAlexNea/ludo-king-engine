@@ -6,9 +6,11 @@ from ludo_engine.game import Game
 from ludo_engine.strategy import StrategicEvaluation, StrategicValueComputer
 
 
-def choose_last(players, dice_value, moves, current_index):
-    _ = players, dice_value, current_index
-    return moves[-1] if moves else None
+def choose_last(players, dice_value, current_index):
+    """Choose last available move from PlayerView."""
+    _ = dice_value
+    current_player = players[current_index]
+    return current_player.moves[-1].decision if current_player.moves else None
 
 
 class StrategicValueComputerTestCase(unittest.TestCase):

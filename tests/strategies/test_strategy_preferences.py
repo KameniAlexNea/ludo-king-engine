@@ -5,7 +5,7 @@ from __future__ import annotations
 import unittest
 
 from ludo_engine import Game
-from ludo_engine.strategy import StrategicMove
+from ludo_engine.strategy import PlayerView, StrategicMove
 from ludo_engine_strategies.aggressive.killer import KillerStrategy
 from ludo_engine_strategies.aggressive.optimist import OptimistStrategy
 from ludo_engine_strategies.base import StrategyContext
@@ -48,6 +48,26 @@ def make_move(
     )
 
 
+def make_context(dice_value: int, moves: list[StrategicMove], current_index: int = 0):
+    """Create minimal StrategyContext for testing."""
+    # Create minimal PlayerView for current player
+    player_view = PlayerView(
+        index=current_index,
+        color="red",
+        finished_tokens=0,
+        active_tokens=1,
+        home_tokens=3,
+        tokens=[],
+        moves=moves,
+    )
+    return StrategyContext(
+        dice_value=dice_value,
+        players=[player_view],
+        current_index=current_index,
+        moves=moves,
+    )
+
+
 class FixedRandom:
     def __init__(self, value: float = 0.0):
         self._value = value
@@ -67,7 +87,7 @@ class StrategyPreferenceTest(unittest.TestCase):
         strategy = BalancedStrategy(self.game)
         safe_capture = make_move(will_capture=True, is_safe=True, score=32.0)
         risky_progress = make_move(score=35.0, decision=("advance", 1), token_index=1)
-        context = StrategyContext(dice_value=5, moves=[risky_progress, safe_capture])
+        context = make_context(dice_value=5, moves=[risky_progress, safe_capture])
         self.assertIs(strategy.select_move(context), safe_capture)
 
     def test_killer_prefers_capture(self) -> None:
@@ -76,7 +96,7 @@ class StrategyPreferenceTest(unittest.TestCase):
         safe_move = make_move(
             is_safe=True, score=40.0, decision=("advance", 1), token_index=1
         )
-        context = StrategyContext(dice_value=4, moves=[safe_move, capture_move])
+        context = make_context(dice_value=4, moves=[safe_move, capture_move])
         self.assertIs(killer.select_move(context), capture_move)
 
     def test_optimist_prefers_risky_capture(self) -> None:
@@ -85,21 +105,21 @@ class StrategyPreferenceTest(unittest.TestCase):
         progress_move = make_move(
             distance_to_finish=8, score=30.0, decision=("advance", 1), token_index=1
         )
-        context = StrategyContext(dice_value=5, moves=[capture_move, progress_move])
+        context = make_context(dice_value=5, moves=[capture_move, progress_move])
         self.assertIs(optimist.select_move(context), capture_move)
 
     def test_cautious_prefers_safe_move(self) -> None:
         cautious = CautiousStrategy(self.game)
         safe_move = make_move(is_safe=True, score=20.0)
         risky_move = make_move(score=30.0, decision=("advance", 1), token_index=1)
-        context = StrategyContext(dice_value=2, moves=[risky_move, safe_move])
+        context = make_context(dice_value=2, moves=[risky_move, safe_move])
         self.assertIs(cautious.select_move(context), safe_move)
 
     def test_defensive_prefers_safe_capture(self) -> None:
         defensive = DefensiveStrategy(self.game)
         safe_capture = make_move(will_capture=True, is_safe=True, score=40.0)
         risky_move = make_move(score=45.0, decision=("advance", 1), token_index=1)
-        context = StrategyContext(dice_value=3, moves=[risky_move, safe_capture])
+        context = make_context(dice_value=3, moves=[risky_move, safe_capture])
         self.assertIs(defensive.select_move(context), safe_capture)
 
     def test_winner_prefers_home_stretch(self) -> None:
@@ -108,7 +128,7 @@ class StrategyPreferenceTest(unittest.TestCase):
         far_move = make_move(
             distance_to_finish=12, score=40.0, decision=("advance", 1), token_index=1
         )
-        context = StrategyContext(dice_value=2, moves=[far_move, home_move])
+        context = make_context(dice_value=2, moves=[far_move, home_move])
         self.assertIs(winner.select_move(context), home_move)
 
     def test_hybrid_prob_respects_finish_priority(self) -> None:
@@ -117,7 +137,7 @@ class StrategyPreferenceTest(unittest.TestCase):
         capture_move = make_move(
             will_capture=True, score=60.0, decision=("advance", 1), token_index=1
         )
-        context = StrategyContext(dice_value=6, moves=[capture_move, finish_move])
+        context = make_context(dice_value=6, moves=[capture_move, finish_move])
         self.assertIs(strategy.select_move(context), finish_move)
 
     def test_probabilistic_strategy_biases_high_score(self) -> None:
@@ -128,7 +148,7 @@ class StrategyPreferenceTest(unittest.TestCase):
         )
         high = make_move(score=80.0)
         low = make_move(score=10.0, decision=("advance", 1), token_index=1)
-        context = StrategyContext(dice_value=4, moves=[high, low])
+        context = make_context(dice_value=4, moves=[high, low])
         self.assertIs(strategy.select_move(context), high)
 
     def test_probabilistic_v2_prefers_safe_bias(self) -> None:
@@ -139,7 +159,7 @@ class StrategyPreferenceTest(unittest.TestCase):
         )
         safe = make_move(is_safe=True, score=25.0)
         risky = make_move(score=30.0, decision=("advance", 1), token_index=1)
-        context = StrategyContext(dice_value=2, moves=[safe, risky])
+        context = make_context(dice_value=2, moves=[safe, risky])
         self.assertIs(strategy.select_move(context), safe)
 
     def test_probabilistic_v3_focuses_top_rank(self) -> None:
@@ -150,7 +170,7 @@ class StrategyPreferenceTest(unittest.TestCase):
         )
         best = make_move(score=55.0)
         other = make_move(score=30.0, decision=("advance", 1), token_index=1)
-        context = StrategyContext(dice_value=3, moves=[best, other])
+        context = make_context(dice_value=3, moves=[best, other])
         self.assertIs(strategy.select_move(context), best)
 
 
