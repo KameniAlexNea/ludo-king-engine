@@ -26,9 +26,13 @@ class BoardStateResponse(BaseModel):
 class ApplyMoveRequest(BaseModel):
     """Request to apply a move to a board state."""
 
-    fen: str = Field(..., description="Current board state in FEN notation")
+    fen: str = Field(
+        ..., max_length=2000, description="Current board state in FEN notation"
+    )
     dice: int = Field(..., ge=1, le=6, description="Dice value rolled")
-    move: str = Field(..., description="Move in notation format (e.g., 'r1e', 'g2a5')")
+    move: str = Field(
+        ..., max_length=20, description="Move in notation format (e.g., 'r1e', 'g2a5')"
+    )
 
 
 class ApplyMoveResponse(BaseModel):
@@ -57,7 +61,7 @@ class EmptyBoardResponse(BaseModel):
 class BoardImageRequest(BaseModel):
     """Request for board image with current state."""
 
-    fen: str = Field(..., description="Board state in FEN notation")
+    fen: str = Field(..., max_length=2000, description="Board state in FEN notation")
 
 
 class BoardImageResponse(BaseModel):
@@ -83,8 +87,8 @@ class GameCreateRequest(BaseModel):
     """Request to create a new game record."""
 
     players: Dict[str, str] = Field(..., description="Player names by color")
-    event: str = Field("Casual Game", description="Event name")
-    site: str = Field("Ludo Engine", description="Site identifier")
+    event: str = Field("Casual Game", max_length=200, description="Event name")
+    site: str = Field("Ludo Engine", max_length=100, description="Site identifier")
 
 
 class GameUpdateRequest(BaseModel):
@@ -112,11 +116,15 @@ class GameResponse(BaseModel):
 class GameQueryRequest(BaseModel):
     """Request to query games."""
 
-    player_name: Optional[str] = Field(None, description="Filter by player name")
-    player_color: Optional[str] = Field(None, description="Filter by player color")
-    result: Optional[str] = Field(None, description="Filter by result")
-    min_moves: Optional[int] = Field(None, description="Minimum number of moves")
-    max_moves: Optional[int] = Field(None, description="Maximum number of moves")
+    player_name: Optional[str] = Field(
+        None, max_length=50, description="Filter by player name"
+    )
+    player_color: Optional[str] = Field(
+        None, max_length=20, description="Filter by player color"
+    )
+    result: Optional[str] = Field(None, max_length=50, description="Filter by result")
+    min_moves: Optional[int] = Field(None, ge=0, description="Minimum number of moves")
+    max_moves: Optional[int] = Field(None, ge=0, description="Maximum number of moves")
     limit: int = Field(10, ge=1, le=100, description="Maximum results to return")
     offset: int = Field(0, ge=0, description="Result offset for pagination")
 
@@ -133,7 +141,7 @@ class GameQueryResponse(BaseModel):
 class PositionStatsRequest(BaseModel):
     """Request for position statistics."""
 
-    fen: str = Field(..., description="Board position in FEN notation")
+    fen: str = Field(..., max_length=2000, description="Board position in FEN notation")
 
 
 class MoveStatsData(BaseModel):

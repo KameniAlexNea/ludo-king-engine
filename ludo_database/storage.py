@@ -14,6 +14,12 @@ from sqlmodel import Field, Session, SQLModel, create_engine, select
 from ludo_database.models import GameRecord as GameRecordModel
 from ludo_database.models import MoveRecord as MoveRecordModel
 from ludo_database.models import PositionStats as PositionStatsModel
+from ludo_database.validation import (
+    validate_fen,
+    validate_game_id,
+    validate_query_limit,
+    validate_query_offset,
+)
 
 
 class GameRecord(SQLModel, table=True):
@@ -119,6 +125,9 @@ class GameDatabase:
         move: MoveRecordModel,
     ) -> GameRecordModel:
         """Add a move to a game."""
+        validate_game_id(game_id)
+        validate_fen(move.fen_after)
+
         with Session(self.engine) as session:
             game = session.get(GameRecord, game_id)
             if not game:
@@ -156,6 +165,8 @@ class GameDatabase:
         termination: str = "normal",
     ) -> GameRecordModel:
         """Mark a game as finished."""
+        validate_game_id(game_id)
+
         with Session(self.engine) as session:
             game = session.get(GameRecord, game_id)
             if not game:
@@ -174,6 +185,8 @@ class GameDatabase:
 
     def get_game(self, game_id: str) -> Optional[GameRecordModel]:
         """Get a game by ID."""
+        validate_game_id(game_id)
+
         with Session(self.engine) as session:
             game = session.get(GameRecord, game_id)
             return self._to_model(game) if game else None
@@ -188,6 +201,9 @@ class GameDatabase:
         offset: int = 0,
     ) -> List[GameRecordModel]:
         """Query games with filters."""
+        validate_query_limit(limit)
+        validate_query_offset(offset)
+
         with Session(self.engine) as session:
             statement = select(GameRecord)
 
@@ -231,6 +247,7 @@ class GameDatabase:
 
     def get_position_stats(self, fen: str) -> Optional[PositionStatsModel]:
         """Get statistics for a position."""
+        validate_fen(fen)
         pos_hash = self._position_hash(fen)
         with Session(self.engine) as session:
             stats = session.get(PositionStats, pos_hash)

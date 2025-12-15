@@ -23,19 +23,27 @@ classifiers = [
     "Topic :: Games/Entertainment :: Board Games",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
+dependencies = [
+]
 
 [project.optional-dependencies]
 dev = [
     "tox",
+    "pytest",
+    "pytest-cov"
 ]
 gradio = [
-    "gradio>=5.46.0",
-    "Pillow>=11.3.0",
+    "gradio",
+    "Pillow"
+]
+webservices = [
+    "Pillow",
     "fastapi>=0.104.0",
     "pydantic>=2.0.0",
     "python-multipart>=0.0.6",
     "sqlmodel>=0.0.14",
     "uvicorn[standard]>=0.24.0",
+    "sqlmodel>=0.0.27",
 ]
 
 [project.urls]

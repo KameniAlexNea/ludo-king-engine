@@ -5,6 +5,11 @@ from __future__ import annotations
 from typing import Dict, List
 
 from ludo_database.notation import decision_to_notation, fen_to_state, state_to_fen
+from ludo_database.validation import (
+    validate_dice,
+    validate_fen,
+    validate_move_notation,
+)
 from ludo_engine.constants import CONFIG
 from ludo_engine.game import Game
 from ludo_engine.player import Player
@@ -20,6 +25,7 @@ class DatabaseGame(Game):
     @classmethod
     def from_fen(cls, fen: str) -> DatabaseGame:
         """Create game from FEN string."""
+        validate_fen(fen)
         current_player_color, token_lists = fen_to_state(fen)
 
         players = []
@@ -62,6 +68,8 @@ class DatabaseGame(Game):
         from ludo_database.notation import notation_to_decision
 
         try:
+            validate_dice(dice)
+            validate_move_notation(move_notation)
             decision, expected_dice, _ = notation_to_decision(move_notation)
 
             # Validate dice matches
@@ -103,6 +111,7 @@ class DatabaseGame(Game):
 
     def get_legal_moves_notation(self, dice: int) -> List[str]:
         """Get all legal moves in notation format."""
+        validate_dice(dice)
         player = self.current_player
         decisions = self.available_moves(player, dice)
         return [decision_to_notation(decision, dice) for decision in decisions]

@@ -3,6 +3,7 @@
 from .extensions import DatabaseGame
 from .models import GameRecord, MoveRecord, PositionStats
 from .notation import LudoNotation, fen_to_state, from_ldn, state_to_fen, to_ldn
+from .validation import ValidationError
 
 __all__ = [
     "DatabaseGame",
@@ -14,4 +15,5 @@ __all__ = [
     "GameRecord",
     "MoveRecord",
     "PositionStats",
+    "ValidationError",
 ]

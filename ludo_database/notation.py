@@ -9,12 +9,14 @@ Format similar to chess PGN:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from ludo_engine.constants import CONFIG
 from ludo_engine.game import Decision, Game
-from ludo_engine.player import Player
 from ludo_engine.token import Token
+
+if TYPE_CHECKING:
+    pass
 
 
 @dataclass
@@ -278,30 +280,17 @@ def to_ldn(game: Game, metadata: Optional[Dict] = None) -> LudoNotation:
     return notation
 
 
-def from_ldn(ldn_string: str) -> Tuple[Game, LudoNotation]:
-    """Parse LDN string and create a Game object in that state."""
+def from_ldn(ldn_string: str):
+    """Parse LDN string and create a DatabaseGame object in that state."""
+    from ludo_database.extensions import DatabaseGame
+
     notation = LudoNotation.from_ldn_string(ldn_string)
 
     # Create game from FEN if available
     if notation.fen:
-        current_player_color, token_lists = fen_to_state(notation.fen)
-
-        players = []
-        for i, color in enumerate(CONFIG.colors):
-            player = Player(color)
-            if i < len(token_lists):
-                player.tokens = token_lists[i]
-            players.append(player)
-
-        game = Game(players=players)
-
-        # Set current player
-        for i, player in enumerate(game.players):
-            if player.color == current_player_color:
-                game.current_player_index = i
-                break
+        game = DatabaseGame.from_fen(notation.fen)
     else:
-        game = Game()
+        game = DatabaseGame()
 
     return game, notation
 

@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ludo_database.extensions import DatabaseGame
 from ludo_database.storage import get_database
+from ludo_database.validation import ValidationError
 from ludo_engine.constants import CONFIG
 from ludo_interface.board_viz import draw_board
 
@@ -74,6 +75,10 @@ async def get_board_state(request: BoardStateRequest):
     Otherwise returns a new game state.
     """
     try:
+        if request.fen and len(request.fen) > 2000:
+            raise HTTPException(
+                status_code=400, detail="FEN string too long (max 2000 characters)"
+            )
         if request.fen:
             game = DatabaseGame.from_fen(request.fen)
         else:
@@ -100,8 +105,10 @@ async def get_board_state(request: BoardStateRequest):
             is_finished=is_finished,
             winner=winner,
         )
-    except Exception as e:
+    except ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/move", response_model=ApplyMoveResponse)
@@ -112,6 +119,14 @@ async def apply_move(request: ApplyMoveRequest):
     dice roll, and move, returns the next position.
     """
     try:
+        if len(request.fen) > 2000:
+            raise HTTPException(
+                status_code=400, detail="FEN string too long (max 2000 characters)"
+            )
+        if len(request.move) > 20:
+            raise HTTPException(
+                status_code=400, detail="Move notation too long (max 20 characters)"
+            )
         game = DatabaseGame.from_fen(request.fen)
 
         result = game.apply_move_from_notation(request.dice, request.move)
@@ -130,8 +145,10 @@ async def apply_move(request: ApplyMoveRequest):
             game_finished=game_finished,
             winner=winner,
         )
-    except Exception as e:
+    except ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/board/empty", response_model=EmptyBoardResponse)
@@ -187,8 +204,10 @@ async def get_board_image(request: BoardImageRequest):
             width=img.width,
             height=img.height,
         )
-    except Exception as e:
+    except ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/colors")
@@ -244,61 +263,22 @@ async def create_game(request: GameCreateRequest):
             starting_fen=game_record.starting_fen,
             moves=[],
         )
-    except Exception as e:
+    except ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/games/{game_id}", response_model=GameResponse)
 async def get_game(game_id: str):
     """Get a specific game by ID."""
-    db = get_database()
-    game_record = db.get_game(game_id)
+    try:
+        db = get_database()
+        game_record = db.get_game(game_id)
 
-    if not game_record:
-        raise HTTPException(status_code=404, detail="Game not found")
+        if not game_record:
+            raise HTTPException(status_code=404, detail="Game not found")
 
-    moves = [
-        MoveData(
-            move_number=m.move_number,
-            player_color=m.player_color,
-            dice_value=m.dice_value,
-            move_notation=f"{m.player_color[0]}{m.token_index}{m.action[0]}",
-            captured=m.captured,
-            finished=m.finished,
-        )
-        for m in game_record.moves
-    ]
-
-    return GameResponse(
-        game_id=game_record.game_id,
-        event=game_record.event,
-        site=game_record.site,
-        date=game_record.date,
-        players=game_record.players,
-        result=game_record.result,
-        winner_color=game_record.winner_color,
-        total_moves=game_record.total_moves,
-        starting_fen=game_record.starting_fen,
-        moves=moves,
-    )
-
-
-@app.post("/api/games/query", response_model=GameQueryResponse)
-async def query_games(request: GameQueryRequest):
-    """Query games with filters."""
-    db = get_database()
-
-    games = db.query_games(
-        player_name=request.player_name,
-        result=request.result,
-        min_moves=request.min_moves,
-        max_moves=request.max_moves,
-        limit=request.limit,
-        offset=request.offset,
-    )
-
-    game_responses = []
-    for game_record in games:
         moves = [
             MoveData(
                 move_number=m.move_number,
@@ -308,79 +288,137 @@ async def query_games(request: GameQueryRequest):
                 captured=m.captured,
                 finished=m.finished,
             )
-            for m in game_record.moves[:10]  # Limit moves in list response
+            for m in game_record.moves
         ]
 
-        game_responses.append(
-            GameResponse(
-                game_id=game_record.game_id,
-                event=game_record.event,
-                site=game_record.site,
-                date=game_record.date,
-                players=game_record.players,
-                result=game_record.result,
-                winner_color=game_record.winner_color,
-                total_moves=game_record.total_moves,
-                starting_fen=game_record.starting_fen,
-                moves=moves,
-            )
+        return GameResponse(
+            game_id=game_record.game_id,
+            event=game_record.event,
+            site=game_record.site,
+            date=game_record.date,
+            players=game_record.players,
+            result=game_record.result,
+            winner_color=game_record.winner_color,
+            total_moves=game_record.total_moves,
+            starting_fen=game_record.starting_fen,
+            moves=moves,
+        )
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/games/query", response_model=GameQueryResponse)
+async def query_games(request: GameQueryRequest):
+    """Query games with filters."""
+    try:
+        db = get_database()
+
+        games = db.query_games(
+            player_name=request.player_name,
+            result=request.result,
+            min_moves=request.min_moves,
+            max_moves=request.max_moves,
+            limit=request.limit,
+            offset=request.offset,
         )
 
-    return GameQueryResponse(
-        games=game_responses,
-        total_count=len(games),
-        offset=request.offset,
-        limit=request.limit,
-    )
+        game_responses = []
+        for game_record in games:
+            moves = [
+                MoveData(
+                    move_number=m.move_number,
+                    player_color=m.player_color,
+                    dice_value=m.dice_value,
+                    move_notation=f"{m.player_color[0]}{m.token_index}{m.action[0]}",
+                    captured=m.captured,
+                    finished=m.finished,
+                )
+                for m in game_record.moves[:10]  # Limit moves in list response
+            ]
+
+            game_responses.append(
+                GameResponse(
+                    game_id=game_record.game_id,
+                    event=game_record.event,
+                    site=game_record.site,
+                    date=game_record.date,
+                    players=game_record.players,
+                    result=game_record.result,
+                    winner_color=game_record.winner_color,
+                    total_moves=game_record.total_moves,
+                    starting_fen=game_record.starting_fen,
+                    moves=moves,
+                )
+            )
+
+        return GameQueryResponse(
+            games=game_responses,
+            total_count=len(games),
+            offset=request.offset,
+            limit=request.limit,
+        )
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/positions/stats", response_model=PositionStatsResponse)
 async def get_position_stats(request: PositionStatsRequest):
     """Get statistics for a board position."""
-    db = get_database()
+    try:
+        db = get_database()
 
-    stats = db.get_position_stats(request.fen)
+        stats = db.get_position_stats(request.fen)
 
-    if not stats:
-        # Return empty stats if position hasn't been seen
-        return PositionStatsResponse(
-            fen=request.fen,
-            times_reached=0,
-            move_stats=[],
-            winrates={},
-        )
-
-    # Calculate move statistics
-    move_stats = []
-    for move_notation, times_played in stats.moves_played.items():
-        wins = stats.move_wins.get(move_notation, 0)
-        winrate = (wins / times_played * 100) if times_played > 0 else 0.0
-
-        move_stats.append(
-            MoveStatsData(
-                move_notation=move_notation,
-                times_played=times_played,
-                wins=wins,
-                draws=0,  # TODO: track separately
-                losses=times_played - wins,
-                winrate=winrate,
+        if not stats:
+            # Return empty stats if position hasn't been seen
+            return PositionStatsResponse(
+                fen=request.fen,
+                times_reached=0,
+                move_stats=[],
+                winrates={},
             )
+
+        # Calculate move statistics
+        move_stats = []
+        for move_notation, times_played in stats.moves_played.items():
+            wins = stats.move_wins.get(move_notation, 0)
+            winrate = (wins / times_played * 100) if times_played > 0 else 0.0
+
+            move_stats.append(
+                MoveStatsData(
+                    move_notation=move_notation,
+                    times_played=times_played,
+                    wins=wins,
+                    draws=0,  # TODO: track separately
+                    losses=times_played - wins,
+                    winrate=winrate,
+                )
+            )
+
+        # Sort by times played
+        move_stats.sort(key=lambda m: m.times_played, reverse=True)
+
+        # Calculate winrates by color
+        winrates = {}
+        for color in CONFIG.colors:
+            winrates[color] = stats.winrate(color)
+
+        return PositionStatsResponse(
+            fen=stats.fen,
+            times_reached=stats.times_reached,
+            move_stats=move_stats,
+            winrates=winrates,
         )
-
-    # Sort by times played
-    move_stats.sort(key=lambda m: m.times_played, reverse=True)
-
-    # Calculate winrates by color
-    winrates = {}
-    for color in CONFIG.colors:
-        winrates[color] = stats.winrate(color)
-
-    return PositionStatsResponse(
-        fen=stats.fen,
-        times_reached=stats.times_reached,
-        move_stats=move_stats,
-        winrates=winrates,
-    )
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/stats")
@@ -393,26 +431,36 @@ async def get_database_stats():
 @app.get("/api/games/recent")
 async def get_recent_games(days: int = 30, limit: int = 100):
     """Get games from the last N days (default 30)."""
-    from datetime import datetime, timedelta
+    try:
+        if days < 1 or days > 365:
+            raise ValidationError("Days must be between 1 and 365")
+        if limit < 1 or limit > 100:
+            raise ValidationError("Limit must be between 1 and 100")
 
-    db = get_database()
-    cutoff = datetime.now() - timedelta(days=days)
+        from datetime import datetime, timedelta
 
-    recent = [
-        game
-        for game in db.games.values()
-        if game.created_at and game.created_at >= cutoff
-    ]
+        db = get_database()
+        cutoff = datetime.now() - timedelta(days=days)
 
-    # Sort by date, most recent first
-    recent.sort(key=lambda g: g.created_at or datetime.min, reverse=True)
-    recent = recent[:limit]
+        recent = [
+            game
+            for game in db.games.values()
+            if game.created_at and game.created_at >= cutoff
+        ]
 
-    return {
-        "games": [game.to_dict() for game in recent],
-        "count": len(recent),
-        "days": days,
-    }
+        # Sort by date, most recent first
+        recent.sort(key=lambda g: g.created_at or datetime.min, reverse=True)
+        recent = recent[:limit]
+
+        return {
+            "games": [game.to_dict() for game in recent],
+            "count": len(recent),
+            "days": days,
+        }
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
