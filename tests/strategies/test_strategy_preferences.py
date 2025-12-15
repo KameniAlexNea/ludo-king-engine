@@ -5,7 +5,6 @@ from __future__ import annotations
 import unittest
 
 from ludo_engine import Game
-from ludo_engine.strategy import PlayerView, StrategicMove
 from ludo_engine_strategies.aggressive.killer import KillerStrategy
 from ludo_engine_strategies.aggressive.optimist import OptimistStrategy
 from ludo_engine_strategies.base import StrategyContext
@@ -21,6 +20,7 @@ from ludo_engine_strategies.probabilistic.probabilistic_v2 import (
 from ludo_engine_strategies.probabilistic.probabilistic_v3 import (
     ProbabilisticV3Strategy,
 )
+from ludo_engine_strategies.strategic_computer import PlayerView, StrategicMove
 
 
 def make_move(

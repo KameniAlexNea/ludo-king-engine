@@ -5,8 +5,8 @@ from __future__ import annotations
 import unittest
 
 from ludo_engine import CONFIG, Game
-from ludo_engine.strategy import StrategicValueComputer
 from ludo_engine_strategies.baseline import build_random, build_weighted
+from ludo_engine_strategies.strategic_computer import StrategicValueComputer
 
 
 def prepare_finishing_move(game: Game) -> tuple[int, list]:
