@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Sequence
 
 from ludo_engine.game import DecisionFn, Game
-from ludo_engine.strategy import StrategicValueComputer
+from ludo_engine.strategy import PlayerView, StrategicValueComputer
 
-from .prompt import build_prompt
+from .prompt import build_prompt_from_view
 
 Responder = Callable[[str], Optional[str]]
 
@@ -20,16 +20,13 @@ def build(
 ) -> DecisionFn:
     """Create a decision function that can defer to an external responder."""
 
-    computer = StrategicValueComputer(game)
-
-    def decide(players, dice_value, moves, current_index):
-        _ = players, moves
-        evaluation = computer.evaluate(dice_value)
-        current = evaluation.players[current_index]
+    def decide(players: Sequence[PlayerView], dice_value: int, current_index: int):
+        # Now receives enriched PlayerView data directly - no re-computation needed!
+        current = players[current_index]
         if not current.moves:
             return None
 
-        prompt = build_prompt(evaluation)
+        prompt = build_prompt_from_view(players, dice_value, current_index)
         if echo_prompt:
             print(prompt)
 

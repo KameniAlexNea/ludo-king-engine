@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Sequence
 
-from ludo_engine.strategy import StrategicEvaluation, StrategicMove
+from ludo_engine.strategy import PlayerView, StrategicEvaluation, StrategicMove
 
 
 def _render_move(move: StrategicMove, index: int) -> str:
@@ -22,8 +22,11 @@ def _render_move(move: StrategicMove, index: int) -> str:
     return f"[{index}] {decision} (token {move.token_index}) -> {trait_str}"
 
 
-def build_prompt(evaluation: StrategicEvaluation) -> str:
-    player = evaluation.players[evaluation.current_index]
+def build_prompt_from_view(
+    players: Sequence[PlayerView], dice_value: int, current_index: int
+) -> str:
+    """Build prompt from PlayerView data directly."""
+    player = players[current_index]
     header = [
         "You are an assistant selecting the best Ludo move for the current player.",
         "Consider the dice roll, safety, captures, and distance to finish.",
@@ -31,7 +34,7 @@ def build_prompt(evaluation: StrategicEvaluation) -> str:
         "If no move should be played, respond with `choice: none`.",
         "",
         "Game context:",
-        f"- Dice roll: {evaluation.dice_value}",
+        f"- Dice roll: {dice_value}",
         f"- Current player: {player.color}",
         "",
         "Available moves:",
@@ -50,4 +53,11 @@ def build_prompt(evaluation: StrategicEvaluation) -> str:
     return "\n".join(header + body + footer)
 
 
-__all__ = ["build_prompt"]
+def build_prompt(evaluation: StrategicEvaluation) -> str:
+    """Backward-compatible wrapper for StrategicEvaluation."""
+    return build_prompt_from_view(
+        evaluation.players, evaluation.dice_value, evaluation.current_index
+    )
+
+
+__all__ = ["build_prompt", "build_prompt_from_view"]

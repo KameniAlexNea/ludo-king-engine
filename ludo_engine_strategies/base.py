@@ -7,7 +7,7 @@ from random import Random
 from typing import List, Optional, Sequence
 
 from ludo_engine.game import Decision, DecisionFn, Game
-from ludo_engine.strategy import StrategicMove, StrategicValueComputer, StrategicWeights
+from ludo_engine.strategy import PlayerView, StrategicMove, StrategicValueComputer, StrategicWeights
 
 
 @dataclass
@@ -15,7 +15,9 @@ class StrategyContext:
     """Lightweight container passed to selection hooks."""
 
     dice_value: int
-    moves: Sequence[StrategicMove]
+    players: Sequence[PlayerView]
+    current_index: int
+    moves: Sequence[StrategicMove]  # Shortcut to players[current_index].moves
 
 
 class StrategyAdapter:
@@ -35,29 +37,20 @@ class StrategyAdapter:
     def as_decision_fn(self) -> DecisionFn:
         """Expose the strategy as a :class:`DecisionFn`."""
 
-        def _no_recommendation(
-            players: List,
-            dice_value: int,
-            moves: Sequence[Decision],
-            current_index: int,
-        ) -> Optional[Decision]:
-            _ = players, dice_value, moves, current_index
-            return None
-
         def _decide(
-            players: List,  # unused – kept for compatibility with DecisionFn signature
+            players: Sequence[PlayerView],  # Now receives enriched PlayerView data!
             dice_value: int,
-            moves: Sequence[Decision],
             current_index: int,
         ) -> Optional[Decision]:
-            _ = players, moves  # the strategic view already recomputes enriched moves
-            # Important: pass an explicit decision_fn so StrategicValueComputer does not
-            # fall back to game.strategies (which would call back into this DecisionFn).
-            evaluation = self._computer.evaluate(
-                dice_value, decision_fn=_no_recommendation
+            # No need to re-compute - we receive enriched data directly
+            current = players[current_index]
+            context = StrategyContext(
+                dice_value=dice_value,
+                players=players,
+                current_index=current_index,
+                moves=current.moves,
             )
-            current = evaluation.players[current_index]
-            chosen = self.select_move(StrategyContext(dice_value, current.moves))
+            chosen = self.select_move(context)
             return chosen.decision if chosen else None
 
         return _decide

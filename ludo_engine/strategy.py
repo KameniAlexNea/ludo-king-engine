@@ -256,11 +256,11 @@ class StrategicValueComputer:
         if chooser is None:
             return None
 
-        decisions = [move.decision for move in players[current_index].moves]
-        if not decisions:
+        if not players[current_index].moves:
             return None
 
-        choice = chooser(self._game.players, dice_value, decisions, current_index)
+        # Pass enriched PlayerView data to strategy instead of raw Player objects
+        choice = chooser(players, dice_value, current_index)
         if choice is None:
             return None
 
